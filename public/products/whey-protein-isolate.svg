@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#262626"/>
+      <stop offset="0.55" stop-color="#141414"/>
+      <stop offset="1" stop-color="#0B0B0B"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#6b4129" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#6b4129" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#050505"/>
+      <stop offset="0.18" stop-color="#2a2a2a"/>
+      <stop offset="0.32" stop-color="#151515"/>
+      <stop offset="0.8" stop-color="#0d0d0d"/>
+      <stop offset="1" stop-color="#030303"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f4f4"/>
+      <stop offset="0.5" stop-color="#9a9a9a"/>
+      <stop offset="1" stop-color="#e0e0e0"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="#fff" stop-opacity=".10"/>
+      <stop offset="0.28" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <ellipse cx="450" cy="540" rx="430" ry="430" fill="url(#glow)"/>
+  <g stroke="#2E2E2E" stroke-width="1.5" opacity=".6">
+    <path d="M0 1032 L900 1032"/>
+  </g><g transform="translate(450 1032) scale(1.27) translate(-450 -1032)">
+    <ellipse cx="450" cy="1036" rx="322.4" ry="26" fill="url(#shadow)"/>
+    <rect x="190" y="432" width="520" height="600" rx="34" fill="url(#body)"/>
+    <rect x="190" y="432" width="520" height="600" rx="34" fill="url(#sheen)"/>
+    <rect x="182" y="350" width="536" height="92" rx="18" fill="#141414"/>
+    <path d="M196.0909090909091 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M220.27272727272728 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M244.45454545454547 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M268.6363636363636 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M292.8181818181818 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M317 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M341.1818181818182 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M365.3636363636364 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M389.54545454545456 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M413.72727272727275 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M437.90909090909093 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M462.0909090909091 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M486.2727272727273 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M510.4545454545455 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M534.6363636363637 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M558.8181818181819 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M583 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M607.1818181818182 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M631.3636363636364 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M655.5454545454545 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M679.7272727272727 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M703.909090909091 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/>
+    <rect x="182" y="350" width="536" height="10" rx="5" fill="#2c2c2c"/>
+    <rect x="190" y="446" width="520" height="8" fill="#FFE600"/>
+    
+    <g transform="translate(413 501.8) scale(0.74)">
+    <path d="M22 44 L48 6 Q50 3 52 6 L82 50 L74 52 L50 18 L30 46 Z" fill="url(#silver)"/>
+    <path d="M2 62 Q44 26 66 40 Q76 46 96 64 L88 64 Q72 50 62 46 Q44 38 12 62 Z" fill="#FFE600"/>
+  </g>
+    <text x="450" y="580" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="26" letter-spacing="4.68" fill="#fff">AIONIX</text>
+    <rect x="225" y="594" width="450" height="6" fill="#FFE600"/>
+    <text x="450" y="654.8" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="64" letter-spacing="1" fill="#fff">WHEY</text><text x="450" y="720.0799999999999" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="64" letter-spacing="1" fill="#fff">ISOLATE</text>
+    <rect x="225" y="791.3599999999999" width="450" height="42" fill="#6b4129"/>
+           <text x="450" y="820.3599999999999" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="22" letter-spacing="3" fill="#fff">CHOCOLATE</text>
+    <text x="450" y="879.3599999999999" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="28" letter-spacing="2" fill="#FFE600">2KG</text>
+    <rect x="190" y="1002" width="520" height="8" fill="#6b4129"/></g></svg>

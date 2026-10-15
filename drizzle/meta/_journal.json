@@ -1,0 +1,62 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790000023035,
+      "tag": "0000_melodic_beast",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790000100000,
+      "tag": "0001_peaceful_black_cat",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790670614709,
+      "tag": "0002_hero_mobile_video",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790757978414,
+      "tag": "0003_homepage_layout",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790759957060,
+      "tag": "0004_service_newsletter_soldout",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790775286587,
+      "tag": "0005_email_automations",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792079479821,
+      "tag": "0006_members_checkout_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792084781402,
+      "tag": "0007_invoices",
+      "breakpoints": true
+    }
+  ]
+}
