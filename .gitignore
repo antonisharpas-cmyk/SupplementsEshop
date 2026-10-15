@@ -47,3 +47,6 @@ next-env.d.ts
 
 # embedded local database (npm run db:local)
 .localdb/
+
+# scratch folder for files waiting to be deleted
+/_to_delete/
