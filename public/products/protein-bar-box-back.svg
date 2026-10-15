@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#262626"/>
+      <stop offset="0.55" stop-color="#141414"/>
+      <stop offset="1" stop-color="#0B0B0B"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7b4a2a" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#7b4a2a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#050505"/>
+      <stop offset="0.18" stop-color="#2a2a2a"/>
+      <stop offset="0.32" stop-color="#151515"/>
+      <stop offset="0.8" stop-color="#0d0d0d"/>
+      <stop offset="1" stop-color="#030303"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f4f4"/>
+      <stop offset="0.5" stop-color="#9a9a9a"/>
+      <stop offset="1" stop-color="#e0e0e0"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="#fff" stop-opacity=".10"/>
+      <stop offset="0.28" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <ellipse cx="450" cy="540" rx="430" ry="430" fill="url(#glow)"/>
+  <g stroke="#2E2E2E" stroke-width="1.5" opacity=".6">
+    <path d="M0 1032 L900 1032"/>
+  </g><g transform="translate(450 1032) scale(1.12) translate(-450 -1032)">
+    <ellipse cx="450" cy="936" rx="434" ry="26" fill="url(#shadow)"/>
+    
+    <g transform="rotate(-8 450 490)" opacity="0.55">
+      <path d="M100 375 h700 l-6 12 l6 12 l-6 12 l6 12 V605 h-700 l6 -12 l-6 -12 l6 -12 l-6 -12 Z" fill="url(#body)"/>
+      <rect x="140" y="375" width="16" height="230" fill="#FFE600"/>
+      <rect x="650" y="375" width="110" height="230" fill="#7b4a2a"/>
+      
+    </g>
+    <g transform="rotate(-4 450 660)" opacity="1">
+      <path d="M100 545 h700 l-6 12 l6 12 l-6 12 l6 12 V775 h-700 l6 -12 l-6 -12 l6 -12 l-6 -12 Z" fill="url(#body)"/>
+      <rect x="140" y="545" width="16" height="230" fill="#FFE600"/>
+      <rect x="650" y="545" width="110" height="230" fill="#7b4a2a"/>
+      <text x="410" y="620" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="24" letter-spacing="4.32" fill="#fff">AIONIX</text>
+               <text x="410" y="670" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-size="20" fill="#E6E6E6">NUTRITION INFORMATION</text>
+               <rect x="230" y="692" width="360" height="9" rx="4" fill="#2E2E2E"/><rect x="230" y="714" width="360" height="9" rx="4" fill="#2E2E2E"/><rect x="230" y="736" width="240" height="9" rx="4" fill="#2E2E2E"/>
+    </g>
+    <text x="450" y="1102" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-size="34" letter-spacing="4" fill="#FFE600">BOX OF 12</text></g></svg>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#262626"/>
+      <stop offset="0.55" stop-color="#141414"/>
+      <stop offset="1" stop-color="#0B0B0B"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#6b4129" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#6b4129" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#050505"/>
+      <stop offset="0.18" stop-color="#2a2a2a"/>
+      <stop offset="0.32" stop-color="#151515"/>
+      <stop offset="0.8" stop-color="#0d0d0d"/>
+      <stop offset="1" stop-color="#030303"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f4f4"/>
+      <stop offset="0.5" stop-color="#9a9a9a"/>
+      <stop offset="1" stop-color="#e0e0e0"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="#fff" stop-opacity=".10"/>
+      <stop offset="0.28" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <ellipse cx="450" cy="540" rx="430" ry="430" fill="url(#glow)"/>
+  <g stroke="#2E2E2E" stroke-width="1.5" opacity=".6">
+    <path d="M0 1032 L900 1032"/>
+  </g><g transform="translate(450 1032) scale(1.27) translate(-450 -1032)">
+    <ellipse cx="450" cy="1036" rx="322.4" ry="26" fill="url(#shadow)"/>
+    <rect x="190" y="432" width="520" height="600" rx="34" fill="url(#body)"/>
+    <rect x="190" y="432" width="520" height="600" rx="34" fill="url(#sheen)"/>
+    <rect x="182" y="350" width="536" height="92" rx="18" fill="#141414"/>
+    <path d="M196.0909090909091 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M220.27272727272728 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M244.45454545454547 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M268.6363636363636 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M292.8181818181818 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M317 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M341.1818181818182 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M365.3636363636364 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M389.54545454545456 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M413.72727272727275 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M437.90909090909093 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M462.0909090909091 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M486.2727272727273 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M510.4545454545455 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M534.6363636363637 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M558.8181818181819 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M583 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M607.1818181818182 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M631.3636363636364 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M655.5454545454545 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M679.7272727272727 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/><path d="M703.909090909091 362 V430" stroke="#000" stroke-opacity=".55" stroke-width="3"/>
+    <rect x="182" y="350" width="536" height="10" rx="5" fill="#2c2c2c"/>
+    <rect x="190" y="446" width="520" height="8" fill="#FFE600"/>
+    
+    <text x="450" y="512" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="24" letter-spacing="4.32" fill="#fff">AIONIX</text>
+    <rect x="245" y="528" width="410" height="5" fill="#FFE600"/>
+    <text x="245" y="570" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="20" fill="#fff">NUTRITION INFORMATION</text>
+    <rect x="245" y="584" width="410" height="194" fill="none" stroke="#A7A7A7" stroke-width="2"/>
+    
+      <text x="259" y="608" font-family="Arial,sans-serif" font-size="17" fill="#E6E6E6">Energy</text>
+      <text x="641" y="608" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#A7A7A7">■■■ kcal</text>
+      <path d="M255 616 H645" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="259" y="638" font-family="Arial,sans-serif" font-size="17" fill="#E6E6E6">Protein</text>
+      <text x="641" y="638" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#A7A7A7">■■ g</text>
+      <path d="M255 646 H645" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="259" y="668" font-family="Arial,sans-serif" font-size="17" fill="#E6E6E6">Carbohydrate</text>
+      <text x="641" y="668" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#A7A7A7">■ g</text>
+      <path d="M255 676 H645" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="259" y="698" font-family="Arial,sans-serif" font-size="17" fill="#E6E6E6">of which sugars</text>
+      <text x="641" y="698" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#A7A7A7">■ g</text>
+      <path d="M255 706 H645" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="259" y="728" font-family="Arial,sans-serif" font-size="17" fill="#E6E6E6">Fat</text>
+      <text x="641" y="728" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#A7A7A7">■ g</text>
+      <path d="M255 736 H645" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="259" y="758" font-family="Arial,sans-serif" font-size="17" fill="#E6E6E6">Salt</text>
+      <text x="641" y="758" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#A7A7A7">■ g</text>
+      
+    <text x="245" y="812" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="17" fill="#FFE600">DIRECTIONS</text>
+    <rect x="245" y="828" width="410" height="8" rx="4" fill="#2E2E2E"/><rect x="245" y="848" width="410" height="8" rx="4" fill="#2E2E2E"/><rect x="245" y="868" width="246" height="8" rx="4" fill="#2E2E2E"/>
+    <text x="450" y="920" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="22" fill="#A7A7A7">2KG</text>
+    <rect x="190" y="1002" width="520" height="8" fill="#6b4129"/></g></svg>

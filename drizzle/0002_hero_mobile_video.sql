@@ -1,0 +1,1 @@
+ALTER TABLE "hero_banners" ADD COLUMN "mobile_video_url" text;

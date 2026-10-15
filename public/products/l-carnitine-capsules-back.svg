@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#262626"/>
+      <stop offset="0.55" stop-color="#141414"/>
+      <stop offset="1" stop-color="#0B0B0B"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#e5e5e5" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#e5e5e5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#050505"/>
+      <stop offset="0.18" stop-color="#2a2a2a"/>
+      <stop offset="0.32" stop-color="#151515"/>
+      <stop offset="0.8" stop-color="#0d0d0d"/>
+      <stop offset="1" stop-color="#030303"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f4f4"/>
+      <stop offset="0.5" stop-color="#9a9a9a"/>
+      <stop offset="1" stop-color="#e0e0e0"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="#fff" stop-opacity=".10"/>
+      <stop offset="0.28" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <ellipse cx="450" cy="540" rx="430" ry="430" fill="url(#glow)"/>
+  <g stroke="#2E2E2E" stroke-width="1.5" opacity=".6">
+    <path d="M0 1032 L900 1032"/>
+  </g><g transform="translate(450 1032) scale(1.27) translate(-450 -1032)">
+    <ellipse cx="450" cy="1036" rx="223.2" ry="26" fill="url(#shadow)"/>
+    <rect x="340" y="392" width="220" height="110" rx="14" fill="#151515"/>
+    <path d="M350 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M365.4 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M380.8 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M396.2 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M411.6 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M427 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M442.4 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M457.8 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M473.2 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M488.6 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M504 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M519.4 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M534.8 404 V488" stroke="#000" stroke-width="3" opacity=".6"/><path d="M550.2 404 V488" stroke="#000" stroke-width="3" opacity=".6"/>
+    <rect x="330" y="488" width="240" height="40" rx="10" fill="#0f0f0f"/>
+    <rect x="270" y="512" width="360" height="520" rx="60" fill="url(#body)"/>
+    <rect x="270" y="512" width="360" height="520" rx="60" fill="url(#sheen)"/>
+    <rect x="270" y="582" width="360" height="390" fill="#1A1A1A"/>
+    <rect x="270" y="582" width="360" height="6" fill="#FFE600"/>
+    
+    <text x="450" y="622.8" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="17.28" letter-spacing="3.1104000000000003" fill="#fff">AIONIX</text>
+    <rect x="305" y="634.32" width="290" height="3.5999999999999996" fill="#FFE600"/>
+    <text x="305" y="664.56" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="14.399999999999999" fill="#fff">NUTRITION INFORMATION</text>
+    <rect x="305" y="674.64" width="290" height="139.68" fill="none" stroke="#A7A7A7" stroke-width="2"/>
+    
+      <text x="315.08" y="691.92" font-family="Arial,sans-serif" font-size="12.24" fill="#E6E6E6">Energy</text>
+      <text x="584.92" y="691.92" text-anchor="end" font-family="Arial,sans-serif" font-size="12.24" fill="#A7A7A7">■■■ kcal</text>
+      <path d="M312.2 697.68 H587.8" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="315.08" y="713.52" font-family="Arial,sans-serif" font-size="12.24" fill="#E6E6E6">Protein</text>
+      <text x="584.92" y="713.52" text-anchor="end" font-family="Arial,sans-serif" font-size="12.24" fill="#A7A7A7">■■ g</text>
+      <path d="M312.2 719.28 H587.8" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="315.08" y="735.12" font-family="Arial,sans-serif" font-size="12.24" fill="#E6E6E6">Carbohydrate</text>
+      <text x="584.92" y="735.12" text-anchor="end" font-family="Arial,sans-serif" font-size="12.24" fill="#A7A7A7">■ g</text>
+      <path d="M312.2 740.88 H587.8" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="315.08" y="756.7199999999999" font-family="Arial,sans-serif" font-size="12.24" fill="#E6E6E6">of which sugars</text>
+      <text x="584.92" y="756.7199999999999" text-anchor="end" font-family="Arial,sans-serif" font-size="12.24" fill="#A7A7A7">■ g</text>
+      <path d="M312.2 762.4799999999999 H587.8" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="315.08" y="778.3199999999999" font-family="Arial,sans-serif" font-size="12.24" fill="#E6E6E6">Fat</text>
+      <text x="584.92" y="778.3199999999999" text-anchor="end" font-family="Arial,sans-serif" font-size="12.24" fill="#A7A7A7">■ g</text>
+      <path d="M312.2 784.0799999999999 H587.8" stroke="#2E2E2E" stroke-width="1.5"/>
+      <text x="315.08" y="799.92" font-family="Arial,sans-serif" font-size="12.24" fill="#E6E6E6">Salt</text>
+      <text x="584.92" y="799.92" text-anchor="end" font-family="Arial,sans-serif" font-size="12.24" fill="#A7A7A7">■ g</text>
+      
+    <text x="305" y="838.8000000000001" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="12.24" fill="#FFE600">DIRECTIONS</text>
+    <rect x="305" y="850.32" width="290" height="5.76" rx="4" fill="#2E2E2E"/><rect x="305" y="864.72" width="290" height="5.76" rx="4" fill="#2E2E2E"/><rect x="305" y="879.12" width="174" height="5.76" rx="4" fill="#2E2E2E"/>
+    <text x="450" y="916.5600000000001" text-anchor="middle" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="15.84" fill="#A7A7A7">90 CAPS</text>
+    <rect x="270" y="966" width="360" height="6" fill="#e5e5e5"/></g></svg>
