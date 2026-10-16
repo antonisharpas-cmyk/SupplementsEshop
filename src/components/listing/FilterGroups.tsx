@@ -56,22 +56,24 @@ function Group({
   const [open, setOpen] = useState(defaultOpen)
   const id = useId()
   return (
-    <section className="border-b border-line">
+    <section className="rounded-2xl border border-line bg-paper-2/50 px-4 transition-colors hover:border-line-strong">
       <h3>
         <button
           type="button"
           aria-expanded={open}
           aria-controls={id}
           onClick={() => setOpen((o) => !o)}
-          className="flex w-full items-center justify-between gap-3 py-4 text-left"
+          className="flex w-full items-center justify-between gap-3 py-3.5 text-left"
         >
-          <span className="label">{title}</span>
-          <span className="flex min-w-0 items-center gap-3">
-            {summary && <span className="truncate text-xs text-muted">{summary}</span>}
+          <span className="font-display text-[13px] font-semibold tracking-[0.06em] text-heading uppercase">{title}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            {summary && (
+              <span className="truncate rounded-full bg-accent/15 px-2.5 py-0.5 text-[11px] font-medium text-accent">{summary}</span>
+            )}
             <svg
               aria-hidden
               viewBox="0 0 12 12"
-              className={`h-3 w-3 shrink-0 text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+              className={`box-content h-3 w-3 shrink-0 rounded-full bg-paper p-1.5 text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               strokeWidth="1.4"
@@ -89,7 +91,7 @@ function Group({
         className={`grid transition-[grid-template-rows] duration-200 ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
       >
         <div className="overflow-hidden">
-          <div className="pb-5 pt-0.5">{children}</div>
+          <div className="pb-4 pt-0.5">{children}</div>
         </div>
       </div>
     </section>
@@ -109,7 +111,7 @@ export function Switch({
 }) {
   const id = useId()
   return (
-    <div className="flex items-center justify-between gap-4 py-1.5">
+    <div className="flex items-center justify-between gap-4 rounded-xl px-1 py-2">
       <span>
         <span id={id} className="block text-sm">
           {label}
@@ -122,14 +124,14 @@ export function Switch({
         aria-checked={on}
         aria-labelledby={id}
         onClick={() => onChange(!on)}
-        className={`relative inline-flex h-[22px] w-10 shrink-0 items-center rounded-full border transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
-          on ? 'border-ink bg-accent' : 'border-line-strong bg-paper'
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper ${
+          on ? 'bg-gold border-transparent shadow-[0_4px_14px_-6px_rgb(242_183_5/0.7)]' : 'border-line-strong bg-paper'
         }`}
       >
         <span
           aria-hidden
-          className={`absolute left-[2px] h-4 w-4 rounded-full transition-transform duration-200 ${
-            on ? 'translate-x-[18px] bg-paper' : 'translate-x-0 bg-line-strong'
+          className={`absolute left-[3px] h-[18px] w-[18px] rounded-full shadow transition-transform duration-200 ${
+            on ? 'translate-x-[20px] bg-paper' : 'translate-x-0 bg-muted'
           }`}
         />
       </button>
@@ -141,10 +143,10 @@ function Check({ on }: { on: boolean }) {
   return (
     <span
       aria-hidden
-      className={`grid h-4 w-4 shrink-0 place-items-center border transition-colors ${on ? 'border-ink bg-accent' : 'border-line-strong bg-paper'}`}
+      className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md border transition-colors ${on ? 'bg-gold border-transparent' : 'border-line-strong bg-paper'}`}
     >
       {on && (
-        <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 text-paper" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg viewBox="0 0 12 12" className="h-3 w-3 text-paper" fill="none" stroke="currentColor" strokeWidth="2.2">
           <path d="m2.5 6.2 2.3 2.3 4.7-5" />
         </svg>
       )}
@@ -180,6 +182,7 @@ export function FilterGroups({
   const t = getTranslator(locale)
   const money = wholeEuros(locale)
   const [allCategories, setAllCategories] = useState(false)
+  const [allColours, setAllColours] = useState(false)
   const set = (patch: Partial<ListingFilters>) => onChange({ ...value, ...patch })
 
   /* Options that exist on this page. One that would show nothing with the
@@ -189,6 +192,12 @@ export function FilterGroups({
   const sizes = facets.sizes.map((s) => ({ size: s.size, empty: s.count === 0 }))
   for (const s of value.sizes) if (!sizes.some((x) => x.size === s)) sizes.push({ size: s, empty: true })
   const colours = facets.colours
+  const COLOUR_PREVIEW = 8
+  /* Chosen ones always stay in view, even when the list is folded. */
+  const shownColours =
+    allColours || colours.length <= COLOUR_PREVIEW + 2
+      ? colours
+      : colours.filter((c, i) => i < COLOUR_PREVIEW || value.colours.includes(c.value))
   const categories = facets.categories
   const bounds = priceBounds(facets)
   const selectedCount = (n: number) => (n ? t('list.selected', { n }) : undefined)
@@ -206,7 +215,7 @@ export function FilterGroups({
   const priceActive = value.minPrice !== undefined || value.maxPrice !== undefined
 
   return (
-    <div className="border-t border-line">
+    <div className="space-y-3">
       {/* Department — only on pages that span departments. */}
       {scope === 'all' && facets.departments.length > 1 && (
         <Group
@@ -235,16 +244,16 @@ export function FilterGroups({
                         : value.categories,
                     })
                   }
-                  className="flex w-full items-center gap-3 py-1.5 text-left text-sm disabled:text-line-strong"
+                  className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm transition-colors disabled:text-line-strong ${on ? 'bg-accent/10 text-heading' : 'hover:bg-paper'}`}
                 >
                   <span
                     aria-hidden
-                    className={`grid h-4 w-4 place-items-center rounded-full border transition-colors ${on ? 'border-ink' : 'border-line-strong'}`}
+                    className={`grid h-[18px] w-[18px] place-items-center rounded-full border transition-colors ${on ? 'border-accent' : 'border-line-strong'}`}
                   >
-                    {on && <span className="h-2 w-2 rounded-full bg-accent" />}
+                    {on && <span className="bg-gold h-2.5 w-2.5 rounded-full" />}
                   </span>
                   <span className={on ? 'font-medium' : ''}>{d.label}</span>
-                  {d.count !== undefined && <span className="ml-auto text-xs tabular-nums text-muted">{d.count}</span>}
+                  {d.count !== undefined && <span className="ml-auto rounded-full bg-paper px-2 py-0.5 text-[11px] tabular-nums text-muted">{d.count}</span>}
                 </button>
               )
             })}
@@ -262,10 +271,10 @@ export function FilterGroups({
               return (
                 <li key={c.value}>
                   {header && (
-                    <p className="pb-1 pt-3 text-[11px] uppercase tracking-wider text-muted first:pt-0">{header}</p>
+                    <p className="px-2.5 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted first:pt-0">{header}</p>
                   )}
                   <label
-                    className={`flex items-center gap-3 py-1.5 text-sm ${c.count === 0 && !on ? 'text-line-strong' : 'cursor-pointer'}`}
+                    className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition-colors ${c.count === 0 && !on ? 'text-line-strong' : 'cursor-pointer hover:bg-paper'} ${on ? 'bg-accent/10 text-heading' : ''}`}
                   >
                     <input
                       type="checkbox"
@@ -276,7 +285,7 @@ export function FilterGroups({
                     />
                     <Check on={on} />
                     <span className={`peer-focus-visible:underline ${on ? 'font-medium' : ''}`}>{c.label}</span>
-                    <span className="ml-auto text-xs tabular-nums text-muted">{c.count}</span>
+                    <span className="ml-auto rounded-full bg-paper px-2 py-0.5 text-[11px] tabular-nums text-muted">{c.count}</span>
                   </label>
                 </li>
               )
@@ -286,7 +295,7 @@ export function FilterGroups({
             <button
               type="button"
               onClick={() => setAllCategories((v) => !v)}
-              className="mt-2 text-xs text-muted underline underline-offset-4 hover:text-ink"
+              className="btn btn-ghost btn-sm mt-2"
             >
               {allCategories ? t('list.showFewer') : t('list.showAll', { n: categories.length })}
             </button>
@@ -307,10 +316,10 @@ export function FilterGroups({
                   aria-pressed={on}
                   disabled={empty && !on}
                   onClick={() => set({ sizes: toggle(value.sizes, size) })}
-                  className={`h-10 min-w-12 border px-3 text-[13px] transition-colors duration-150 ${
+                  className={`h-9 min-w-12 rounded-full border px-4 text-[13px] font-medium transition-all duration-150 ${
                     on
-                      ? 'border-ink bg-accent text-paper'
-                      : 'border-line bg-paper text-ink hover:border-ink disabled:cursor-default disabled:border-line disabled:text-line-strong disabled:line-through'
+                      ? 'bg-gold border-transparent text-paper shadow-[0_6px_18px_-10px_rgb(242_183_5/0.8)]'
+                      : 'border-line bg-paper text-ink hover:border-accent hover:text-accent disabled:cursor-default disabled:border-line disabled:text-line-strong disabled:line-through'
                   }`}
                 >
                   {size}
@@ -331,8 +340,8 @@ export function FilterGroups({
               : undefined
           }
         >
-          <div className="grid grid-cols-4 gap-x-2 gap-y-3" role="group" aria-label={t('list.colour')}>
-            {colours.map((c) => {
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t('list.colour')}>
+            {shownColours.map((c) => {
               const on = value.colours.includes(c.value)
               const light = isLight(c.hex)
               return (
@@ -340,16 +349,17 @@ export function FilterGroups({
                   key={c.value}
                   type="button"
                   aria-pressed={on}
-                  aria-label={c.label}
                   title={c.label}
                   disabled={c.count === 0 && !on}
                   onClick={() => set({ colours: toggle(value.colours, c.value) })}
-                  className="group flex flex-col items-center gap-1.5 text-center outline-none transition-opacity disabled:cursor-default disabled:opacity-30"
+                  className={`group inline-flex h-9 max-w-full items-center gap-2 rounded-full border py-1 pl-1 pr-3.5 text-[13px] transition-all duration-150 focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-default disabled:opacity-30 ${
+                    on
+                      ? 'border-accent bg-accent/10 font-medium text-heading shadow-[0_6px_18px_-12px_rgb(242_183_5/0.9)]'
+                      : 'border-line bg-paper text-ink-soft hover:border-line-strong hover:text-ink'
+                  }`}
                 >
                   <span
-                    className={`grid h-8 w-8 place-items-center rounded-full ring-offset-2 ring-offset-paper transition-shadow duration-150 group-focus-visible:ring-2 group-focus-visible:ring-accent ${
-                      on ? 'ring-[1.5px] ring-accent' : 'group-hover:ring-1 group-hover:ring-line-strong'
-                    } ${light ? 'shadow-[inset_0_0_0_1px_var(--color-line-strong)]' : ''}`}
+                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${light ? 'shadow-[inset_0_0_0_1px_var(--color-line-strong)]' : ''}`}
                     style={{ background: c.hex ?? 'repeating-linear-gradient(45deg,#ddd 0 3px,#fff 3px 6px)' }}
                   >
                     {on && (
@@ -365,15 +375,16 @@ export function FilterGroups({
                       </svg>
                     )}
                   </span>
-                  <span
-                    className={`line-clamp-2 text-[11px] leading-tight ${on ? 'font-medium text-ink' : 'text-ink-soft'}`}
-                  >
-                    {c.label}
-                  </span>
+                  <span className="truncate">{c.label}</span>
                 </button>
               )
             })}
           </div>
+          {colours.length > shownColours.length || allColours ? (
+            <button type="button" onClick={() => setAllColours((v) => !v)} className="btn btn-ghost btn-sm mt-3">
+              {allColours ? t('list.showFewer') : t('list.showAll', { n: colours.length })}
+            </button>
+          ) : null}
         </Group>
       )}
 

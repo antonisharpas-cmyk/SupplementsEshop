@@ -830,6 +830,7 @@ export type AdminOrderRow = {
   email: string
   status: string
   paymentMethod: string
+  channel: string
   paymentStatus: string | null
   deliveryKind: string
   totalCents: number
@@ -858,6 +859,7 @@ export async function listAdminOrders(f: { status?: string; q?: string; page?: n
         email: orders.email,
         status: orders.status,
         paymentMethod: orders.paymentMethod,
+        channel: orders.channel,
         paymentStatus: sql<string | null>`(select status::text from payments p where p.order_id = "orders"."id" order by p.created_at desc limit 1)`,
         deliveryKind: orders.deliveryKind,
         totalCents: orders.totalCents,

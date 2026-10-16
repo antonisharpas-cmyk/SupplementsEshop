@@ -19,6 +19,7 @@ import { getSettings } from '@/lib/settings'
 import { FilterBar } from '@/components/admin/FilterBar'
 import { StockEditor } from '@/components/admin/StockEditor'
 import { Empty, PageHead, Pagination, withParams } from '@/components/admin/ui'
+import { CATALOGUE_TABS, SectionTabs } from '@/components/admin/SectionTabs'
 import { db } from '@/db'
 import { products } from '@/db/schema'
 import { desc, eq, sql } from 'drizzle-orm'
@@ -77,6 +78,7 @@ export default async function AdminStockPage({ searchParams }: { searchParams: P
           </>
         }
       />
+      <SectionTabs label="Catalogue" tabs={CATALOGUE_TABS} />
 
       {noSizes.length > 0 && (
         <div className="mb-6 rounded-2xl border border-accent/40 bg-accent/10 px-5 py-4 text-sm">

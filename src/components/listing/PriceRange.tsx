@@ -132,10 +132,10 @@ export function PriceRange({ lo, hi, value, onCommit, format, labels }: Props) {
 
   return (
     <div>
-      <p className="mb-3 flex items-baseline justify-between text-sm tabular-nums" aria-hidden>
-        <span>{format(a)}</span>
-        <span className="text-line-strong">—</span>
-        <span>{format(b)}</span>
+      <p className="mb-1 flex items-center justify-between gap-2 text-sm font-semibold tabular-nums text-heading" aria-hidden>
+        <span className="rounded-full bg-paper px-3 py-1">{format(a)}</span>
+        <span className="h-px flex-1 bg-line-strong" />
+        <span className="rounded-full bg-paper px-3 py-1">{format(b)}</span>
       </p>
 
       {/* The track: tall enough to hit, thin enough to look like a line. */}
@@ -147,9 +147,9 @@ export function PriceRange({ lo, hi, value, onCommit, format, labels }: Props) {
         onPointerCancel={onPointerUp}
         className="relative mx-2.5 h-11 cursor-pointer touch-none select-none"
       >
-        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-line-strong" />
+        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-line" />
         <div
-          className="absolute top-1/2 h-[2px] -translate-y-1/2 bg-accent"
+          className="bg-gold absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full"
           style={{ left: `${pct(a)}%`, right: `${100 - pct(b)}%` }}
         />
         {([0, 1] as const).map((handle) => {
@@ -180,7 +180,7 @@ export function PriceRange({ lo, hi, value, onCommit, format, labels }: Props) {
               className="group absolute top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center outline-none"
             >
               <span
-                className={`block h-[18px] w-[18px] rounded-full border-[1.5px] border-ink bg-paper transition-transform duration-150 group-hover:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-accent group-focus-visible:ring-offset-2 ${
+                className={`block h-5 w-5 rounded-full border-[3px] border-accent bg-paper shadow-[0_4px_12px_-4px_rgb(242_183_5/0.8)] transition-transform duration-150 group-hover:scale-110 group-focus-visible:ring-2 group-focus-visible:ring-accent group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-paper ${
                   dragging === handle ? 'scale-110' : ''
                 }`}
               />
@@ -282,7 +282,7 @@ function PriceInputs({
   const box = (i: 0 | 1, label: string) => (
     <label className="block">
       <span className="mb-1.5 block text-[11px] text-muted">{label}</span>
-      <span className="flex items-center border border-line bg-paper px-3 transition-colors focus-within:border-accent">
+      <span className="flex items-center rounded-xl border border-line bg-paper px-3 transition-colors focus-within:border-accent">
         <span aria-hidden className="text-sm text-muted">
           €
         </span>

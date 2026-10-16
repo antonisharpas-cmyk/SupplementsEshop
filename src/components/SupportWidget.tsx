@@ -67,6 +67,8 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
      even though the last (closed) one is still returned by the server. */
   const [fresh, setFresh] = useState(false)
 
+  /* A visitor first picks: sign in, or carry on as a guest. */
+  const [guest, setGuest] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [text, setText] = useState('')
@@ -324,7 +326,29 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
             )}
           </div>
 
-          {!closed && (
+          {!closed && !conversation && view && !view.me && !guest && (
+            <div className="border-t border-line px-4 py-5">
+              <p className="text-sm text-ink-soft">{t('support.choose')}</p>
+              <div className="mt-4 grid gap-2">
+                <Link href={signInHref} onClick={close} className="btn btn-primary w-full">
+                  {t('support.signIn')}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGuest(true)
+                    setTimeout(() => firstField.current?.focus(), 30)
+                  }}
+                  className="btn btn-secondary w-full"
+                >
+                  {t('support.continueGuest')}
+                </button>
+              </div>
+              <p className="mt-3 text-[11px] text-muted">{t('support.idleNote', { minutes: view.idleMinutes })}</p>
+            </div>
+          )}
+
+          {!closed && (conversation || (view && (view.me || guest))) && (
             <form onSubmit={submit} className="border-t border-line px-4 py-4" noValidate>
               {!conversation && view && !view.me && (
                 <div className="mb-3">
@@ -379,13 +403,7 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
                     </p>
                   )}
                   <p id="support-email-hint" className="mt-1.5 text-[11px] text-muted">
-                    {t('support.emailHint')}{' '}
-                    <span className="whitespace-nowrap">
-                      {t('support.haveAccount')}{' '}
-                      <Link href={signInHref} onClick={close} className="text-ink underline hover:no-underline">
-                        {t('support.signIn')}
-                      </Link>
-                    </span>
+                    {t('support.emailHint')}
                   </p>
                 </div>
               )}

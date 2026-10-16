@@ -10,7 +10,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-type Item = { href: string; label: string; icon: keyof typeof ICONS; badge?: number }
+type Item = { href: string; label: string; icon: keyof typeof ICONS; badge?: number; also?: string[] }
 type Group = { title?: string; items: Item[] }
 
 const s = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
@@ -43,6 +43,9 @@ const ICONS = {
   categories: (
     <svg viewBox="0 0 24 24" {...s}><rect x="3" y="3" width="7" height="7" rx="2" /><path d="M6.5 10v4.5a2 2 0 0 0 2 2H14" /><rect x="14" y="13.5" width="7" height="6" rx="2" /><path d="M10 6.5h4" /><rect x="14" y="3.5" width="7" height="6" rx="2" /></svg>
   ),
+  promotions: (
+    <svg viewBox="0 0 24 24" {...s}><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9z" /><circle cx="8" cy="8" r="1.5" /><path d="M10 16l6-6" /></svg>
+  ),
   accounting: (
     <svg viewBox="0 0 24 24" {...s}><path d="M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2V2z" /><path d="M9 7h6M9 11h6M9 15h3" /></svg>
   ),
@@ -70,7 +73,7 @@ function NavList({ groups, onPick }: { groups: Group[]; onPick: () => void }) {
           {g.title && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">{g.title}</p>}
           <ul className="space-y-0.5">
             {g.items.map((item) => {
-              const on = active(item.href)
+              const on = [item.href, ...(item.also ?? [])].some(active)
               return (
                 <li key={item.href}>
                   <Link

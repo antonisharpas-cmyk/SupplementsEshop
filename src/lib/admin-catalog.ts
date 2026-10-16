@@ -22,7 +22,7 @@
 
 import { sql, type SQL } from 'drizzle-orm'
 import { db } from '@/db'
-import { promotionScope } from '@/lib/pricing'
+import { promotionScope, resolvePrices } from '@/lib/pricing'
 import { compareSizes } from '@/lib/sizes'
 
 /* -------------------------------------------------------------- shared -- */
@@ -95,6 +95,9 @@ export type AdminProductListRow = {
   priceCents: number
   salePriceCents: number | null
   onSale: boolean
+  /** What a customer pays today, promotions included, and which promotion. */
+  finalCents: number
+  promotionName: string | null
   status: ProductStatus
   stock: StockState
   variants: number
@@ -185,6 +188,7 @@ export async function listAdminProductRows(
       price_cents: number
       sale_price_cents: number | null
       on_sale: boolean
+      category_id: string
       is_active: boolean
       availability: string
       variants: number
@@ -194,7 +198,7 @@ export async function listAdminProductRows(
       first_sku: string | null
       image: string | null
     }>(sql`
-      select p.id, p.slug, p.name, c.name as category, d.name as department,
+      select p.id, p.slug, p.name, p.category_id, c.name as category, d.name as department,
              p.price_cents, p.sale_price_cents, ${onSale} as on_sale,
              p.is_active, p.availability,
              s.variants, s.available, s.sizes_out, s.sizes_low, s.first_sku,
@@ -207,6 +211,16 @@ export async function listAdminProductRows(
   ])
 
   const total = Number(countRes.rows[0]?.n ?? 0)
+  /* The product's base price through the same rules as the shop. */
+  const prices = await resolvePrices(
+    rowsRes.rows.map((r) => ({
+      productId: r.id,
+      categoryId: r.category_id,
+      variantId: r.id,
+      listCents: r.price_cents,
+      saleCents: r.sale_price_cents,
+    })),
+  )
   return {
     total,
     page,
@@ -223,6 +237,9 @@ export async function listAdminProductRows(
       priceCents: r.price_cents,
       salePriceCents: r.sale_price_cents,
       onSale: Boolean(r.on_sale),
+      finalCents: prices.get(r.id)?.finalCents ?? r.price_cents,
+      promotionName:
+        prices.get(r.id)?.source === 'promotion' ? String(prices.get(r.id)?.promotionSnapshot?.name ?? 'Promotion') : null,
       status: productStatus(r.is_active, r.availability),
       stock: Number(r.available) <= 0 ? 'sold_out' : Number(r.sizes_low) + Number(r.sizes_out) > 0 ? 'low' : 'in_stock',
       variants: Number(r.variants),

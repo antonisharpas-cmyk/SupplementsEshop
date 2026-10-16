@@ -33,7 +33,7 @@ export const BRAND = {
   },
 
   contact: {
-    email: 'hello@example.com',
+    email: 'info@aionixtest.com',
     phone: '+357 00 000000',
     whatsapp: '',
     addressLines: ['TODO Street 1', 'Larnaca', 'Cyprus'],

@@ -57,6 +57,9 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
             <OrderStatusPill status={order.status} />
             <PaymentPill method={order.paymentMethod} status={latest?.status ?? null} />
             <span>Placed {when(order.createdAt)}</span>
+            {order.channel === 'phone' && (
+              <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-[11px] font-semibold tracking-wider text-accent uppercase">Phone order</span>
+            )}
           </span>
         }
       />
@@ -130,7 +133,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                 Member profile
               </Link>
             ) : (
-              <p className="mt-2 text-xs text-muted">Guest checkout</p>
+              <p className="mt-2 text-xs text-muted">{order.channel === 'phone' ? 'Phone order, no account' : 'Guest checkout'}</p>
             )}
             {order.customerNote && (
               <p className="mt-3 border-l-2 border-accent pl-3 text-ink-soft">“{order.customerNote}”</p>

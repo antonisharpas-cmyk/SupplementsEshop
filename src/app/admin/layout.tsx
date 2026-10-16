@@ -49,9 +49,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     {
       title: 'Catalogue',
       items: [
-        { href: '/admin/products', label: 'Products', icon: 'products' as const },
-        { href: '/admin/categories', label: 'Categories', icon: 'categories' as const },
-        { href: '/admin/stock', label: 'Stock', icon: 'stock' as const },
+        { href: '/admin/products', label: 'Products & stock', icon: 'products' as const, also: ['/admin/categories', '/admin/stock'] },
+        { href: '/admin/promotions', label: 'Promotions & codes', icon: 'promotions' as const },
         { href: '/admin/homepage', label: 'Homepage', icon: 'homepage' as const },
       ],
     },

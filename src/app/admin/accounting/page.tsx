@@ -14,6 +14,7 @@ import { filterFrom } from '@/lib/accounting-export'
 import { formatMoney } from '@/lib/pricing'
 import { getSettings } from '@/lib/settings'
 import { Empty, PageHead, Pagination, Pill, Stat, Table, btn, input, withParams } from '@/components/admin/ui'
+import { DateTimeField } from '@/components/admin/DateTimeField'
 import { CompanyDetailsForm } from '@/components/admin/CompanyDetailsForm'
 
 export const dynamic = 'force-dynamic'
@@ -125,11 +126,11 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       <form action="/admin/accounting" className="mb-6 grid gap-3 rounded-2xl border border-line bg-paper p-4 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.6fr)_auto]">
         <label className="text-sm">
           <span className="label mb-1.5 block text-muted">From</span>
-          <input type="date" name="from" defaultValue={filter.from ?? ''} className={input} />
+          <DateTimeField mode="date" name="from" value={filter.from ?? ''} placeholder="Any date" ariaLabel="From" />
         </label>
         <label className="text-sm">
           <span className="label mb-1.5 block text-muted">To</span>
-          <input type="date" name="to" defaultValue={filter.to ?? ''} className={input} />
+          <DateTimeField mode="date" name="to" value={filter.to ?? ''} placeholder="Any date" ariaLabel="To" />
         </label>
         <label className="text-sm">
           <span className="label mb-1.5 block text-muted">Type</span>

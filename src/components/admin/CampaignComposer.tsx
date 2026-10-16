@@ -24,6 +24,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ConfirmDialog } from './ConfirmDialog'
 import { btn, input } from './ui'
+import { SearchSelect } from './SearchSelect'
+import { DateTimeField } from './DateTimeField'
 
 type Kind = 'new_arrivals' | 'promotion'
 type Audience = 'all' | 'en' | 'el' | 'ru'
@@ -239,13 +241,13 @@ export function CampaignComposer({
         {(source === 'category' || ctaTarget === 'category') && (
           <label className="mt-3 block">
             <span className="sr-only">Category</span>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={input}>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              value={categoryId}
+              onChange={setCategoryId}
+              ariaLabel="Category"
+              searchPlaceholder="Search categories"
+              options={categories.map((c) => ({ value: c.id, label: c.label }))}
+            />
           </label>
         )}
         {source === 'pick' && (
@@ -344,7 +346,7 @@ export function CampaignComposer({
               Later
             </label>
             {when === 'later' && (
-              <input type="datetime-local" value={at} min={minLocal} onChange={(e) => setAt(e.target.value)} aria-label="Send at" className={`${input.replace("w-full ", "")} w-auto`} />
+              <DateTimeField value={at} min={minLocal} onChange={setAt} ariaLabel="Send at" placeholder="Choose when" className="w-64" />
             )}
           </div>
         </fieldset>

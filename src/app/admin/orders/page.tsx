@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { guardAdmin } from '@/lib/admin'
 import { listAdminOrders, orderCounts } from '@/lib/orders'
 import { formatMoney } from '@/lib/pricing'
-import { Empty, PageHead, Pagination, Table, input, withParams } from '@/components/admin/ui'
+import { Empty, PageHead, Pagination, Table, btn, input, withParams } from '@/components/admin/ui'
 import { OrderStatusPill, PaymentPill } from '@/components/admin/OrderStatus'
 
 export const dynamic = 'force-dynamic'
@@ -44,7 +44,15 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
 
   return (
     <>
-      <PageHead title="Orders" sub={`${list.total} order${list.total === 1 ? '' : 's'} in this view · click one to manage it`} />
+      <PageHead
+        title="Orders"
+        sub={`${list.total} order${list.total === 1 ? '' : 's'} in this view · click one to manage it`}
+        action={
+          <Link href="/admin/orders/new" className={btn.primary}>
+            + New order
+          </Link>
+        }
+      />
 
       <div className="mb-5 flex flex-wrap gap-2">
         {VIEWS.map((v) => (
@@ -76,6 +84,9 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                 <Link href={`/admin/orders/${o.id}`} className="font-mono text-heading underline-offset-4 hover:underline">
                   {o.orderNumber}
                 </Link>
+                {o.channel === 'phone' && (
+                  <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-accent uppercase">Phone</span>
+                )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-muted">{when(o.createdAt)}</td>
               <td className="px-4 py-3">

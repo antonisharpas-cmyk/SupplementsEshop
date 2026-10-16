@@ -303,3 +303,52 @@ describe('invoices', () => {
     expect(file.length).toBeGreaterThan(1000)
   })
 })
+
+describe('orders taken by staff', () => {
+  const staff = { id: '00000000-0000-0000-0000-000000000001' }
+  const base = {
+    firstName: 'Phone',
+    lastName: 'Customer',
+    phone: '+35799111222',
+    locale: 'en' as const,
+    delivery: { kind: 'SHIPPING' as const, address: { line1: 'Street 1', city: 'Larnaca', postalCode: '6017', country: 'CY' } },
+    sendEmail: false,
+  }
+
+  it('takes the stock, uses the agreed delivery charge and a changed price', async () => {
+    const { createManualOrder } = await import('../manual-orders')
+    const o = await createManualOrder(
+      { ...base, deliveryCents: 1500, lines: [{ variantId: variant, quantity: 2, unitCents: 3500 }], paid: false },
+      staff,
+    )
+    const [row] = await db.select().from(orders).where(eq(orders.id, o.id))
+    expect(row.status).toBe('PROCESSING')
+    expect(row.channel).toBe('phone')
+    expect(row.totalCents).toBe(2 * 3500 + 1500)
+    expect(row.deliveryCents).toBe(1500)
+    expect((await onHand()).onHand).toBe(8)
+    expect(await db.select().from(invoices)).toHaveLength(0)
+  })
+
+  it('refuses more than is on the shelf, and changes nothing', async () => {
+    const { createManualOrder, ManualOrderError } = await import('../manual-orders')
+    await expect(
+      createManualOrder({ ...base, deliveryCents: 0, lines: [{ variantId: variant, quantity: 11 }], paid: false }, staff),
+    ).rejects.toBeInstanceOf(ManualOrderError)
+    expect((await onHand()).onHand).toBe(10)
+    expect(await db.select().from(orders)).toHaveLength(0)
+  })
+
+  it('already paid: records the cash and issues the invoice', async () => {
+    const { createManualOrder } = await import('../manual-orders')
+    const o = await createManualOrder(
+      { ...base, delivery: { kind: 'PICKUP' }, deliveryCents: 0, lines: [{ variantId: variant, quantity: 1 }], paid: true },
+      staff,
+    )
+    const [pay] = await db.select().from(payments).where(eq(payments.orderId, o.id))
+    expect(pay.status).toBe('SUCCEEDED')
+    const docs = await db.select().from(invoices)
+    expect(docs).toHaveLength(1)
+    expect(docs[0].totalCents).toBe(4000)
+  })
+})

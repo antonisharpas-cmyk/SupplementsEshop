@@ -52,7 +52,7 @@ export function Header({
             <div key={root.id} className="group relative flex items-center py-3">
               <Link
                 href={`${base}/${root.slug}`}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-paper-2/60 px-3.5 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition-colors group-hover:border-accent group-hover:text-accent"
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-line bg-paper-2/60 px-3.5 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition-colors group-hover:border-accent group-hover:text-accent"
               >
                 {tr(root.name, locale)}
                 {root.children.length > 0 && (

@@ -106,7 +106,7 @@ export function PhoneInput({
       <div className="mt-2 flex gap-2">
         {/* The native list opens on tap (best on phones); the closed box shows
             just the flag and code, so the number field keeps its width. */}
-        <div className={`${box} relative flex w-[6.75rem] shrink-0 items-center justify-between gap-1 focus-within:border-accent`}>
+        <div className={`${box} relative flex w-[7.75rem] shrink-0 items-center justify-between gap-1 focus-within:border-accent`}>
           <span aria-hidden className="truncate tabular-nums">
             {flag(iso)} +{codeOf(iso)}
           </span>

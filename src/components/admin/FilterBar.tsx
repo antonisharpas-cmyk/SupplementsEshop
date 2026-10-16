@@ -132,7 +132,7 @@ export function FilterBar({ searchPlaceholder, menus, price, sorts, keep = [] }:
               }
             }}
             placeholder={searchPlaceholder}
-            className="w-full border border-line bg-paper py-3 pl-10 pr-3.5 text-sm outline-none placeholder:text-muted focus:border-accent"
+            className="w-full rounded-full border border-line bg-paper py-3 pl-10 pr-3.5 text-sm outline-none placeholder:text-muted focus:border-accent"
           />
         </label>
 
@@ -153,7 +153,7 @@ export function FilterBar({ searchPlaceholder, menus, price, sorts, keep = [] }:
           <select
             value={params.get('sort') ?? sorts[0]?.value}
             onChange={(e) => go({ sort: e.target.value === sorts[0]?.value ? null : e.target.value })}
-            className="border border-line bg-paper px-3 py-2.5 text-sm outline-none focus:border-accent"
+            className="rounded-full border border-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-accent"
           >
             {sorts.map((s) => (
               <option key={s.value} value={s.value}>
@@ -250,19 +250,51 @@ function Menu({
   onClear: () => void
 }) {
   const { open, setOpen, ref } = usePopover()
+  const [q, setQ] = useState('')
+  const searchable = menu.options.length > 6
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean)
+  /* Same group together, groups in the order they first appear. */
+  const groupOrder = [...new Set(menu.options.map((o) => o.group ?? ''))]
+  const sorted = [...menu.options].sort((a, b) => groupOrder.indexOf(a.group ?? '') - groupOrder.indexOf(b.group ?? ''))
+  const options = words.length
+    ? sorted.filter((o) => words.every((w) => `${o.label} ${o.group ?? ''}`.toLowerCase().includes(w)))
+    : sorted
 
   return (
     <div ref={ref} className="relative">
-      <Trigger label={menu.label} count={selected.length} open={open} onClick={() => setOpen((o) => !o)} />
+      <Trigger
+        label={menu.label}
+        count={selected.length}
+        open={open}
+        onClick={() => {
+          setOpen((o) => !o)
+          setQ('')
+        }}
+      />
       {open && (
         <div
           role="group"
           aria-label={menu.label}
-          className="absolute left-0 z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-2xl border border-line bg-paper py-2 shadow-lg"
+          className="absolute left-0 z-30 mt-1 max-h-96 w-72 overflow-y-auto rounded-2xl border border-line bg-paper pb-2 shadow-lg"
         >
+          {searchable && (
+            <div className="sticky top-0 z-10 border-b border-line bg-paper p-2">
+              <input
+                autoFocus
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder={`Search ${menu.label.toLowerCase()}`}
+                aria-label={`Search ${menu.label.toLowerCase()}`}
+                className="h-10 w-full rounded-xl bg-paper-2 px-3 text-sm outline-none placeholder:text-muted focus:ring-1 focus:ring-accent"
+              />
+            </div>
+          )}
+          <div className="pt-2" />
           {menu.options.length === 0 && <p className="px-4 py-2 text-sm text-muted">Nothing to choose yet.</p>}
-          {menu.options.map((o, i) => {
-            const header = o.group && o.group !== menu.options[i - 1]?.group ? o.group : null
+          {menu.options.length > 0 && options.length === 0 && <p className="px-4 py-2 text-sm text-muted">Nothing matches.</p>}
+          {options.map((o, i) => {
+            const header = o.group && o.group !== options[i - 1]?.group ? o.group : null
             return (
               <div key={o.value}>
                 {header && <p className="label px-4 pb-1 pt-3 text-muted">{header}</p>}

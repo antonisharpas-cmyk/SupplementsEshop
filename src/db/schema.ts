@@ -504,6 +504,10 @@ export const orders = pgTable(
     adminNote: text('admin_note'),
     /* 'card' (Stripe) or 'cod' (cash on delivery). */
     paymentMethod: varchar('payment_method', { length: 20 }).notNull().default('card'),
+    /* 'web' (the shop) or 'phone' (entered by staff in the admin). */
+    channel: varchar('channel', { length: 12 }).notNull().default('web'),
+    /* Who entered a phone order. */
+    createdBy: uuid('created_by'),
     trackingNumber: varchar('tracking_number', { length: 80 }),
     trackingUrl: text('tracking_url'),
     /* A random secret so a guest can open their own order page from the

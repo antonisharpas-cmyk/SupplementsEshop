@@ -12,6 +12,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { btn, input } from './ui'
+import { SearchSelect } from './SearchSelect'
 
 type L = { en: string; el: string; ru: string }
 const empty: L = { en: '', el: '', ru: '' }
@@ -50,39 +51,36 @@ function CategorySelect({ groups, value, onChange }: { groups: CategoryGroup[]; 
 
   return (
     <div>
-      <select className={input} value={value} onChange={(e) => onChange(e.target.value)} required>
-        <option value="">Choose a category</option>
-        {groups.map((g) => (
-          <optgroup key={g.rangeId} label={g.range}>
-            {g.options.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
+      <SearchSelect
+        value={value}
+        onChange={onChange}
+        required
+        placeholder="Choose a category"
+        searchPlaceholder="Search categories"
+        options={groups.flatMap((g) => [
+          { value: `h:${g.rangeId}`, label: g.range, header: true },
+          ...g.options.map((o) => ({ value: o.id, label: o.label, hint: g.range })),
+        ])}
+      />
       {!open ? (
         <button type="button" onClick={() => setOpen(true)} className="mt-1.5 text-xs font-medium text-accent hover:underline">
           + New category
         </button>
       ) : (
         <div className="mt-2 space-y-2 rounded-xl border border-accent/40 bg-accent/5 p-3">
-          <select className={input} value={parentId} onChange={(e) => setParentId(e.target.value)}>
-            <option value="">A new range (main menu)</option>
-            {groups.map((g) => (
-              <optgroup key={g.rangeId} label={g.range}>
-                <option value={g.rangeId}>Inside {g.range}</option>
-                {g.options
-                  .filter((o) => o.group)
-                  .map((o) => (
-                    <option key={o.id} value={o.id}>
-                      Inside {g.range} › {o.label}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
+          <SearchSelect
+            value={parentId}
+            onChange={setParentId}
+            searchPlaceholder="Search where to put it"
+            options={[
+              { value: '', label: 'A new range (main menu)' },
+              ...groups.flatMap((g) => [
+                { value: `h:${g.rangeId}`, label: g.range, header: true },
+                { value: g.rangeId, label: `Inside ${g.range}` },
+                ...g.options.filter((o) => o.group).map((o) => ({ value: o.id, label: `Inside ${g.range} › ${o.label}` })),
+              ]),
+            ]}
+          />
           <input className={input} placeholder="Name in English, e.g. Socks" value={name} onChange={(e) => setName(e.target.value)} />
           {error && <p className="text-xs text-sale">{error}</p>}
           <div className="flex items-center gap-2">

@@ -136,12 +136,12 @@ export function MobileFilters() {
         onClick={openSheet}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="flex h-12 w-full items-center justify-between border border-ink px-4 text-left"
+        className="flex h-12 w-full items-center justify-between rounded-full border border-line-strong bg-paper-2 px-5 text-left transition-colors hover:border-accent"
       >
         <span className="label">{t('list.filterAndSort')}</span>
         <span className="flex items-center gap-2.5">
           {active > 0 && (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] text-paper">
+            <span className="bg-gold inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-paper">
               {active}
             </span>
           )}
@@ -172,9 +172,10 @@ export function MobileFilters() {
               aria-label={t('list.filterAndSort')}
               className="absolute inset-x-0 bottom-0 flex max-h-[92dvh] flex-col rounded-t-2xl bg-paper shadow-2xl transition-transform duration-300 ease-out starting:translate-y-full"
             >
-              <header className="flex items-center justify-between border-b border-line px-5 py-4">
-                <h2 className="label">{t('list.filterAndSort')}</h2>
-                <button type="button" onClick={close} aria-label={t('nav.close')} className="-mr-2 p-2">
+              <div aria-hidden className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-line-strong" />
+              <header className="flex items-center justify-between px-5 pb-3 pt-3">
+                <h2 className="font-display text-base font-semibold text-heading">{t('list.filterAndSort')}</h2>
+                <button type="button" onClick={close} aria-label={t('nav.close')} className="grid h-9 w-9 place-items-center rounded-full bg-paper-2 hover:bg-line">
                   <svg
                     viewBox="0 0 20 20"
                     className="h-5 w-5"
@@ -189,16 +190,16 @@ export function MobileFilters() {
               </header>
 
               <div className="flex-1 overflow-y-auto overscroll-contain px-5">
-                <fieldset className="border-b border-line py-4">
-                  <legend className="label float-left mb-3 w-full">{t('list.sortBy')}</legend>
+                <fieldset className="mb-3 rounded-2xl border border-line bg-paper-2/50 px-4 py-3.5">
+                  <legend className="float-left mb-3 w-full font-display text-[13px] font-semibold tracking-[0.06em] text-heading uppercase">{t('list.sortBy')}</legend>
                   <div className="clear-both flex flex-wrap gap-2">
                     {SORTS.map((s) => {
                       const on = draft.sort === s
                       return (
                         <label
                           key={s}
-                          className={`cursor-pointer border px-3 py-2 text-[13px] transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${
-                            on ? 'border-ink bg-accent text-paper' : 'border-line'
+                          className={`cursor-pointer rounded-full border px-4 py-2 text-[13px] font-medium transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${
+                            on ? 'bg-gold border-transparent text-paper' : 'border-line bg-paper hover:border-accent'
                           }`}
                         >
                           <input
@@ -234,7 +235,7 @@ export function MobileFilters() {
                   type="button"
                   onClick={() => setDraft(clearFilters(draft))}
                   disabled={activeFilterCount(draft) === 0}
-                  className="h-12 px-2 text-sm underline underline-offset-4 disabled:text-line-strong disabled:no-underline"
+                  className="btn btn-ghost h-12"
                 >
                   {t('list.clearAll')}
                 </button>
@@ -285,13 +286,13 @@ export function ResultsBar() {
               type="button"
               onClick={() => l.apply(chip.without)}
               aria-label={t('list.remove', { filter: chip.label })}
-              className="group inline-flex h-8 items-center gap-2 border border-line bg-paper pl-3 pr-2.5 text-xs transition-colors hover:border-ink"
+              className="group inline-flex h-8 items-center gap-2 rounded-full border border-accent/40 bg-accent/10 pl-3.5 pr-2.5 text-xs font-medium text-heading transition-colors hover:border-accent"
             >
               {chip.label}
               <svg
                 aria-hidden
                 viewBox="0 0 10 10"
-                className="h-2.5 w-2.5 text-muted group-hover:text-ink"
+                className="h-2.5 w-2.5 text-accent"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.4"
@@ -303,20 +304,20 @@ export function ResultsBar() {
           <button
             type="button"
             onClick={() => l.apply(clearFilters(l.current))}
-            className="ml-1 text-xs underline underline-offset-4 hover:text-muted"
+            className="btn btn-ghost btn-sm ml-1"
           >
             {t('list.clearAll')}
           </button>
         </div>
       )}
 
-      <label className="ml-auto hidden items-center gap-2 text-sm lg:flex">
+      <label className="ml-auto hidden items-center gap-2 rounded-full border border-line bg-paper-2/60 py-0.5 pl-4 pr-3 text-sm transition-colors focus-within:border-accent hover:border-line-strong lg:flex">
         <span className="text-muted">{t('list.sortBy')}</span>
         <span className="relative">
           <select
             value={l.current.sort}
             onChange={(e) => l.apply({ ...l.current, sort: e.target.value as ListingSort })}
-            className="h-9 cursor-pointer appearance-none bg-transparent pl-1 pr-6 text-sm font-medium outline-none focus-visible:underline"
+            className="h-9 cursor-pointer appearance-none bg-transparent pl-1 pr-6 text-sm font-semibold text-heading outline-none [&>option]:bg-paper"
           >
             {SORTS.map((s) => (
               <option key={s} value={s}>
@@ -360,7 +361,7 @@ export function NoResults() {
   const t = getTranslator(l.locale)
   const chips = activeChips(l.current, l.facets, l.locale, l.salePage)
   return (
-    <div className="border-y border-line px-6 py-20 text-center">
+    <div className="rounded-3xl border border-line bg-paper-2/40 px-6 py-20 text-center">
       <p className="text-xl font-semibold tracking-tight">{t('list.noProductsTitle')}</p>
       {chips.length > 0 ? (
         <>
@@ -371,7 +372,7 @@ export function NoResults() {
                 key={chip.key}
                 type="button"
                 onClick={() => l.apply(chip.without)}
-                className="inline-flex h-8 items-center gap-2 border border-line pl-3 pr-2.5 text-xs hover:border-ink"
+                className="inline-flex h-8 items-center gap-2 rounded-full border border-line pl-3.5 pr-2.5 text-xs hover:border-accent"
               >
                 {t('list.remove', { filter: chip.label })}
                 <span aria-hidden className="text-muted">

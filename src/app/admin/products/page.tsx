@@ -17,6 +17,7 @@ import { getSettings } from '@/lib/settings'
 import { formatMoney } from '@/lib/pricing'
 import { FilterBar } from '@/components/admin/FilterBar'
 import { Empty, PageHead, Pagination, StatusBadge, StockCount, Thumb, btn, withParams } from '@/components/admin/ui'
+import { CATALOGUE_TABS, SectionTabs } from '@/components/admin/SectionTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
           </Link>
         }
       />
+      <SectionTabs label="Catalogue" tabs={CATALOGUE_TABS} />
       {sp.deleted && (
         <p role="status" className="mb-6 border border-ok/40 bg-ok/10 px-4 py-3 text-sm text-ok">
           Product deleted.
@@ -159,16 +161,20 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                   </span>
 
                   <span className="text-right text-sm tabular-nums lg:order-none">
-                    {row.salePriceCents !== null && row.salePriceCents < row.priceCents ? (
+                    {row.finalCents < row.priceCents ? (
                       <>
-                        <span className="text-sale">{formatMoney(row.salePriceCents, 'en')}</span>
+                        <span className="text-sale">{formatMoney(row.finalCents, 'en')}</span>
                         <span className="block text-xs text-muted line-through">{formatMoney(row.priceCents, 'en')}</span>
+                        {row.promotionName ? (
+                          <span title="Managed in Catalogue, Promotions" className="block truncate text-xs text-sale">
+                            {row.promotionName}
+                          </span>
+                        ) : (
+                          <span className="block text-xs text-muted">sale price</span>
+                        )}
                       </>
                     ) : (
-                      <>
-                        {formatMoney(row.priceCents, 'en')}
-                        {row.onSale && <span className="block text-xs text-sale">promotion</span>}
-                      </>
+                      formatMoney(row.priceCents, 'en')
                     )}
                   </span>
 

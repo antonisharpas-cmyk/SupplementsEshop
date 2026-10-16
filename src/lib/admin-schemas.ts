@@ -52,3 +52,33 @@ export const categoryNameSchema = z.object({
   el: z.string().trim().max(80).optional(),
   ru: z.string().trim().max(80).optional(),
 })
+
+/* A promotion as the admin form sends it. Dates are ISO strings. */
+export const promotionSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Give it a name.').max(160),
+    scope: z.enum(['PRODUCT', 'CATEGORY', 'ALL']),
+    productId: z.string().uuid().nullable().optional(),
+    categoryId: z.string().uuid().nullable().optional(),
+    discountType: z.enum(['PERCENTAGE', 'FIXED']),
+    discountValue: z.number().int().min(1).max(1_000_000),
+    badge: z.object({ en: z.string().max(60).optional(), el: z.string().max(60).optional(), ru: z.string().max(60).optional() }).optional(),
+    startsAt: z.coerce.date(),
+    endsAt: z.coerce.date().nullable(),
+    showOnHomepage: z.boolean(),
+    isActive: z.boolean(),
+  })
+
+/* A promo code as the admin form sends it. Money in cents. */
+export const promoCodeSchema = z.object({
+  code: z.string().trim().min(3, 'At least 3 characters.').max(40),
+  discountType: z.enum(['PERCENTAGE', 'FIXED']),
+  discountValue: z.number().int().min(1).max(1_000_000),
+  minOrderCents: z.number().int().min(0).max(100_000_000),
+  maxUses: z.number().int().min(1).nullable(),
+  maxUsesPerUser: z.number().int().min(1).nullable(),
+  categoryId: z.string().uuid().nullable(),
+  startsAt: z.coerce.date(),
+  expiresAt: z.coerce.date().nullable(),
+  isActive: z.boolean(),
+})

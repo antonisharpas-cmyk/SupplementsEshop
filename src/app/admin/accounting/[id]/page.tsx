@@ -76,7 +76,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs font-semibold tracking-[0.14em] text-[#777] uppercase">{credit ? 'Credit note' : 'Invoice'}</p>
+            <p className="text-xs font-semibold tracking-[0.14em] text-[#777] uppercase">{credit ? 'Credit note' : 'Invoice / Receipt'}</p>
             <p className="mt-1 font-mono text-xl font-semibold text-[#111]">{inv.number}</p>
             <dl className="mt-3 space-y-0.5 text-sm text-[#555]">
               <div>
@@ -88,7 +88,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 <dd className="inline font-mono text-[#111]">{inv.orderNumber}</dd>
               </div>
               <div>
-                <dt className="inline">Payment: </dt>
+                <dt className="inline">{credit ? 'Refunded by: ' : 'Paid upon issuance with: '}</dt>
                 <dd className="inline text-[#111]">{inv.paymentMethod === 'cod' ? 'Cash' : 'Card'}</dd>
               </div>
               {original && (
@@ -153,6 +153,11 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             <span className="tabular-nums">{money(sign * inv.totalCents)}</span>
           </div>
           <p className="pt-1 text-right text-xs text-[#888]">Prices include VAT</p>
+          <p className="pt-3 text-right text-xs font-semibold text-[#111]">
+            {credit
+              ? `Refund recorded on ${when(inv.issuedAt)}${original ? `, against invoice ${original.number}` : ''}.`
+              : `Paid in full on ${when(inv.issuedAt)}. This document is your VAT invoice and your receipt.`}
+          </p>
         </div>
 
         {inv.note && <p className="mt-10 border-t border-[#eee] pt-5 text-center text-sm text-[#555]">{inv.note}</p>}
