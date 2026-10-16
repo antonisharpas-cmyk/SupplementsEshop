@@ -35,6 +35,8 @@ const schema = z.object({
   paymentMethod: z.enum(['card', 'cod']),
   saveAddress: z.boolean().default(false),
   acceptTerms: z.literal(true, { message: 'Tick the box to accept the terms.' }),
+  /* Optional yes to offers by SMS, to the phone given above. */
+  smsConsent: z.boolean().default(false),
   locale: localeSchema,
 })
 
@@ -61,6 +63,21 @@ export async function POST(request: Request) {
           : undefined,
       },
     })
+    if (body.data.smsConsent) {
+      try {
+        const { subscribeSms } = await import('@/lib/sms-marketing')
+        await subscribeSms({
+          phone: body.data.phone,
+          userId: user?.id ?? null,
+          firstName: body.data.firstName,
+          locale: body.data.locale,
+          source: 'checkout',
+        })
+      } catch (err) {
+        /* Never fails an order that has already been placed. */
+        console.error('[api/checkout] SMS opt-in not recorded', err)
+      }
+    }
     return json({ ok: true, ...result })
   } catch (err) {
     if (err instanceof CheckoutError) return fail(409, err.code, err.message)

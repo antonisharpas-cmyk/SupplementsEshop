@@ -1,8 +1,9 @@
-/* Subcategory listing — /en/men/hoodies. */
+/* A group or section listing: /en/sports-nutrition/protein, or a group with
+   sections inside it, /en/clothing/men, which lists them as quick links. */
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { BRAND, isLocale, type Locale } from '@/config/brand'
-import { getCategoryBySlug, t as tr } from '@/lib/catalog'
+import { findByPath, getCategoryTree, t as tr } from '@/lib/catalog'
 import { loadListing } from '@/lib/listing'
 import { ProductListingView } from '@/components/ProductListingView'
 
@@ -14,7 +15,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: raw, category, subcategory } = await params
   const locale = (isLocale(raw) ? raw : BRAND.market.defaultLocale) as Locale
-  const sub = await getCategoryBySlug(subcategory, category)
+  const sub = findByPath(await getCategoryTree(), [category, subcategory])
   if (!sub) return { title: 'Not found' }
 
   const name = tr(sub.name, locale)
@@ -30,10 +31,9 @@ export default async function SubcategoryPage({ params, searchParams }: Props) {
   const sp = await searchParams
   const locale = (isLocale(raw) ? raw : BRAND.market.defaultLocale) as Locale
 
-  const [parent, sub] = await Promise.all([
-    getCategoryBySlug(category),
-    getCategoryBySlug(subcategory, category),
-  ])
+  const tree = await getCategoryTree()
+  const parent = findByPath(tree, [category])
+  const sub = findByPath(tree, [category, subcategory])
   if (!parent || !sub) notFound()
 
   const { filters, listing } = await loadListing(sp, { category, subcategory }, locale)
@@ -43,6 +43,7 @@ export default async function SubcategoryPage({ params, searchParams }: Props) {
       locale={locale}
       title={tr(sub.name, locale)}
       breadcrumb={[{ label: tr(parent.name, locale), href: `/${locale}/${category}` }]}
+      sections={sub.children.map((c) => ({ label: tr(c.name, locale), href: `/${locale}/${category}/${subcategory}/${c.slug}` }))}
       listing={listing}
       filters={filters}
       basePath={`/${locale}/${category}/${subcategory}`}

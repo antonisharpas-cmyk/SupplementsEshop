@@ -7,6 +7,9 @@ import { formatMoney } from '@/lib/pricing'
 import type { OrderSummary } from '@/lib/orders'
 import { StatusPill, formatDate } from './OrderView'
 
+/** Orders still on their way to the customer; everything else is past. */
+export const CURRENT_STATUSES = ['PENDING', 'PAYMENT_PENDING', 'PAID', 'PROCESSING', 'READY_FOR_PICKUP', 'SHIPPED']
+
 export function OrderList({ orders, locale }: { orders: OrderSummary[]; locale: Locale }) {
   const t = getTranslator(locale)
   return (
@@ -15,9 +18,9 @@ export function OrderList({ orders, locale }: { orders: OrderSummary[]; locale: 
         <li key={o.id}>
           <Link
             href={`/${locale}/account/orders/${o.orderNumber}`}
-            className="flex items-center gap-4 border border-line bg-paper-2 p-4 transition-colors hover:border-accent"
+            className="flex items-center gap-4 rounded-2xl border border-line bg-paper-2 p-4 transition-colors hover:border-accent"
           >
-            <span className="h-16 w-12 shrink-0 overflow-hidden bg-paper">
+            <span className="h-16 w-14 shrink-0 overflow-hidden rounded-xl bg-paper">
               {o.firstImage && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={o.firstImage} alt="" className="h-full w-full object-cover" />

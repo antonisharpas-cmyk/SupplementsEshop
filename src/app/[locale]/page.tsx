@@ -73,7 +73,7 @@ async function getHomepagePromotion() {
  *  walks both levels and builds the full /sports-nutrition/protein path. */
 function promotionHref(
   base: string,
-  categories: { id: string; slug: string; children: { id: string; slug: string }[] }[],
+  categories: { id: string; slug: string; children: { id: string; slug: string; children?: { id: string; slug: string }[] }[] }[],
   categoryId: string | null,
 ): string {
   const fallback = categories[0] ? `${base}/${categories[0].slug}` : `${base}/new`
@@ -81,8 +81,11 @@ function promotionHref(
 
   for (const root of categories) {
     if (root.id === categoryId) return `${base}/${root.slug}`
-    const child = root.children.find((c) => c.id === categoryId)
-    if (child) return `${base}/${root.slug}/${child.slug}`
+    for (const child of root.children) {
+      if (child.id === categoryId) return `${base}/${root.slug}/${child.slug}`
+      const leaf = child.children?.find((c) => c.id === categoryId)
+      if (leaf) return `${base}/${root.slug}/${child.slug}/${leaf.slug}`
+    }
   }
   /* Scoped to something not in the navigation: send them somewhere real. */
   return fallback
@@ -297,11 +300,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             case 'newsletter':
               /* An invitation in the page, never a pop-up or a gate. */
               return (
-                <section key="newsletter" aria-labelledby="newsletter-title" className="bg-gold text-paper">
+                <section key="newsletter" aria-labelledby="newsletter-title" className="bg-silver relative overflow-hidden text-paper">
                   <div className="container-x grid gap-10 py-16 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:items-center md:py-20">
                     <div>
                       <p className="label text-paper/60">{t('news.eyebrow')}</p>
-                      <h2 id="newsletter-title" className="mt-3 text-[clamp(1.8rem,3.6vw,2.8rem)] font-semibold leading-[1.05] tracking-tight">
+                      <span aria-hidden className="mt-3 block h-1 w-12 rounded-full bg-gold" />
+                      <h2 id="newsletter-title" className="mt-3 text-[clamp(1.8rem,3.6vw,2.8rem)] font-semibold leading-[1.05] tracking-tight text-paper">
                         {t('news.title')}
                       </h2>
                       <p className="mt-4 max-w-md text-sm leading-relaxed text-paper/75">{t('news.body')}</p>

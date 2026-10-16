@@ -9,7 +9,7 @@
  * the 30 products in the seed and falls over at 3,000.
  * ========================================================================== */
 
-import { and, asc, desc, eq, inArray, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
 import { db } from '@/db'
 import {
   categories,
@@ -40,7 +40,10 @@ export { tField as t }
 
 /* -------------------------------------------------------------- navigation -- */
 
-export type CategoryNode = Category & { children: Category[] }
+/* Up to three levels: a range (Clothing), a group (Men) and a section
+   (Socks). Products are filed under any level below the range. */
+export type CategoryNode = Category & { children: CategoryNode[] }
+export const MAX_CATEGORY_DEPTH = 3
 
 /** The whole navigation tree in one query. Cached per request by Next. */
 export async function getCategoryTree(includeInactive = false): Promise<CategoryNode[]> {
@@ -50,11 +53,42 @@ export async function getCategoryTree(includeInactive = false): Promise<Category
     .where(includeInactive ? undefined : eq(categories.isActive, true))
     .orderBy(asc(categories.position), asc(categories.slug))
 
-  const roots = rows.filter((r) => r.parentId === null)
-  return roots.map((root) => ({
-    ...root,
-    children: rows.filter((r) => r.parentId === root.id),
-  }))
+  const build = (parentId: string | null, depth: number): CategoryNode[] =>
+    depth > MAX_CATEGORY_DEPTH
+      ? []
+      : rows.filter((r) => r.parentId === parentId).map((r) => ({ ...r, children: build(r.id, depth + 1) }))
+  return build(null, 1)
+}
+
+/** Every id in a node's branch, the node itself included. */
+export function branchIds(node: CategoryNode): string[] {
+  return [node.id, ...node.children.flatMap(branchIds)]
+}
+
+/** Find a node by its path of slugs: ['clothing', 'men', 'socks']. */
+export function findByPath(tree: CategoryNode[], path: string[]): CategoryNode | null {
+  let level = tree
+  let found: CategoryNode | null = null
+  for (const slug of path) {
+    found = level.find((n) => n.slug === slug) ?? null
+    if (!found) return null
+    level = found.children
+  }
+  return found
+}
+
+/** The slug path of a category, from its range down: 'clothing/men/socks'. */
+export async function categoryPath(id: string): Promise<string | null> {
+  const rows = await db.select({ id: categories.id, parentId: categories.parentId, slug: categories.slug }).from(categories)
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const parts: string[] = []
+  let cur = byId.get(id)
+  let guard = 0
+  while (cur && guard++ < 5) {
+    parts.unshift(cur.slug)
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined
+  }
+  return parts.length ? parts.join('/') : null
 }
 
 export async function getCategoryBySlug(
@@ -77,18 +111,21 @@ export async function getCategoryBySlug(
   const [row] = await db
     .select()
     .from(categories)
-    .where(and(eq(categories.slug, slug), eq(categories.isActive, true)))
+    .where(and(eq(categories.slug, slug), isNull(categories.parentId), eq(categories.isActive, true)))
     .limit(1)
   return row ?? null
 }
 
 /** A category plus its descendants, so /men lists everything under Men. */
 async function categoryAndDescendants(categoryId: string): Promise<string[]> {
-  const children = await db
-    .select({ id: categories.id })
-    .from(categories)
-    .where(eq(categories.parentId, categoryId))
-  return [categoryId, ...children.map((c) => c.id)]
+  const rows = await db.execute<{ id: string }>(sql`
+    with recursive branch as (
+      select id, 1 as depth from categories where id = ${categoryId}::uuid
+      union all
+      select c.id, b.depth + 1 from categories c join branch b on c.parent_id = b.id where b.depth < 5
+    )
+    select id from branch`)
+  return rows.rows.map((r) => r.id)
 }
 
 /* ---------------------------------------------------------------- listing -- */
@@ -186,9 +223,12 @@ async function buildListing(query: ProductQuery): Promise<Built | null> {
 
   /* --- where on the site we are --- */
   if (query.subcategory && query.category) {
-    const sub = await getCategoryBySlug(query.subcategory, query.category)
-    if (!sub) return null
-    base.push(sql`${products.categoryId} = ${sub.id}::uuid`)
+    /* A group (Clothing / Men) or a section (Clothing / Men / Socks): the
+       products in it and in everything beneath it. */
+    const node = findByPath(await getCategoryTree(), [query.category, query.subcategory, ...(query.leaf ? [query.leaf] : [])])
+    if (!node) return null
+    const ids = branchIds(node)
+    base.push(sql`${products.categoryId} in (${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)})`)
     scope = { kind: 'subcategory' }
   } else if (query.category) {
     const cat = await getCategoryBySlug(query.category)
@@ -215,7 +255,7 @@ async function buildListing(query: ProductQuery): Promise<Built | null> {
   if (query.department && scope.kind === 'all') {
     scope = { kind: 'all', department: query.department }
     const root = tree.find((r) => r.slug === query.department)
-    const ids = root ? [root.id, ...root.children.map((c) => c.id)] : []
+    const ids = root ? branchIds(root) : []
     product.department = ids.length
       ? sql`${products.categoryId} in (${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)})`
       : sql`false`
@@ -227,7 +267,7 @@ async function buildListing(query: ProductQuery): Promise<Built | null> {
       const root = scope.kind === 'department' ? tree.find((r) => r.id === scope.department.id) : tree.find((r) => r.slug === a)
       const childSlug = scope.kind === 'department' ? a : b
       const child = root?.children.find((c) => c.slug === childSlug)
-      if (child) ids.push(child.id)
+      if (child) ids.push(...branchIds(child))
     }
     product.categories = ids.length
       ? sql`${products.categoryId} in (${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)})`
@@ -444,8 +484,9 @@ async function loadFacets(b: Built, locale: string): Promise<ProductListing['fac
       /* With a department chosen, the other department's categories go. */
       if (scope.kind === 'all' && scope.department && root.slug !== scope.department) continue
       for (const child of root.children) {
-        if (!count.has(child.id)) continue /* nothing of it on this page at all */
-        const n = count.get(child.id) ?? 0
+        const branch = branchIds(child)
+        if (!branch.some((id) => count.has(id))) continue /* nothing of it on this page at all */
+        const n = branch.reduce((k, id) => k + (count.get(id) ?? 0), 0)
         categories.push({
           value: scope.kind === 'department' ? child.slug : `${root.slug}/${child.slug}`,
           label: tField(child.name, locale as Locale),
@@ -458,8 +499,9 @@ async function loadFacets(b: Built, locale: string): Promise<ProductListing['fac
       /* Department counts ignore the department choice itself (so both stay
          visible) but respect everything else. */
       const deptRows = await db.execute<{ root: string; n: number }>(sql`
-        select coalesce(c.parent_id, c.id) as root, count(*) filter (where ${filterFor(b, ['department'])})::int as n
+        select coalesce(m.parent_id, c.parent_id, c.id) as root, count(*) filter (where ${filterFor(b, ['department'])})::int as n
         from products join categories c on c.id = ${products.categoryId}
+        left join categories m on m.id = c.parent_id
         where ${baseWhere(b)}
         group by 1`)
       const byRoot = new Map(deptRows.rows.map((r) => [r.root, Number(r.n)]))
@@ -653,15 +695,18 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
 
   if (!row) return null
 
-  const parent = row.category.parentId
+  /* The parent's whole path, so a section two levels down still links to
+     /clothing/men and /clothing/men/socks. */
+  const parentRow = row.category.parentId
     ? (
         await db
-          .select({ slug: categories.slug, name: categories.name })
+          .select({ id: categories.id, name: categories.name })
           .from(categories)
           .where(eq(categories.id, row.category.parentId))
           .limit(1)
       )[0] ?? null
     : null
+  const parent = parentRow ? { slug: (await categoryPath(parentRow.id)) ?? '', name: parentRow.name } : null
 
   const [images, variantRows] = await Promise.all([
     db

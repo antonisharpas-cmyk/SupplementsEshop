@@ -264,7 +264,7 @@ export function TemplateEditor({
                   setEnabled(e.target.checked)
                   setDirty(true)
                 }}
-                className="mt-0.5 h-4 w-4 accent-[var(--color-ink)]"
+                className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
               />
               <span>
                 <span className="font-medium">Send this email</span>

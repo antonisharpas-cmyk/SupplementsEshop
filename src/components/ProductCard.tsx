@@ -3,6 +3,7 @@ import type { Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 import { t as tr, type ProductCard as ProductCardData } from '@/lib/catalog'
 import { Badge, Price, ProductImage } from './ui'
+import { CardHeart } from './WishlistProvider'
 
 /* Section 5: image, name, price, sale price, discount %, sizes, availability. */
 export function ProductCard({
@@ -46,19 +47,18 @@ export function ProductCard({
       </Link>
 
       <div className="mt-3">
-        <h3 className="text-sm leading-snug">
-          <Link href={href} className="hover:underline">
-            {tr(product.name, locale)}
-          </Link>
-        </h3>
-
-        <div className="mt-1.5">
-          <Price
-            listCents={product.listCents}
-            finalCents={product.finalCents}
-            locale={locale}
-            size="sm"
-          />
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="text-sm leading-snug">
+              <Link href={href} className="hover:underline">
+                {tr(product.name, locale)}
+              </Link>
+            </h3>
+            <div className="mt-1.5">
+              <Price listCents={product.listCents} finalCents={product.finalCents} locale={locale} size="sm" />
+            </div>
+          </div>
+          <CardHeart productId={product.id} />
         </div>
 
         {/* Size availability at a glance — sold-out sizes are struck through

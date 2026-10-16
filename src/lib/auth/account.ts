@@ -44,6 +44,8 @@ type PendingRegistration = {
   phone: string
   passwordHash: string
   marketingConsent: boolean
+  /* Missing on codes issued before SMS offers existed. */
+  smsConsent?: boolean
   address: AddressInput | null
   locale: string
 }
@@ -154,6 +156,16 @@ export async function completeRegistration(
       })
     } catch (err) {
       console.error('[account] newsletter opt-in not recorded', err)
+    }
+  }
+
+  /* Ticked "offers by SMS": the phone number is the one on the new account. */
+  if (pending.smsConsent === true) {
+    try {
+      const { subscribeSms } = await import('@/lib/sms-marketing')
+      await subscribeSms({ phone: row.phone, userId, firstName: row.firstName, locale: pending.locale, source: 'registration' })
+    } catch (err) {
+      console.error('[account] SMS opt-in not recorded', err)
     }
   }
 

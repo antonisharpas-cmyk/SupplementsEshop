@@ -201,6 +201,7 @@ export async function issueRegistrationOtp(input: RegisterInput): Promise<{
           phone: input.phone,
           passwordHash,
           marketingConsent: input.marketingConsent,
+          smsConsent: input.smsConsent,
           address: input.address ?? null,
           locale: input.locale,
         },

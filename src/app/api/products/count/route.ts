@@ -23,11 +23,16 @@ export async function GET(request: Request) {
   let ctx: ListingContext
   if (raw === 'new' || raw === 'sale' || raw === 'search') ctx = { kind: raw }
   else {
-    const [category, subcategory] = raw.split('/')
-    if (!category || !SLUG.test(category) || (subcategory !== undefined && !SLUG.test(subcategory))) {
+    const [category, subcategory, leaf] = raw.split('/')
+    if (
+      !category ||
+      !SLUG.test(category) ||
+      (subcategory !== undefined && !SLUG.test(subcategory)) ||
+      (leaf !== undefined && !SLUG.test(leaf))
+    ) {
       return Response.json({ ok: false, error: 'INVALID_CONTEXT' }, { status: 422 })
     }
-    ctx = { category, subcategory }
+    ctx = { category, subcategory, leaf }
   }
 
   const total = await countListing(url.searchParams, ctx, locale)

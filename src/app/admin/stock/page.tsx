@@ -21,7 +21,7 @@ import { StockEditor } from '@/components/admin/StockEditor'
 import { Empty, PageHead, Pagination, withParams } from '@/components/admin/ui'
 import { db } from '@/db'
 import { products } from '@/db/schema'
-import { eq } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +57,15 @@ export default async function AdminStockPage({ searchParams }: { searchParams: P
       : Promise.resolve(null),
   ])
 
+  /* A product with no size yet has nothing to count. Say so here, rather
+     than leaving it missing from the list. */
+  const noSizes = await db
+    .select({ id: products.id, name: products.name })
+    .from(products)
+    .where(sql`not exists (select 1 from product_variants v where v.product_id = ${products.id})`)
+    .orderBy(desc(products.createdAt))
+    .limit(20)
+
   return (
     <>
       <PageHead
@@ -68,6 +77,23 @@ export default async function AdminStockPage({ searchParams }: { searchParams: P
           </>
         }
       />
+
+      {noSizes.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-accent/40 bg-accent/10 px-5 py-4 text-sm">
+          <p className="font-medium text-heading">
+            {noSizes.length === 1 ? 'This product has' : 'These products have'} no size yet, so there is no stock to count:
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {noSizes.map((p) => (
+              <li key={p.id}>
+                <Link href={`/admin/products/${p.id}#variants`} className="btn btn-primary btn-sm">
+                  Add size and stock: {p.name.en ?? Object.values(p.name)[0]}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div role="tablist" aria-label="Quick views" className="mb-5 flex flex-wrap gap-2">
         {VIEWS.map((v) => {

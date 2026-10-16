@@ -196,7 +196,7 @@ export function CampaignComposer({
               key={value}
               className={`flex cursor-pointer items-start gap-2.5 border px-4 py-3 text-sm ${kind === value ? 'border-ink' : 'border-line hover:border-ink-soft'}`}
             >
-              <input type="radio" name="kind" checked={kind === value} onChange={() => pickKind(value)} className="mt-0.5 accent-[var(--color-ink)]" />
+              <input type="radio" name="kind" checked={kind === value} onChange={() => pickKind(value)} className="mt-0.5 accent-[var(--color-accent)]" />
               <span>
                 {label}
                 <span className="block text-xs text-muted">{hint}</span>
@@ -231,7 +231,7 @@ export function CampaignComposer({
             ] as const
           ).map(([value, label]) => (
             <label key={value} className={`flex cursor-pointer items-center gap-2 border px-3 py-2 ${source === value ? 'border-ink' : 'border-line'}`}>
-              <input type="radio" name="source" checked={source === value} onChange={() => setSource(value)} className="accent-[var(--color-ink)]" />
+              <input type="radio" name="source" checked={source === value} onChange={() => setSource(value)} className="accent-[var(--color-accent)]" />
               {label}
             </label>
           ))}
@@ -270,7 +270,7 @@ export function CampaignComposer({
                         checked={on}
                         disabled={!on && picked.length >= 6}
                         onChange={() => togglePick(p.id)}
-                        className="accent-[var(--color-ink)]"
+                        className="accent-[var(--color-accent)]"
                       />
                       {p.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -336,11 +336,11 @@ export function CampaignComposer({
           <legend className="label mb-2 text-muted">When</legend>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <label className="flex items-center gap-2">
-              <input type="radio" name="when" checked={when === 'now'} onChange={() => setWhen('now')} className="accent-[var(--color-ink)]" />
+              <input type="radio" name="when" checked={when === 'now'} onChange={() => setWhen('now')} className="accent-[var(--color-accent)]" />
               Now
             </label>
             <label className="flex items-center gap-2">
-              <input type="radio" name="when" checked={when === 'later'} onChange={() => setWhen('later')} className="accent-[var(--color-ink)]" />
+              <input type="radio" name="when" checked={when === 'later'} onChange={() => setWhen('later')} className="accent-[var(--color-accent)]" />
               Later
             </label>
             {when === 'later' && (

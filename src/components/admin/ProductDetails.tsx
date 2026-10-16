@@ -17,7 +17,7 @@ type L = { en: string; el: string; ru: string }
 const empty: L = { en: '', el: '', ru: '' }
 const toL = (v: Record<string, string> | null | undefined): L => ({ en: v?.en ?? '', el: v?.el ?? '', ru: v?.ru ?? '' })
 
-export type CategoryGroup = { range: string; options: { id: string; label: string }[] }
+export type CategoryGroup = { rangeId: string; range: string; options: { id: string; label: string; group?: boolean }[] }
 
 const LANGS: { code: keyof L; label: string }[] = [
   { code: 'en', label: 'English' },
@@ -26,19 +26,77 @@ const LANGS: { code: keyof L; label: string }[] = [
 ]
 
 function CategorySelect({ groups, value, onChange }: { groups: CategoryGroup[]; value: string; onChange: (v: string) => void }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [parentId, setParentId] = useState('')
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function create() {
+    setBusy(true)
+    setError(null)
+    const r = await send('/api/admin/categories', 'POST', { parentId: parentId || null, name: { en: name } })
+    setBusy(false)
+    if (!r.ok) return setError(r.message)
+    const created = (r.data as { category?: { id: string; parentId: string | null } }).category
+    setOpen(false)
+    setName('')
+    router.refresh()
+    /* A brand new range cannot hold products itself; pick the new category
+       only when it can. */
+    if (created?.parentId) onChange(created.id)
+  }
+
   return (
-    <select className={input} value={value} onChange={(e) => onChange(e.target.value)} required>
-      <option value="">Choose a category</option>
-      {groups.map((g) => (
-        <optgroup key={g.range} label={g.range}>
-          {g.options.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.label}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
+    <div>
+      <select className={input} value={value} onChange={(e) => onChange(e.target.value)} required>
+        <option value="">Choose a category</option>
+        {groups.map((g) => (
+          <optgroup key={g.rangeId} label={g.range}>
+            {g.options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      {!open ? (
+        <button type="button" onClick={() => setOpen(true)} className="mt-1.5 text-xs font-medium text-accent hover:underline">
+          + New category
+        </button>
+      ) : (
+        <div className="mt-2 space-y-2 rounded-xl border border-accent/40 bg-accent/5 p-3">
+          <select className={input} value={parentId} onChange={(e) => setParentId(e.target.value)}>
+            <option value="">A new range (main menu)</option>
+            {groups.map((g) => (
+              <optgroup key={g.rangeId} label={g.range}>
+                <option value={g.rangeId}>Inside {g.range}</option>
+                {g.options
+                  .filter((o) => o.group)
+                  .map((o) => (
+                    <option key={o.id} value={o.id}>
+                      Inside {g.range} › {o.label}
+                    </option>
+                  ))}
+              </optgroup>
+            ))}
+          </select>
+          <input className={input} placeholder="Name in English, e.g. Socks" value={name} onChange={(e) => setName(e.target.value)} />
+          {error && <p className="text-xs text-sale">{error}</p>}
+          <div className="flex items-center gap-2">
+            <button type="button" className={btn.primary} disabled={busy || !name.trim()} onClick={() => void create()}>
+              {busy ? 'Adding' : 'Add category'}
+            </button>
+            <button type="button" className={btn.quiet} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+          <p className="text-xs text-muted">Greek and Russian names, order and hiding: Catalogue, Categories.</p>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -120,9 +178,12 @@ export function DetailsEditor({
   return (
     <form onSubmit={save} className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Labelled label="Category">
-          <CategorySelect groups={groups} value={categoryId} onChange={setCategoryId} />
-        </Labelled>
+        <div>
+          <span className="label text-muted">Category</span>
+          <div className="mt-1.5">
+            <CategorySelect groups={groups} value={categoryId} onChange={setCategoryId} />
+          </div>
+        </div>
         <Labelled label="Web address" hint={`Shop address: /en/products/${slug || '…'}`}>
           <input className={`${input} font-mono`} value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} />
         </Labelled>
@@ -195,6 +256,9 @@ export function NewProductForm({ groups }: { groups: CategoryGroup[] }) {
   const [name, setName] = useState<L>(empty)
   const [categoryId, setCategoryId] = useState('')
   const [price, setPrice] = useState('')
+  const [size, setSize] = useState('')
+  const [flavour, setFlavour] = useState('')
+  const [stock, setStock] = useState('0')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -202,12 +266,17 @@ export function NewProductForm({ groups }: { groups: CategoryGroup[] }) {
     e.preventDefault()
     const trimmed = price.trim().replace(',', '.')
     if (!/^\d+(\.\d{1,2})?$/.test(trimmed) || Number(trimmed) <= 0) return setError('Enter the price in euros, e.g. 39.90.')
+    if (!size.trim()) return setError('Enter the pack size, e.g. 1kg or 90 caps.')
+    if (!/^\d+$/.test(stock.trim())) return setError('Enter how many are on the shelf, e.g. 20.')
     setBusy(true)
     setError(null)
     const r = await send('/api/admin/products', 'POST', {
       name,
       categoryId,
       priceCents: Math.round(Number(trimmed) * 100),
+      firstSize: size,
+      firstFlavour: flavour,
+      firstStock: Number(stock.trim()),
     })
     if (!r.ok) {
       setBusy(false)
@@ -217,7 +286,7 @@ export function NewProductForm({ groups }: { groups: CategoryGroup[] }) {
   }
 
   return (
-    <form onSubmit={create} className="max-w-2xl space-y-5 border border-line bg-paper p-6">
+    <form onSubmit={create} className="max-w-2xl space-y-5 rounded-2xl border border-line bg-paper p-6">
       <Labelled label="Name in English">
         <input className={input} value={name.en} onChange={(e) => setName({ ...name, en: e.target.value })} required autoFocus />
       </Labelled>
@@ -230,13 +299,31 @@ export function NewProductForm({ groups }: { groups: CategoryGroup[] }) {
         </Labelled>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Labelled label="Category">
-          <CategorySelect groups={groups} value={categoryId} onChange={setCategoryId} />
-        </Labelled>
+        <div>
+          <span className="label text-muted">Category</span>
+          <div className="mt-1.5">
+            <CategorySelect groups={groups} value={categoryId} onChange={setCategoryId} />
+          </div>
+        </div>
         <Labelled label="Price (€)" hint="The price of the smallest size. Each size can have its own price later.">
           <input className={`${input} tabular-nums`} inputMode="decimal" placeholder="39.90" value={price} onChange={(e) => setPrice(e.target.value)} required />
         </Labelled>
       </div>
+      <fieldset className="rounded-2xl border border-line bg-paper-2/60 p-4">
+        <legend className="label px-1 text-muted">First size and stock</legend>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Labelled label="Pack size">
+            <input className={input} placeholder="1kg or 90 caps" value={size} onChange={(e) => setSize(e.target.value)} required />
+          </Labelled>
+          <Labelled label="Flavour (optional)">
+            <input className={input} placeholder="Chocolate" value={flavour} onChange={(e) => setFlavour(e.target.value)} />
+          </Labelled>
+          <Labelled label="On the shelf">
+            <input className={`${input} tabular-nums`} inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} />
+          </Labelled>
+        </div>
+        <p className="mt-3 text-xs text-muted">More sizes and flavours can be added on the product page under Flavours and stock.</p>
+      </fieldset>
       {error && (
         <p role="alert" className="text-sm text-sale">
           {error}
@@ -246,7 +333,7 @@ export function NewProductForm({ groups }: { groups: CategoryGroup[] }) {
         <button className={btn.primary} disabled={busy}>
           {busy ? 'Creating…' : 'Create product'}
         </button>
-        <p className="text-sm text-muted">It starts Hidden. Add photos, flavours and stock, then set it to Available.</p>
+        <p className="text-sm text-muted">It starts Hidden. Add photos, then set it to Available.</p>
       </div>
     </form>
   )

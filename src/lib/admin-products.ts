@@ -85,10 +85,12 @@ async function assertSubcategory(categoryId: string) {
     .where(eq(categories.id, categoryId))
     .limit(1)
   if (!cat) throw new AdminError('Choose a category.')
-  if (!cat.parentId) throw new AdminError('Choose a section inside a range, e.g. Sports Nutrition, Protein.')
+  if (!cat.parentId) throw new AdminError('Choose a category inside a range, e.g. Sports Nutrition › Protein, not the range itself.')
 }
 
-export async function createProduct(input: ProductDetailsInput & { priceCents: number }) {
+export async function createProduct(
+  input: ProductDetailsInput & { priceCents: number; firstSize?: string; firstFlavour?: string; firstStock?: number },
+) {
   await assertSubcategory(input.categoryId)
   const slug = await uniqueSlug(input.slug || input.name.en)
   const [row] = await db
@@ -109,6 +111,16 @@ export async function createProduct(input: ProductDetailsInput & { priceCents: n
       publishedAt: new Date(),
     })
     .returning({ id: products.id, slug: products.slug })
+  /* Every product needs at least one size to have stock. Create it now, so
+     the new product is in Stock from the start. */
+  if (input.firstSize?.trim()) {
+    await addVariant(row.id, {
+      size: input.firstSize.trim(),
+      flavour: { en: input.firstFlavour?.trim() || 'Unflavoured' },
+      colorHex: '#9a9a9a',
+      onHand: input.firstStock ?? 0,
+    })
+  }
   return row
 }
 
@@ -422,9 +434,16 @@ export async function categoryOptions() {
     .orderBy(asc(categories.position))
   const roots = rows.filter((r) => !r.parentId)
   return roots.map((root) => ({
+    rangeId: root.id,
     range: root.name.en ?? '',
     options: rows
       .filter((r) => r.parentId === root.id)
-      .map((r) => ({ id: r.id, label: r.name.en ?? '' })),
+      .flatMap((group) => [
+        { id: group.id, label: group.name.en ?? '', group: true },
+        /* Sections inside a group: "Men › Socks". */
+        ...rows
+          .filter((r) => r.parentId === group.id)
+          .map((leaf) => ({ id: leaf.id, label: `${group.name.en ?? ''} › ${leaf.name.en ?? ''}` })),
+      ]),
   }))
 }

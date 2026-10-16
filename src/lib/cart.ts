@@ -474,10 +474,18 @@ export async function getCartCategoryIds(cartId: string): Promise<string[]> {
     .innerJoin(categories, eq(products.categoryId, categories.id))
     .where(eq(cartItems.cartId, cartId))
 
+  /* A code limited to Clothing, or to Men, applies to Clothing / Men / Socks:
+     every ancestor counts, all the way up. */
+  const all = await db.select({ id: categories.id, parentId: categories.parentId }).from(categories)
+  const parentOf = new Map(all.map((c) => [c.id, c.parentId]))
   const ids = new Set<string>()
   for (const r of rows) {
-    ids.add(r.categoryId)
-    if (r.parentId) ids.add(r.parentId)
+    let cur: string | null | undefined = r.categoryId
+    let guard = 0
+    while (cur && guard++ < 6) {
+      ids.add(cur)
+      cur = parentOf.get(cur)
+    }
   }
   return [...ids]
 }

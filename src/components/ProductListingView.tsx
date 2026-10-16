@@ -30,6 +30,7 @@ export function ProductListingView({
   basePath,
   ctx,
   salePage = false,
+  sections = [],
 }: {
   locale: Locale
   title: string
@@ -41,6 +42,8 @@ export function ProductListingView({
   /** "women", "women/leggings", "new", "sale" or "search" — see /api/products/count. */
   ctx: string
   salePage?: boolean
+  /** The sections inside this one (Men: Socks, T shirts), as quick links. */
+  sections?: { label: string; href: string }[]
 }) {
   const t = getTranslator(locale)
   const scope: ListingScope = ctx.includes('/')
@@ -72,6 +75,17 @@ export function ProductListingView({
         <header className="mb-6 lg:mb-8">
           <h1 className="text-[clamp(1.7rem,4vw,2.6rem)] font-semibold leading-tight tracking-tight">{title}</h1>
           {intro && <p className="mt-1.5 max-w-xl text-sm text-muted">{intro}</p>}
+          {sections.length > 0 && (
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {sections.map((s) => (
+                <li key={s.href}>
+                  <Link href={s.href} className="btn btn-secondary btn-sm">
+                    {s.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </header>
 
         {/* Stays in reach under the header while the grid scrolls. */}

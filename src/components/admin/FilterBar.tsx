@@ -271,7 +271,7 @@ function Menu({
                     type="checkbox"
                     checked={selected.includes(o.value)}
                     onChange={() => onToggle(o.value)}
-                    className="h-4 w-4 accent-[var(--color-ink)]"
+                    className="h-4 w-4 accent-[var(--color-accent)]"
                   />
                   {o.swatch !== undefined && (
                     <span

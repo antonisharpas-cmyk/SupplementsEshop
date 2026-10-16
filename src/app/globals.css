@@ -281,6 +281,15 @@
   background-image: var(--gradient-gold);
 }
 
+/* Brushed silver, from the grey of the AIONIX mark: light, with a soft
+   sheen across it. Dark text goes on top. */
+@utility bg-silver {
+  background-color: #e4e7ea;
+  background-image:
+    radial-gradient(120% 140% at 85% 0%, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0) 55%),
+    linear-gradient(135deg, #f6f7f8 0%, #dfe3e6 38%, #f1f3f4 62%, #c9ced3 100%);
+}
+
 @utility btn-ghost {
   background: transparent;
   color: var(--color-ink-soft);

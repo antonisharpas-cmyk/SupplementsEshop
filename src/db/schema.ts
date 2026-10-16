@@ -1148,6 +1148,57 @@ export const newsletterCampaigns = pgTable('newsletter_campaigns', {
   finishedAt: timestamp('finished_at', { withTimezone: true }),
 })
 
+/* -------------------------------------------------------- SMS marketing -- */
+/* Who said yes to offers by SMS. Consent is per phone number, recorded with
+   where and when it was given; saying no keeps the row (as UNSUBSCRIBED) so
+   the number is never added back by accident. */
+export const smsSubscribers = pgTable(
+  'sms_subscribers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    /* E.164, e.g. +35799123456 */
+    phone: varchar('phone', { length: 20 }).notNull(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    firstName: varchar('first_name', { length: 80 }),
+    locale: varchar('locale', { length: 5 }).notNull().default('en'),
+    /* 'SUBSCRIBED' | 'UNSUBSCRIBED' */
+    status: varchar('status', { length: 16 }).notNull().default('SUBSCRIBED'),
+    /* 'registration' | 'checkout' | 'account' | 'admin' */
+    source: varchar('source', { length: 40 }).notNull(),
+    consentAt: timestamp('consent_at', { withTimezone: true }),
+    unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('sms_subscribers_phone_unique').on(t.phone),
+    index('sms_subscribers_status_idx').on(t.status),
+    index('sms_subscribers_user_idx').on(t.userId),
+  ],
+)
+
+/* One row per SMS campaign: what was sent, to whom, and how it went. */
+export const smsCampaigns = pgTable('sms_campaigns', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  /* Exactly as sent, opt out line included. */
+  message: text('message').notNull(),
+  /* 'all' | 'en' | 'el' | 'ru' */
+  audience: varchar('audience', { length: 8 }).notNull().default('all'),
+  senderId: varchar('sender_id', { length: 20 }).notNull(),
+  segments: integer('segments').notNull().default(1),
+  recipientCount: integer('recipient_count').notNull().default(0),
+  sentCount: integer('sent_count').notNull().default(0),
+  failedCount: integer('failed_count').notNull().default(0),
+  /* 'SENDING' | 'SENT' | 'PARTIAL' | 'FAILED' | 'LOGGED' (no provider set) */
+  status: varchar('status', { length: 16 }).notNull().default('SENDING'),
+  /* sms.to ids for each batch, to look the campaign up in their dashboard. */
+  providerRefs: jsonb('provider_refs').$type<string[]>(),
+  error: text('error'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
+})
+
 /* ------------------------------------------------------- customer service -- */
 /* A conversation between one customer and "the shop". The customer always
    sees the shop's name, never which staff member replied — that is kept, for

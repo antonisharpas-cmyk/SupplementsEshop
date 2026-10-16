@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { LOCALE_LABELS, LOCALES, type Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 import { button } from '@/components/ui'
+import { PhoneInput } from '@/components/PhoneInput'
 import { PasswordField } from '@/components/auth/PasswordField'
 
 const inputClass = (bad?: string) =>
@@ -64,11 +65,7 @@ export function ProfileForm({
         <input className={`${inputClass()} opacity-60`} value={f.email} disabled />
         <span className="mt-1 block normal-case tracking-normal text-xs text-muted">{t('acc.emailLocked')}</span>
       </label>
-      <label className="block label text-muted">
-        {t('auth.phone')}
-        <input className={inputClass(fields.phone)} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} type="tel" autoComplete="tel" />
-        {fields.phone && <span className="mt-1 block normal-case tracking-normal text-xs text-sale">{fields.phone}</span>}
-      </label>
+      <PhoneInput locale={locale} label={t('auth.phone')} name="phone" value={f.phone} onChange={(phone) => setF((x) => ({ ...x, phone }))} error={fields.phone} />
       <label className="block label text-muted">
         {t('acc.language')}
         <select className={inputClass()} value={f.locale} onChange={(e) => setF({ ...f, locale: e.target.value })}>

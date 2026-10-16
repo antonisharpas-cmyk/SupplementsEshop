@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
+import { PhoneInput } from '@/components/PhoneInput'
 import { button } from '@/components/ui'
 import { announceBagCount } from '@/lib/bag-events'
 
@@ -113,6 +114,7 @@ export function CheckoutForm(props: {
   const [method, setMethod] = useState<'card' | 'cod'>(props.cardEnabled ? 'card' : 'cod')
   const [note, setNote] = useState('')
   const [terms, setTerms] = useState(false)
+  const [smsConsent, setSmsConsent] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -160,6 +162,7 @@ export function CheckoutForm(props: {
           paymentMethod: method,
           saveAddress: props.signedIn && shipping && !chosenAddress && saveAddress,
           acceptTerms: true,
+          smsConsent,
           locale,
         }),
       })
@@ -203,7 +206,7 @@ export function CheckoutForm(props: {
             <Input label={t('auth.firstName')} name="firstName" autoComplete="given-name" value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} error={errors.firstName} required />
             <Input label={t('auth.lastName')} name="lastName" autoComplete="family-name" value={contact.lastName} onChange={(e) => setContact({ ...contact, lastName: e.target.value })} error={errors.lastName} required />
             <Input label={t('auth.email')} name="email" type="email" autoComplete="email" value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} error={errors.email} required />
-            <Input label={t('auth.phone')} name="phone" type="tel" autoComplete="tel" placeholder="+357 99 123456" value={contact.phone} onChange={(e) => setContact({ ...contact, phone: e.target.value })} error={errors.phone} required />
+            <PhoneInput locale={locale} label={t('auth.phone')} name="phone" value={contact.phone} onChange={(phone) => setContact((c) => ({ ...c, phone }))} error={errors.phone} required />
           </div>
         </Step>
 
@@ -359,6 +362,14 @@ export function CheckoutForm(props: {
           </dl>
 
           <label className="mt-5 flex items-start gap-2.5 text-xs leading-relaxed text-ink-soft">
+            <input type="checkbox" checked={smsConsent} onChange={(e) => setSmsConsent(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]" />
+            <span>
+              {t('auth.smsOptIn')}
+              <span className="block text-muted">{t('auth.smsNote')}</span>
+            </span>
+          </label>
+
+          <label className="mt-3 flex items-start gap-2.5 text-xs leading-relaxed text-ink-soft">
             <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className={`mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)] ${errors.acceptTerms ? 'outline outline-sale' : ''}`} />
             <span>
               {t('co.terms')}{' '}

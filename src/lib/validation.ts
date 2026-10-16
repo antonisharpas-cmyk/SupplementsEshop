@@ -141,6 +141,8 @@ export const registerSchema = z.object({
   password: passwordSchema,
   /* Section 21: consent is optional and separate from the mandatory fields. */
   marketingConsent: z.boolean().default(false),
+  /* Offers by SMS: a separate, optional yes. */
+  smsConsent: z.boolean().default(false),
   address: addressInputSchema.optional(),
   locale: localeSchema,
 })
@@ -262,6 +264,8 @@ export const trackOrderSchema = z.object({
 export const productQuerySchema = z.object({
   category: slugSchema.optional(),
   subcategory: slugSchema.optional(),
+  /* The third level, /clothing/men/socks. */
+  leaf: slugSchema.optional(),
   q: z.string().trim().max(120).optional(),
   sizes: z.array(z.string().trim().max(24)).max(20).optional(),
   /* Colour keys ("black", "washed-black"). Any of them — OR within the group. */

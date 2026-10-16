@@ -5,7 +5,10 @@
  * once, and the OTP flow must not be coupled to a vendor SDK. `send()` is the
  * only thing the rest of the codebase calls.
  *
- * With no EMAIL_API_KEY set, mail is written to the log instead. That keeps
+ * Providers: EMAIL_PROVIDER="gmail" sends through Google Workspace (Gmail
+ * SMTP with an app password); "resend" through Resend's API.
+ *
+ * With no provider credentials set, mail is written to the log instead. That keeps
  * registration testable end to end on a laptop with nothing to sign up for —
  * and in development the OTP is printed so you can complete the flow.
  * ========================================================================== */
@@ -37,20 +40,28 @@ export type SendResult =
   | { sent: true; providerId?: string; logId?: string }
   | { sent: false; reason: 'NO_PROVIDER' | 'PROVIDER_ERROR'; detail?: string; logId?: string }
 
-const PROVIDER = process.env.EMAIL_PROVIDER ?? 'resend'
+const PROVIDER = (process.env.EMAIL_PROVIDER ?? 'resend').trim().toLowerCase()
 const API_KEY = process.env.EMAIL_API_KEY
-const FROM = process.env.EMAIL_FROM ?? `${BRAND.name} <no-reply@example.com>`
+const GMAIL_USER = process.env.GMAIL_USER?.trim()
+/* Google shows app passwords in groups of four ("abcd efgh ijkl mnop"). */
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '')
+const FROM =
+  process.env.EMAIL_FROM ??
+  (PROVIDER === 'gmail' && GMAIL_USER ? `${BRAND.name} <${GMAIL_USER}>` : `${BRAND.name} <no-reply@example.com>`)
 
-export const emailEnabled = Boolean(API_KEY)
+/** True when a real provider is configured and mail actually leaves. */
+export const emailEnabled = PROVIDER === 'gmail' ? Boolean(GMAIL_USER && GMAIL_APP_PASSWORD) : Boolean(API_KEY)
+/** For the admin: which service sends the shop's email. */
+export const emailProviderName = PROVIDER === 'gmail' ? 'Google Workspace (Gmail)' : PROVIDER === 'resend' ? 'Resend' : PROVIDER
 
 /* ------------------------------------------------------------------ send --- */
 
 export async function send(message: EmailMessage): Promise<SendResult> {
   let result: SendResult
-  if (!API_KEY) {
+  if (!emailEnabled) {
     /* Not an error in development — it is the documented fallback. */
     console.info(
-      `\n──── email (not sent: EMAIL_API_KEY is unset) ────\n` +
+      `\n──── email (not sent: no email provider is configured) ────\n` +
         `to:      ${message.to}\n` +
         `subject: ${message.subject}\n\n${message.text}\n` +
         `─────────────────────────────────────────────────\n`,
@@ -59,9 +70,11 @@ export async function send(message: EmailMessage): Promise<SendResult> {
   } else {
     try {
       result =
-        PROVIDER === 'resend'
-          ? await sendViaResend(message)
-          : { sent: false, reason: 'PROVIDER_ERROR', detail: `Unknown provider "${PROVIDER}"` }
+        PROVIDER === 'gmail'
+          ? await sendViaGmail(message)
+          : PROVIDER === 'resend'
+            ? await sendViaResend(message)
+            : { sent: false, reason: 'PROVIDER_ERROR', detail: `Unknown provider "${PROVIDER}"` }
     } catch (err) {
       /* A failed email must never fail the request that triggered it. An order
          that is paid for but whose confirmation email bounced is still an order. */
@@ -91,13 +104,56 @@ async function logEmail(message: EmailMessage, result: SendResult): Promise<stri
       /* With no provider (development) the body is the only copy there is,
          so it is kept to be read and tested. Never for sign-in codes, and
          never once a real provider is sending. */
-      body: !API_KEY && !kind.startsWith('auth') ? message.text : null,
+      body: !emailEnabled && !kind.startsWith('auth') ? message.text : null,
       relatedId: message.relatedId ?? null,
     }).returning({ id: emailLog.id })
     return row?.id
   } catch {
     /* no database, or it is down — the email outcome stands regardless */
     return undefined
+  }
+}
+
+/* Google Workspace: Gmail's SMTP server with an app password (Google account,
+   Security, 2 Step Verification, App passwords). One pooled connection is
+   reused across sends, so a newsletter does not log in once per email.
+   Workspace allows about 2,000 messages a day per user. */
+let gmailTransport: import('nodemailer').Transporter | null = null
+
+async function gmail() {
+  if (!gmailTransport) {
+    const nodemailer = (await import('nodemailer')).default
+    gmailTransport = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      pool: true,
+      maxConnections: 3,
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 30_000,
+      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    })
+  }
+  return gmailTransport
+}
+
+async function sendViaGmail(message: EmailMessage): Promise<SendResult> {
+  try {
+    const info = await (await gmail()).sendMail({
+      from: FROM,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+      replyTo: message.replyTo,
+      headers: message.headers,
+    })
+    return { sent: true, providerId: info.messageId }
+  } catch (err) {
+    const detail = (err instanceof Error ? err.message : String(err)).slice(0, 300)
+    console.error('[email] gmail rejected the message', detail)
+    return { sent: false, reason: 'PROVIDER_ERROR', detail }
   }
 }
 

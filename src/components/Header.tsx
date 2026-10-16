@@ -47,15 +47,23 @@ export function Header({
         </Link>
 
         {/* desktop nav */}
-        <nav className="ml-6 hidden items-stretch gap-7 lg:flex" aria-label="Main">
+        <nav className="ml-6 hidden items-center gap-2 lg:flex" aria-label="Main">
           {categories.map((root) => (
-            <div key={root.id} className="group relative flex items-center">
-              <Link href={`${base}/${root.slug}`} className="label py-5 transition-colors hover:text-accent">
+            <div key={root.id} className="group relative flex items-center py-3">
+              <Link
+                href={`${base}/${root.slug}`}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-paper-2/60 px-3.5 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition-colors group-hover:border-accent group-hover:text-accent"
+              >
                 {tr(root.name, locale)}
+                {root.children.length > 0 && (
+                  <svg aria-hidden viewBox="0 0 20 20" className="h-3.5 w-3.5 opacity-60" fill="currentColor">
+                    <path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z" />
+                  </svg>
+                )}
               </Link>
 
               {root.children.length > 0 && (
-                <div className="invisible absolute top-full left-0 min-w-56 border border-line bg-paper opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100 focus-within:visible focus-within:opacity-100">
+                <div className="invisible absolute top-full left-0 min-w-60 overflow-hidden rounded-2xl border border-line bg-paper opacity-0 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.8)] transition-opacity group-hover:visible group-hover:opacity-100 focus-within:visible focus-within:opacity-100">
                   <ul className="py-2">
                     {root.children.map((child) => (
                       <li key={child.id}>
@@ -65,6 +73,20 @@ export function Header({
                         >
                           {tr(child.name, locale)}
                         </Link>
+                        {child.children.length > 0 && (
+                          <ul className="mb-1 ml-4 border-l border-line">
+                            {child.children.map((leaf) => (
+                              <li key={leaf.id}>
+                                <Link
+                                  href={`${base}/${root.slug}/${child.slug}/${leaf.slug}`}
+                                  className="block px-3 py-1.5 text-[13px] text-muted hover:bg-paper-2 hover:text-accent"
+                                >
+                                  {tr(leaf.name, locale)}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </li>
                     ))}
                     <li className="mt-1 border-t border-line pt-1">

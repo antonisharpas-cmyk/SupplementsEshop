@@ -41,7 +41,7 @@ export function NewsletterForm({
   const dark = tone === 'dark'
   const field = `w-full border px-4 py-3.5 text-sm outline-none transition-colors ${
     dark
-      ? 'border-paper/30 bg-transparent text-paper placeholder:text-paper/50 focus:border-paper'
+      ? 'border-paper/20 bg-white/60 text-paper placeholder:text-paper/45 shadow-[inset_0_1px_2px_rgb(0_0_0/0.06)] backdrop-blur-sm focus:border-paper focus:bg-white/80'
       : 'border-line bg-paper text-ink placeholder:text-muted focus:border-accent'
   }`
 
@@ -137,7 +137,7 @@ export function NewsletterForm({
           type="checkbox"
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
-          className={`mt-1 h-4 w-4 shrink-0 ${dark ? 'accent-[var(--color-paper)]' : 'accent-[var(--color-ink)]'}`}
+          className={`mt-1 h-4 w-4 shrink-0 ${dark ? 'accent-[var(--color-paper)]' : 'accent-[var(--color-accent)]'}`}
         />
         <span className={dark ? 'text-paper/80' : 'text-ink-soft'}>
           {t('news.consent')}{' '}

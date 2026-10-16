@@ -23,7 +23,7 @@ export function StatusPill({ status, locale }: { status: string; locale: Locale 
         : status === 'PAYMENT_PENDING' || status === 'PENDING'
           ? 'bg-accent/15 text-accent'
           : 'bg-accent text-black'
-  return <span className={`inline-block rounded-sm px-2 py-1 label ${tone}`}>{t(`st.${status}` as MessageKey)}</span>
+  return <span className={`inline-block rounded-full px-2.5 py-1 label ${tone}`}>{t(`st.${status}` as MessageKey)}</span>
 }
 
 export function formatDate(d: Date | string, locale: Locale, withTime = false) {
@@ -73,7 +73,7 @@ export function OrderView({
         <ol className="mt-6 grid grid-cols-4 gap-1" aria-label="Progress">
           {steps.map((s, i) => (
             <li key={s}>
-              <span className={`block h-1.5 ${i <= stepIndex ? 'bg-accent' : 'bg-line'}`} />
+              <span className={`block h-1.5 rounded-full ${i <= stepIndex ? 'bg-accent' : 'bg-line'}`} />
               <span className={`mt-2 block text-[11px] leading-tight ${i <= stepIndex ? 'text-heading' : 'text-muted'}`}>
                 {t(`st.${s}` as MessageKey)}
               </span>

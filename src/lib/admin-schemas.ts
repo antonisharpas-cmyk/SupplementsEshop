@@ -30,6 +30,10 @@ export const detailsSchema = z.object({
 
 export const createProductSchema = detailsSchema.extend({
   priceCents: money.refine((v) => v > 0, 'Enter a price.'),
+  /* The first size, so the product shows in Stock straight away. */
+  firstSize: z.string().trim().min(1, 'Enter the pack size, e.g. 1kg or 90 caps.').max(24),
+  firstFlavour: z.string().trim().max(80).optional().or(z.literal('')),
+  firstStock: z.number().int().min(0).max(1_000_000).default(0),
 })
 
 export const variantSchema = z.object({
@@ -41,4 +45,10 @@ export const variantSchema = z.object({
   salePriceCents: money.nullable().optional(),
   onHand: z.number().int().min(0).max(1_000_000).optional(),
   isActive: z.boolean().optional(),
+})
+
+export const categoryNameSchema = z.object({
+  en: z.string().trim().min(1, 'Give the category a name in English.').max(80),
+  el: z.string().trim().max(80).optional(),
+  ru: z.string().trim().max(80).optional(),
 })

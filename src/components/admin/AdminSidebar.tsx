@@ -40,6 +40,9 @@ const ICONS = {
   emails: (
     <svg viewBox="0 0 24 24" {...s}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3.5 6.5L12 13l8.5-6.5" /></svg>
   ),
+  categories: (
+    <svg viewBox="0 0 24 24" {...s}><rect x="3" y="3" width="7" height="7" rx="2" /><path d="M6.5 10v4.5a2 2 0 0 0 2 2H14" /><rect x="14" y="13.5" width="7" height="6" rx="2" /><path d="M10 6.5h4" /><rect x="14" y="3.5" width="7" height="6" rx="2" /></svg>
+  ),
   accounting: (
     <svg viewBox="0 0 24 24" {...s}><path d="M5 2h14v20l-3-2-2 2-2-2-2 2-2-2-3 2V2z" /><path d="M9 7h6M9 11h6M9 15h3" /></svg>
   ),

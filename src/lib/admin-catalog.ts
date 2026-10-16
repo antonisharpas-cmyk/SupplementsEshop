@@ -157,7 +157,8 @@ export async function listAdminProductRows(
   const base = sql`
     from products p
     join categories c on c.id = p.category_id
-    left join categories d on d.id = c.parent_id
+    left join categories m on m.id = c.parent_id
+    left join categories d on d.id = coalesce(m.parent_id, m.id)
     join lateral (
       select
         count(v.id)::int as variants,
@@ -332,7 +333,8 @@ const STOCK_FROM = sql`
   join inventory i on i.variant_id = v.id
   join products p on p.id = v.product_id
   join categories c on c.id = p.category_id
-  left join categories d on d.id = c.parent_id
+  left join categories m on m.id = c.parent_id
+  left join categories d on d.id = coalesce(m.parent_id, m.id)
 `
 
 /** How many sizes each quick filter would show, with the other filters applied. */
@@ -464,15 +466,20 @@ export async function catalogueFacets(): Promise<CatalogueFacets> {
     db.execute<{ size: string }>(sql`select distinct size from product_variants where is_active`),
   ])
   const roots = cats.rows.filter((c) => !c.parent_id)
-  const rootById = new Map(roots.map((r) => [r.id, r]))
+  const byId = new Map(cats.rows.map((r) => [r.id, r]))
+  /* Groups and sections, each under its range; a section reads "Men › Socks". */
+  const placed = cats.rows
+    .filter((c) => c.parent_id)
+    .map((c) => {
+      const parent = byId.get(c.parent_id!)
+      const root = parent?.parent_id ? byId.get(parent.parent_id) : parent
+      const name = parent?.parent_id ? `${parent.name.en ?? parent.slug} › ${c.name.en ?? c.slug}` : (c.name.en ?? c.slug)
+      return root ? { id: c.id, name, department: root.name.en ?? root.slug, departmentSlug: root.slug } : null
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null)
   return {
     departments: roots.map((r) => ({ slug: r.slug, name: r.name.en ?? r.slug })),
-    categories: cats.rows
-      .filter((c) => c.parent_id && rootById.has(c.parent_id))
-      .map((c) => {
-        const root = rootById.get(c.parent_id!)!
-        return { id: c.id, name: c.name.en ?? c.slug, department: root.name.en ?? root.slug, departmentSlug: root.slug }
-      }),
+    categories: placed,
     colours: colours.rows.filter((c) => c.name),
     sizes: sizes.rows.map((s) => s.size).sort(compareSizes),
   }

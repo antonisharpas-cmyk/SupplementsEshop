@@ -26,6 +26,34 @@ Brand name, address and legal details live in **`src/config/brand.ts`**. The
 company details, address, email and phone are still `TODO` placeholders: fill
 them in before launch.
 
+## Payments, orders and members (added for AIONIX)
+
+* **Checkout** at `/checkout`: home delivery or collection, card through Stripe
+  or cash on delivery (pay at the store when collecting). Guests can buy without
+  an account and get a private order link.
+* **Members area** at `/account`: overview, orders (progress, buy again, cancel
+  before it is confirmed), payments, wishlist, saved addresses, my details and
+  password. Forgot password at `/forgot-password`.
+* **Admin**: Orders (confirm, ready to collect, shipped with tracking,
+  delivered, cash received, cancel with restock and refund, refunds for
+  returns, private notes) and Customers (orders, payments, addresses, password
+  reset, switch an account off). Products can now be created, deleted, given
+  photos (uploaded straight from the browser and stored in the database),
+  flavours and sizes with their own price and stock, and text in three languages.
+
+### Switching on card payments
+
+1. Create a Stripe account and copy the keys from Developers, API keys.
+2. In `.env.local` (and on the server) set `STRIPE_SECRET_KEY`.
+3. In Stripe, Developers, Webhooks, add `https://<your site>/api/stripe/webhook`
+   with the events `checkout.session.completed`,
+   `checkout.session.async_payment_succeeded`, `checkout.session.expired` and
+   `charge.refunded`, and put its signing secret in `STRIPE_WEBHOOK_SECRET`.
+
+Until `STRIPE_SECRET_KEY` is set, card payment shows as unavailable and cash on
+delivery still works. Without the webhook, a payment is still confirmed when the
+customer returns from Stripe; the webhook covers customers who close the tab.
+
 ## Running it
 
 A fresh clone runs with no configuration: the committed `.env.development`
@@ -158,6 +186,7 @@ SEO/performance/security passes. `OVERVIEW.md` has the full list.
 | --- | --- | --- |
 | `JWT_SECRET` | in production | signs newsletter confirm/unsubscribe links; 16+ characters |
 | `PUBLIC_SITE_URL` | in production | absolute links in emails (confirm, unsubscribe, the admin link) |
-| `EMAIL_API_KEY`, `EMAIL_FROM` | to send real email | without them every email goes to the server log and `email_log` |
+| `EMAIL_PROVIDER="gmail"`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `EMAIL_FROM` | to send real email through Google Workspace | without them every email goes to the server log and `email_log`. Steps in `.env.example`. Resend still works with `EMAIL_PROVIDER="resend"` and `EMAIL_API_KEY` |
+| `SMSTO_API_KEY`, `SMSTO_SENDER_ID` | to send SMS campaigns through sms.to | without them SMS go to the server log. Only customers who ticked "offers by SMS" receive them |
 | `CRON_SECRET` | optional | enables `POST /api/cron/automations` (and the older `support-sweep`) for serverless hosts |
 | `AUTOMATIONS=off` | optional | turns off the built-in 30-second automation tick (when cron does it); `SUPPORT_SWEEP=off` still works |

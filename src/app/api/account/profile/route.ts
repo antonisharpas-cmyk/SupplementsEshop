@@ -17,8 +17,15 @@ export async function PATCH(request: Request) {
   const body = await readJson(request, schema)
   if ('response' in body) return body.response
   try {
+    /* Said yes to SMS offers on the old number: the yes moves with the number. */
+    const { smsStatusForUser, subscribeSms, unsubscribeSms } = await import('@/lib/sms-marketing')
+    const before = await smsStatusForUser(user.id)
     await updateProfile(user.id, { firstName: body.data.firstName, lastName: body.data.lastName, phone: body.data.phone })
     await db.update(users).set({ locale: body.data.locale, updatedAt: new Date() }).where(eq(users.id, user.id))
+    if (before?.subscribed && before.phone !== body.data.phone) {
+      await unsubscribeSms(before.phone)
+      await subscribeSms({ phone: body.data.phone, userId: user.id, firstName: body.data.firstName, locale: body.data.locale, source: 'account' })
+    }
     return json({ ok: true })
   } catch (err) {
     if (err instanceof AccountError) return fail(409, err.code, err.message, { fields: { phone: err.message } })

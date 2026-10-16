@@ -6,7 +6,6 @@ import { getCurrentUser } from '@/lib/auth/session'
 import { wishlistProductIds } from '@/lib/wishlist'
 import { listProductsByIds } from '@/lib/catalog'
 import { ProductCard } from '@/components/ProductCard'
-import { WishlistButton } from '@/components/WishlistButton'
 import { button } from '@/components/ui'
 
 export const metadata: Metadata = { title: 'Wishlist', robots: { index: false, follow: false } }
@@ -33,12 +32,7 @@ export default async function WishlistPage({ params }: { params: Promise<{ local
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-3">
           {items.map((p) => (
-            <div key={p.id} className="relative">
-              <ProductCard product={p} locale={locale} />
-              <div className="absolute top-2 right-2">
-                <WishlistButton locale={locale} productId={p.id} initial signedIn compact />
-              </div>
-            </div>
+            <ProductCard key={p.id} product={p} locale={locale} />
           ))}
         </div>
       )}

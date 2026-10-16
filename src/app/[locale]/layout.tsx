@@ -13,6 +13,8 @@ import { assertSchemaReady } from '@/db/ready'
 import { getCategoryTree } from '@/lib/catalog'
 import { getCartCount, getOrCreateCart } from '@/lib/cart'
 import { getCurrentUser, readCartToken } from '@/lib/auth/session'
+import { wishlistProductIds } from '@/lib/wishlist'
+import { WishlistProvider } from '@/components/WishlistProvider'
 import { Footer, Header } from '@/components/Header'
 import { SupportWidget } from '@/components/SupportWidget'
 
@@ -84,6 +86,8 @@ export default async function LocaleLayout({
 
   /* Only count an existing cart — do not create one just to render a zero,
      or every crawler visit would leave a row behind. */
+  const savedIds = user ? await wishlistProductIds(user.id).catch(() => []) : []
+
   let cartCount = 0
   if (user || cartToken) {
     const cartId = await getOrCreateCart({
@@ -112,7 +116,9 @@ export default async function LocaleLayout({
         />
 
         <main id="main" className="flex-1">
-          {children}
+          <WishlistProvider locale={locale} signedIn={Boolean(user)} initial={savedIds}>
+            {children}
+          </WishlistProvider>
         </main>
 
         <Footer locale={locale} />

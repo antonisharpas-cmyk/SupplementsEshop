@@ -8,7 +8,8 @@ import { usePathname } from 'next/navigation'
 
 const TABS = [
   { href: '/admin/emails', label: 'Automated emails' },
-  { href: '/admin/emails/campaigns', label: 'Campaigns' },
+  { href: '/admin/emails/campaigns', label: 'Email campaigns' },
+  { href: '/admin/emails/sms', label: 'SMS campaigns' },
   { href: '/admin/emails/subscribers', label: 'Subscribers' },
   { href: '/admin/emails/activity', label: 'Email activity' },
   { href: '/admin/emails/settings', label: 'Settings' },
@@ -28,7 +29,7 @@ export function EmailTabs() {
           href={t.href}
           aria-current={current(t.href) ? 'page' : undefined}
           className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-3 text-sm transition-colors ${
-            current(t.href) ? 'border-ink font-medium text-ink' : 'border-transparent text-muted hover:text-ink'
+            current(t.href) ? 'border-accent font-medium text-heading' : 'border-transparent text-muted hover:text-ink'
           }`}
         >
           {t.label}

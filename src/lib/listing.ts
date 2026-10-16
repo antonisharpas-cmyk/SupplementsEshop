@@ -14,6 +14,7 @@ import type { ProductQuery } from '@/lib/validation'
 export type ListingContext = {
   category?: string
   subcategory?: string
+  leaf?: string
   kind?: 'new' | 'sale' | 'search'
 }
 
@@ -23,6 +24,7 @@ export function toProductQuery(f: ListingFilters, ctx: ListingContext, locale: L
   return {
     category: ctx.category,
     subcategory: ctx.subcategory,
+    leaf: ctx.leaf,
     q: f.q,
     sizes: f.sizes.length ? f.sizes : undefined,
     colours: f.colours.length ? f.colours : undefined,

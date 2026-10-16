@@ -216,7 +216,7 @@ export function SettingsForm({ initial }: { initial: SettingsForm }) {
             type="checkbox"
             checked={form.promos}
             onChange={(e) => set('promos', e.target.checked)}
-            className="h-4 w-4 accent-[var(--color-ink)]"
+            className="h-4 w-4 accent-[var(--color-accent)]"
           />
           <span>{form.promos ? 'Showing' : 'Hidden'}</span>
         </label>

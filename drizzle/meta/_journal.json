@@ -57,6 +57,20 @@
       "when": 1792084781402,
       "tag": "0007_invoices",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792136975353,
+      "tag": "0008_sms_marketing",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792138761751,
+      "tag": "0009_hero_range_buttons",
+      "breakpoints": true
     }
   ]
 }

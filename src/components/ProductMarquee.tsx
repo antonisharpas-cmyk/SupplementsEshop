@@ -25,6 +25,7 @@ import type { Locale } from '@/config/brand'
 import { tField as tr } from '@/i18n/field'
 import type { ProductCard } from '@/lib/catalog'
 import { getTranslator } from '@/i18n/messages'
+import { CardHeart } from '@/components/WishlistProvider'
 
 export function ProductMarquee({
   products,
@@ -80,20 +81,23 @@ export function ProductMarquee({
             </span>
           )}
         </div>
-        <p className="mt-2.5 truncate text-sm">{tr(product.name, locale)}</p>
-        <p className="mt-0.5 text-sm">
-          {product.discountPercent > 0 ? (
-            <>
-              <span className="font-medium text-sale">{money(product.finalCents)}</span>
-              <span className="ml-2 text-xs text-muted line-through">
-                {money(product.listCents)}
-              </span>
-            </>
-          ) : (
-            money(product.finalCents)
-          )}
-        </p>
       </Link>
+      <div className="mt-2.5 flex items-start justify-between gap-2">
+        <Link href={`/${locale}/products/${product.slug}`} tabIndex={copy === 1 ? -1 : undefined} className="min-w-0 flex-1">
+          <p className="truncate text-sm">{tr(product.name, locale)}</p>
+          <p className="mt-0.5 text-sm">
+            {product.discountPercent > 0 ? (
+              <>
+                <span className="font-medium text-sale">{money(product.finalCents)}</span>
+                <span className="ml-2 text-xs text-muted line-through">{money(product.listCents)}</span>
+              </>
+            ) : (
+              money(product.finalCents)
+            )}
+          </p>
+        </Link>
+        <CardHeart productId={product.id} tabIndex={copy === 1 ? -1 : undefined} />
+      </div>
     </li>
   )
 

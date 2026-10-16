@@ -91,7 +91,7 @@ export function StatusControl({ productId, status }: { productId: string; status
                   checked={on}
                   disabled={saving !== null}
                   onChange={() => void choose(s.value)}
-                  className="h-4 w-4 accent-[var(--color-ink)]"
+                  className="h-4 w-4 accent-[var(--color-accent)]"
                 />
                 {s.label}
                 {saving === s.value && <span className="text-xs font-normal text-muted">Saving…</span>}

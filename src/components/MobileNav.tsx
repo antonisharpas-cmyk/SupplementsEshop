@@ -65,6 +65,21 @@ export function MobileNav({ locale, categories }: { locale: Locale; categories: 
                           >
                             {tr(child.name, locale)}
                           </Link>
+                          {child.children.length > 0 && (
+                            <ul className="mb-1 ml-3 border-l border-line pl-3">
+                              {child.children.map((leaf) => (
+                                <li key={leaf.id}>
+                                  <Link
+                                    href={`${base}/${root.slug}/${child.slug}/${leaf.slug}`}
+                                    onClick={() => setOpen(false)}
+                                    className="block py-1 text-sm text-muted"
+                                  >
+                                    {tr(leaf.name, locale)}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </li>
                       ))}
                     </ul>

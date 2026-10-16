@@ -19,6 +19,7 @@ import { AuthCard, Field, FormError } from './Field'
 import { OtpInput } from './OtpInput'
 import { PasswordField } from './PasswordField'
 import { button } from '@/components/ui'
+import { PhoneInput } from '@/components/PhoneInput'
 
 type FieldErrors = Record<string, string | undefined>
 
@@ -50,6 +51,7 @@ export function RegisterForm({ locale }: { locale: Locale }) {
     password: '',
     confirmPassword: '',
     marketingConsent: false,
+    smsConsent: false,
   })
   const [code, setCode] = useState('')
   const [fields, setFields] = useState<FieldErrors>({})
@@ -281,16 +283,14 @@ export function RegisterForm({ locale }: { locale: Locale }) {
           error={fields.email}
         />
 
-        <Field
+        <PhoneInput
+          locale={locale}
           label={t('auth.phone')}
           name="phone"
-          type="tel"
-          autoComplete="tel"
           required
           value={form.phone}
-          onChange={set('phone')}
+          onChange={(phone) => setForm((f) => ({ ...f, phone }))}
           error={fields.phone}
-          hint="+357 99 123456"
         />
 
         <PasswordField
@@ -332,11 +332,24 @@ export function RegisterForm({ locale }: { locale: Locale }) {
             type="checkbox"
             checked={form.marketingConsent}
             onChange={(e) => setForm((f) => ({ ...f, marketingConsent: e.target.checked }))}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-ink)]"
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
           />
           <span>
             {t('auth.marketingOptIn')}
             <span className="mt-0.5 block text-xs text-muted">{t('auth.marketingNote')}</span>
+          </span>
+        </label>
+
+        <label className="flex cursor-pointer items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={form.smsConsent}
+            onChange={(e) => setForm((f) => ({ ...f, smsConsent: e.target.checked }))}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+          />
+          <span>
+            {t('auth.smsOptIn')}
+            <span className="mt-0.5 block text-xs text-muted">{t('auth.smsNote')}</span>
           </span>
         </label>
 

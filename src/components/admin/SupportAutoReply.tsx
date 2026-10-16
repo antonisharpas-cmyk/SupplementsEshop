@@ -75,7 +75,7 @@ export function SupportAutoReply({ initial }: { initial: Values }) {
               type="checkbox"
               checked={v.enabled}
               onChange={(e) => setV({ ...v, enabled: e.target.checked })}
-              className="h-4 w-4 accent-[var(--color-ink)]"
+              className="h-4 w-4 accent-[var(--color-accent)]"
             />
             Send an automatic reply right after a customer’s first message
           </label>

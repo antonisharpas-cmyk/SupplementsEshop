@@ -197,7 +197,7 @@ export default async function AdminOverviewPage() {
                   </li>
                 ))}
               </ul>
-              <p className="px-5 py-3 text-xs text-muted">Usually the email service key or sending domain. Check EMAIL_API_KEY and EMAIL_FROM.</p>
+              <p className="px-5 py-3 text-xs text-muted">Usually the email service key or sending domain. Check the email settings (GMAIL_USER and GMAIL_APP_PASSWORD, or EMAIL_API_KEY) and EMAIL_FROM.</p>
             </div>
           )}
         </div>

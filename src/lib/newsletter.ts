@@ -31,7 +31,7 @@ import {
   newsletterSubscribers,
 } from '@/db/schema'
 import { escapeHtml, htmlLayout, send, siteUrl } from '@/lib/email'
-import { listProducts, listProductsByIds, t as tField } from '@/lib/catalog'
+import { categoryPath, listProducts, listProductsByIds, t as tField } from '@/lib/catalog'
 import { sendTemplate } from '@/lib/mailer'
 import { getSettings } from '@/lib/settings'
 import { formatMoney } from '@/lib/pricing'
@@ -601,15 +601,16 @@ async function campaignProducts(draft: CampaignDraft, locale: Locale): Promise<C
     items = await listProductsByIds(draft.productIds.slice(0, 6))
     items = items.filter((p) => !p.soldOut)
   } else {
-    const category = draft.categoryId ? await categorySlugs(draft.categoryId) : null
+    const path = draft.categoryId ? (await categoryPath(draft.categoryId))?.split('/') : undefined
     items = (
       await listProducts({
         sort: 'newest',
         page: 1,
         perPage: 6,
         locale,
-        category: category?.parent ?? category?.slug,
-        subcategory: category?.parent ? category.slug : undefined,
+        category: path?.[0],
+        subcategory: path?.[1],
+        leaf: path?.[2],
         onSale: draft.kind === 'promotion' && !draft.categoryId ? true : undefined,
         inStockOnly: true,
       })
@@ -624,12 +625,6 @@ async function campaignProducts(draft: CampaignDraft, locale: Locale): Promise<C
   }))
 }
 
-async function categorySlugs(id: string): Promise<{ slug: string; parent: string | null } | null> {
-  const res = await db.execute<{ slug: string; parent: string | null }>(sql`
-    select c.slug, p.slug as parent from categories c left join categories p on p.id = c.parent_id
-    where c.id = ${id}::uuid`)
-  return res.rows[0] ?? null
-}
 
 /* Campaign words around what the owner wrote. The automated emails' words
    live in email-templates.ts; a campaign's are typed fresh each time. */
