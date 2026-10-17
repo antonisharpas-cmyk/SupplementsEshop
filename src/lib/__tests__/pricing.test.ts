@@ -485,7 +485,7 @@ describe('promo codes', () => {
     await makeCode({ isActive: false })
     expect(await validatePromoCode({ code: 'SUMMER20', ...ctx(5900) })).toMatchObject({
       ok: false,
-      reason: 'INACTIVE',
+      reason: 'NOT_FOUND',
     })
   })
 

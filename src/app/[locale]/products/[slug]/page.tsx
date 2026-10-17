@@ -80,7 +80,7 @@ export default async function ProductPage({ params }: Props) {
     sku: product.variants[0]?.sku,
     brand: { '@type': 'Brand', name: BRAND.name },
     image: product.images.map((i) => i.url),
-    offers: {
+    offers: product.variants.length === 0 ? undefined : {
       '@type': 'AggregateOffer',
       priceCurrency: product.currency,
       lowPrice: (Math.min(...product.variants.map((v) => v.finalCents)) / 100).toFixed(2),
@@ -97,7 +97,7 @@ export default async function ProductPage({ params }: Props) {
       <script
         type="application/ld+json"
         /* Serialised server-side from our own database, never from user input. */
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
 
       <nav aria-label="Breadcrumb" className="mb-5 flex flex-wrap gap-2 text-xs text-muted">

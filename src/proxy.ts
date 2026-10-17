@@ -39,8 +39,38 @@ function negotiateLocale(request: NextRequest): string {
   return DEFAULT_LOCALE
 }
 
+/* POST, PATCH and DELETE to the API from another website are refused: a
+   page elsewhere cannot sign someone in or out, or change anything, using
+   their cookies. Stripe, the scheduler and mail providers' one-click
+   unsubscribe call from outside on purpose and prove themselves otherwise. */
+const CROSS_SITE_ALLOWED = ['/api/stripe/webhook', '/api/cron/', '/api/newsletter/unsubscribe']
+
+function crossSite(request: NextRequest): boolean {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return false
+  const { pathname } = request.nextUrl
+  if (CROSS_SITE_ALLOWED.some((p) => pathname.startsWith(p))) return false
+  const origin = request.headers.get('origin')
+  if (origin) {
+    const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+    try {
+      return new URL(origin).host !== host
+    } catch {
+      return true
+    }
+  }
+  /* No Origin header (some older browsers): use the browser's own label. */
+  return request.headers.get('sec-fetch-site') === 'cross-site'
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  if (pathname.startsWith('/api/')) {
+    if (crossSite(request)) {
+      return NextResponse.json({ ok: false, error: 'FORBIDDEN', message: 'Request refused.' }, { status: 403 })
+    }
+    return NextResponse.next()
+  }
 
   const hasLocale = LOCALES.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
@@ -67,8 +97,9 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  /* Everything except Next internals, the API (which is locale-agnostic),
+  /* The API (only for the cross-site check above), and everything except
+     Next internals, the API (which is locale-agnostic),
      /admin (staff-only, one language — sending it through locale negotiation
      would rewrite /admin to /en/admin and 404), and static files. */
-  matcher: ['/((?!api|admin|_next|.*\\..*).*)'],
+  matcher: ['/api/:path*', '/((?!api|admin|_next|.*\\..*).*)'],
 }

@@ -17,7 +17,9 @@ export async function POST(request: Request) {
     const issued = await issuePasswordResetOtp(body.data.email)
     if (issued) await sendPasswordResetEmail(body.data.email, issued.code, OTP_TTL_SECONDS)
   } catch (err) {
-    if (err instanceof OtpError) return fail(429, err.code, err.message)
+    /* "Wait a minute" would only ever be said for a real account, which
+       would tell a stranger the address is registered. Same answer always. */
+    if (err instanceof OtpError) return json({ ok: true })
     console.error('[api/auth/password-reset] failed', err)
   }
   return json({ ok: true })

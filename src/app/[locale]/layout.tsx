@@ -49,10 +49,8 @@ export async function generateMetadata({
     metadataBase: process.env.PUBLIC_SITE_URL
       ? new URL(process.env.PUBLIC_SITE_URL)
       : undefined,
-    alternates: {
-      canonical: `/${lang}`,
-      languages: Object.fromEntries(LOCALES.map((l) => [l, `/${l}`])),
-    },
+    /* Canonical and language links are set per page: a site-wide one here
+       would tell search engines every page is the home page. */
     openGraph: {
       type: 'website',
       siteName: BRAND.name,
@@ -116,7 +114,7 @@ export default async function LocaleLayout({
         />
 
         <main id="main" className="flex-1">
-          <WishlistProvider locale={locale} signedIn={Boolean(user)} initial={savedIds}>
+          <WishlistProvider key={user?.id ?? "guest"} locale={locale} signedIn={Boolean(user)} initial={savedIds}>
             {children}
           </WishlistProvider>
         </main>

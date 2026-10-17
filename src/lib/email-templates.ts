@@ -58,6 +58,7 @@ export type TemplateKey =
   | 'order_completed'
   | 'order_cancelled'
   | 'support_new'
+  | 'order_new_staff'
   | 'support_transcript'
 
 /* --------------------------------------------------------- variables --- */
@@ -127,7 +128,10 @@ export const VARIABLES: Record<string, VarDef> = {
   started_at: { label: 'When it started (staff emails)', sample: '30 Sept 2026, 12:53' },
   page: { label: 'Page they were on (staff emails)', sample: '/en/products/whey-protein-isolate' },
   message: { label: 'Their first message (staff emails)', sample: 'Which flavour of the whey isolate mixes best with water?', block: 'quote' },
-  admin_url: { label: 'Link to the conversation in the admin', sample: 'https://aionix.example/admin/support?c=…' },
+  admin_url: { label: 'Link to it in the admin (staff emails)', sample: 'https://aionix.example/admin/support?c=…' },
+  payment_method: { label: 'How the order is paid (staff emails)', sample: 'Card, paid' },
+  delivery: { label: 'Delivery or collection, with the address (staff emails)', sample: 'Delivery to 12 Ermou Street, 6021 Larnaca' },
+  customer_phone: { label: 'Customer’s phone (staff emails)', sample: '+357 99123456' },
 }
 
 /* --------------------------------------------------------- templates --- */
@@ -476,6 +480,26 @@ export const TEMPLATES: TemplateDef[] = [
     },
   },
   {
+    key: 'order_new_staff',
+    name: 'New order (to staff)',
+    category: 'essential',
+    required: false,
+    defaultEnabled: true,
+    internal: true,
+    trigger: 'A customer places an order',
+    ctaUrl: 'admin_url',
+    variables: ['order_number', 'order_total', 'order_items', 'customer_name', 'customer_email', 'customer_phone', 'payment_method', 'delivery', 'admin_url'],
+    words: {
+      en: {
+        subject: 'New order {{order_number}}, {{order_total}}',
+        body: 'A new order has come in.\n\nOrder: {{order_number}}\nTotal: {{order_total}}\nPayment: {{payment_method}}\n\nCustomer: {{customer_name}}\nEmail: {{customer_email}}\nPhone: {{customer_phone}}\n\n{{delivery}}\n\n{{order_items}}',
+        cta: 'Open the order',
+      },
+      el: { subject: '', body: '' },
+      ru: { subject: '', body: '' },
+    },
+  },
+  {
     key: 'support_transcript',
     name: 'Customer service: conversation transcript',
     category: 'essential',
@@ -752,8 +776,9 @@ export function render(
       .replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, name: string) => {
         const v = value(name)
         const text = asText(v)
-        /* A bare link variable becomes a link. */
-        return /^https?:\/\//.test(text)
+        /* A link variable (…_url) becomes a link. Never anything a customer
+           typed, such as a name that looks like a web address. */
+        return /_url$/.test(name) && /^https?:\/\//.test(text)
           ? `<a href="${escapeHtml(text)}" style="color:#111">${escapeHtml(text.replace(/^https?:\/\//, ''))}</a>`
           : escapeHtml(text)
       })

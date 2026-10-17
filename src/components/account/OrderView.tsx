@@ -82,7 +82,7 @@ export function OrderView({
         </ol>
       )}
 
-      {order.status === 'SHIPPED' && order.trackingNumber && (
+      {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && order.trackingNumber && (
         <p className="mt-5 border border-line bg-paper-2 px-4 py-3 text-sm">
           {t('ord.tracking')}: <span className="font-mono text-heading">{order.trackingNumber}</span>
           {order.trackingUrl && (

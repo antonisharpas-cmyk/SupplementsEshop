@@ -26,6 +26,7 @@ import {
 } from '@/lib/cart'
 import { getCurrentUser, readCartToken } from '@/lib/auth/session'
 import { isLocale, type Locale } from '@/config/brand'
+import { clientKey, hit } from '@/lib/rate-limit'
 
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
@@ -58,6 +59,10 @@ async function existingCart() {
 /* ------------------------------------------------------------------- POST -- */
 
 export async function POST(request: Request) {
+  /* Ten tries per ten minutes: plenty for a customer, too few to guess codes. */
+  if (!hit(`promo:${clientKey(request)}`, 10, 600).ok) {
+    return json({ ok: false, error: 'TOO_MANY', message: 'Too many tries. Wait a few minutes and try again.' }, 429)
+  }
   let raw: unknown
   try {
     raw = await request.json()

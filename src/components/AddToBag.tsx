@@ -91,7 +91,7 @@ export function AddToBag({
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variantId: selected.id, quantity }),
+        body: JSON.stringify({ variantId: selected.id, quantity, mode: 'add' }),
       })
       const data = (await res.json()) as {
         ok?: boolean

@@ -98,6 +98,8 @@ export const nameSchema = z
   /* Strip control characters — they break log lines and email headers. */
   .transform((v) => v.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim())
   .refine((v) => v.length >= 1, 'This field is required.')
+  /* A name is not a web address; this keeps links out of emails we send. */
+  .refine((v) => !/(:\/\/|www\.|<|>)/i.test(v), 'Please enter a name.')
 
 export const localeSchema = z.enum(['en', 'el', 'ru']).default('en')
 
@@ -202,6 +204,9 @@ export const updateCartLineSchema = z.object({
   variantId: uuidSchema,
   /* 0 means remove. */
   quantity: z.coerce.number().int().min(0).max(20),
+  /* 'add' puts this many on top of what is already in the bag (the product
+     page); 'set' makes the line exactly this many (the bag). */
+  mode: z.enum(['set', 'add']).default('set'),
 })
 
 export const applyPromoSchema = z.object({

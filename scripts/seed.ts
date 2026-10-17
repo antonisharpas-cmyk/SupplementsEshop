@@ -799,6 +799,9 @@ async function main() {
     )
   }
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'change-me-in-production'
+  /* The demo customer exists only on a local copy, never with the real
+     admin password on a live shop. */
+  const demoCustomer = process.env.NODE_ENV !== 'production' && !process.env.SEED_ADMIN_PASSWORD
   await db.insert(users).values([
     {
       email: 'admin@example.com',
@@ -806,7 +809,7 @@ async function main() {
       passwordHash: await hashPassword(adminPassword),
       firstName: 'Store',
       lastName: 'Owner',
-      role: 'SUPER_ADMIN',
+      role: 'SUPER_ADMIN' as const,
       emailVerifiedAt: new Date(),
     },
     {
@@ -815,18 +818,18 @@ async function main() {
       passwordHash: await hashPassword(adminPassword),
       firstName: 'Elena',
       lastName: 'Georgiou',
-      role: 'CUSTOMER',
+      role: 'CUSTOMER' as const,
       emailVerifiedAt: new Date(),
     },
-  ])
+  ].filter((u) => u.role !== 'CUSTOMER' || demoCustomer))
 
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)`.mapWith(Number) })
     .from(products)
 
   console.log(`\n✓ seeded — ${count} products live`)
-  console.log(`  admin:    admin@example.com / ${adminPassword}`)
-  console.log(`  customer: customer@example.com / ${adminPassword}`)
+  console.log(`  admin:    admin@example.com${process.env.SEED_ADMIN_PASSWORD ? ' (password from SEED_ADMIN_PASSWORD)' : ` / ${adminPassword}`}`)
+  if (demoCustomer) console.log(`  customer: customer@example.com / ${adminPassword}`)
   console.log(`  promo code: WELCOME10 (10% off over €30)\n`)
 }
 

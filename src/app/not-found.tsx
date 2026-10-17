@@ -1,9 +1,10 @@
 import Link from 'next/link'
+import './globals.css'
 
 export default function NotFound() {
   return (
     <html lang="en">
-      <body className="grid min-h-screen place-items-center px-6 text-center">
+      <body className="grid min-h-screen place-items-center bg-paper px-6 text-center text-ink">
         <div>
           <p className="label text-muted">404</p>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight">
@@ -11,7 +12,7 @@ export default function NotFound() {
           </h1>
           <Link
             href="/"
-            className="mt-6 inline-block border border-ink px-6 py-3 label hover:bg-accent hover:text-paper"
+            className="btn btn-primary mt-6"
           >
             Back to the shop
           </Link>

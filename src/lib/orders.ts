@@ -35,6 +35,7 @@ import {
   productVariants,
   products,
   promoCodeUsage,
+  promoCodes,
   users,
   webhookEvents,
 } from '@/db/schema'
@@ -120,6 +121,27 @@ export async function placeOrder(args: {
 
   if (input.paymentMethod === 'card' && !stripeEnabled()) {
     throw new CheckoutError('Card payment is not available right now. Choose cash on delivery.', 'CARD_UNAVAILABLE')
+  }
+
+  /* Cash orders hold stock until the shop deals with them. A few open ones
+     per person is normal; dozens is someone tying up the shelves. */
+  if (input.paymentMethod === 'cod') {
+    const [open] = await db
+      .select({ n: sql<number>`count(*)`.mapWith(Number) })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.paymentMethod, 'cod'),
+          eq(orders.status, 'PENDING'),
+          sql`(lower(${orders.email}) = ${input.email.toLowerCase()} or ${orders.phone} = ${input.phone ?? ''})`,
+        ),
+      )
+    if (open && open.n >= 3) {
+      throw new CheckoutError(
+        'You already have orders waiting to be confirmed. Please contact us, or wait until the shop confirms them.',
+        'UNAVAILABLE',
+      )
+    }
   }
 
   const view = await getCartView(cartId, {
@@ -247,6 +269,30 @@ export async function placeOrder(args: {
         await consumeCartReservations(tx, cartId, order.id)
 
         if (t.promoCode) {
+          /* Take one use of the code inside the order, with the code row
+             locked: two checkouts at the same moment cannot both have the
+             last use, nor both pass the once-per-customer check. */
+          const [code] = await tx.select().from(promoCodes).where(eq(promoCodes.id, t.promoCode.id)).for('update')
+          if (!code || (code.maxUses !== null && code.timesUsed >= code.maxUses)) {
+            throw new CheckoutError('That promo code has just been fully redeemed.', 'PROMO_INVALID')
+          }
+          if (code.maxUsesPerUser !== null) {
+            const [used] = await tx
+              .select({ n: sql<number>`count(*)`.mapWith(Number) })
+              .from(promoCodeUsage)
+              .where(
+                and(
+                  eq(promoCodeUsage.promoCodeId, code.id),
+                  userId
+                    ? sql`(lower(${promoCodeUsage.email}) = ${input.email.toLowerCase()} or ${promoCodeUsage.userId} = ${userId})`
+                    : sql`lower(${promoCodeUsage.email}) = ${input.email.toLowerCase()}`,
+                ),
+              )
+            if (used && used.n >= code.maxUsesPerUser) {
+              throw new CheckoutError('You have already used that promo code.', 'PROMO_INVALID')
+            }
+          }
+          await tx.update(promoCodes).set({ timesUsed: sql`${promoCodes.timesUsed} + 1` }).where(eq(promoCodes.id, code.id))
           await tx.insert(promoCodeUsage).values({
             promoCodeId: t.promoCode.id,
             orderId: order.id,
@@ -457,6 +503,18 @@ export async function handleStripeEvent(event: { id: string; type: string; data:
     .returning({ id: webhookEvents.id })
   if (!fresh) return 'duplicate'
 
+  try {
+    await applyStripeEvent(event)
+  } catch (err) {
+    /* Forget we saw it, so Stripe's retry is handled instead of skipped as a
+       duplicate. Every step below is safe to run twice. */
+    await db.delete(webhookEvents).where(eq(webhookEvents.id, event.id)).catch(() => undefined)
+    throw err
+  }
+  return 'handled'
+}
+
+async function applyStripeEvent(event: { id: string; type: string; data: { object: unknown } }) {
   const obj = event.data.object as { id?: string; metadata?: Record<string, string> | null; client_reference_id?: string | null }
   if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
     if (obj.id) await syncCheckoutSession(obj.id)
@@ -492,7 +550,6 @@ export async function handleStripeEvent(event: { id: string; type: string; data:
       if (p) await safely(() => creditRefunds(p.orderId, 'Refund made in Stripe'), 'credit note')
     }
   }
-  return 'handled'
 }
 
 /* ========================================================== lifecycle == */
@@ -513,6 +570,15 @@ export async function cancelOrder(
     }
     const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId))
     for (const i of items) if (i.variantId) await restock(tx, i.variantId, i.quantity)
+
+    /* A cancelled order gives its promo code use back. */
+    const uses = await tx.delete(promoCodeUsage).where(eq(promoCodeUsage.orderId, orderId)).returning({ codeId: promoCodeUsage.promoCodeId })
+    for (const u of uses) {
+      await tx
+        .update(promoCodes)
+        .set({ timesUsed: sql`greatest(${promoCodes.timesUsed} - 1, 0)` })
+        .where(eq(promoCodes.id, u.codeId))
+    }
 
     const now = new Date()
     await tx
@@ -618,7 +684,12 @@ export async function setOrderStatus(
           : {}),
         ...(next === 'DELIVERED' ? { deliveredAt: now } : {}),
       })
-      .where(eq(orders.id, orderId))
+      /* Only if nobody else moved it meanwhile (two staff, two clicks). */
+      .where(and(eq(orders.id, orderId), eq(orders.status, order.status)))
+      .returning({ id: orders.id })
+      .then((rows) => {
+        if (!rows.length) throw new OrderError('Someone else just changed this order. The page will show its new status.')
+      })
     /* Cash on delivery: handing the parcel over is when the money arrives. */
     if (next === 'DELIVERED' && order.paymentMethod === 'cod') {
       await tx

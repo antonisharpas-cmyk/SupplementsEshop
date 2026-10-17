@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { LocaleLink } from './LocaleLink'
 import { BRAND, LOCALE_LABELS, LOCALES, type Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 import { t as tr } from '@/lib/catalog'
@@ -111,9 +112,9 @@ export function Header({
           {/* language switcher — a plain form so it works without JS */}
           <div className="hidden items-center gap-1 sm:flex" role="group" aria-label={t('nav.language')}>
             {LOCALES.map((code) => (
-              <Link
+              <LocaleLink
                 key={code}
-                href={`/${code}`}
+                code={code}
                 hrefLang={code}
                 aria-current={code === locale ? 'true' : undefined}
                 className={`px-2 py-1 text-[11px] font-semibold uppercase ${
@@ -121,7 +122,7 @@ export function Header({
                 }`}
               >
                 {code === 'el' ? 'ΕΛ' : code.toUpperCase()}
-              </Link>
+              </LocaleLink>
             ))}
           </div>
 
@@ -180,14 +181,14 @@ export function Footer({ locale }: { locale: Locale }) {
           </p>
           <div className="mt-4 flex gap-2">
             {LOCALES.map((code) => (
-              <Link
+              <LocaleLink
                 key={code}
-                href={`/${code}`}
+                code={code}
                 hrefLang={code}
                 className="rounded-full border border-line px-3 py-1 text-[11px] transition-colors hover:border-accent hover:text-accent"
               >
                 {LOCALE_LABELS[code]}
-              </Link>
+              </LocaleLink>
             ))}
           </div>
         </div>

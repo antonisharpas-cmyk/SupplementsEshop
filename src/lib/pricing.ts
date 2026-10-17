@@ -358,6 +358,9 @@ export async function validatePromoCode(args: {
   /** Product and category ids in the cart, for restricted codes. */
   productIds: string[]
   categoryIds: string[]
+  /** The bag's lines after promotions; a restricted code discounts only the
+   *  lines it covers. Without them, the whole subtotal (older callers). */
+  lines?: { productId: string; categoryId: string; cents: number }[]
   email?: string | null
   userId?: string | null
   at?: Date
@@ -374,8 +377,10 @@ export async function validatePromoCode(args: {
   if (!code) {
     return { ok: false, reason: 'NOT_FOUND', message: 'That promo code was not recognised.' }
   }
+  /* Switched off reads the same as unknown, so nobody can tell real codes
+     from made-up ones. */
   if (!code.isActive) {
-    return { ok: false, reason: 'INACTIVE', message: 'That promo code is no longer active.' }
+    return { ok: false, reason: 'NOT_FOUND', message: 'That promo code was not recognised.' }
   }
   if (code.startsAt > at) {
     return { ok: false, reason: 'NOT_STARTED', message: 'That promo code is not active yet.' }
@@ -400,7 +405,9 @@ export async function validatePromoCode(args: {
       .where(
         and(
           eq(promoCodeUsage.promoCodeId, code.id),
-          sql`lower(${promoCodeUsage.email}) = ${args.email.toLowerCase()}`,
+          args.userId
+            ? sql`(lower(${promoCodeUsage.email}) = ${args.email.toLowerCase()} or ${promoCodeUsage.userId} = ${args.userId})`
+            : sql`lower(${promoCodeUsage.email}) = ${args.email.toLowerCase()}`,
         ),
       )
     if (used && used.n >= code.maxUsesPerUser) {
@@ -437,10 +444,17 @@ export async function validatePromoCode(args: {
     }
   }
 
+  /* A code for some products or categories takes its discount off those
+     lines only, never off the rest of the bag. */
+  const restricted = Boolean(restrictedProducts?.length || restrictedCategories?.length)
+  const base =
+    restricted && args.lines
+      ? args.lines
+          .filter((l) => restrictedProducts?.includes(l.productId) || restrictedCategories?.includes(l.categoryId))
+          .reduce((n, l) => n + l.cents, 0)
+      : args.subtotalAfterDiscountsCents
   const discountCents =
-    code.discountType === 'PERCENTAGE'
-      ? applyPercent(args.subtotalAfterDiscountsCents, code.discountValue)
-      : Math.min(code.discountValue, args.subtotalAfterDiscountsCents)
+    code.discountType === 'PERCENTAGE' ? applyPercent(base, code.discountValue) : Math.min(code.discountValue, base)
 
   return { ok: true, code, discountCents }
 }
@@ -606,6 +620,7 @@ export async function priceCart(args: {
       subtotalAfterDiscountsCents: subtotalCents,
       productIds: [...new Set(lines.map((l) => l.productId))],
       categoryIds: [...new Set(lines.map((l) => l.categoryId))],
+      lines: lines.map((l) => ({ productId: l.productId, categoryId: l.categoryId, cents: l.lineFinalCents })),
       email: args.email,
       userId: args.userId,
     })

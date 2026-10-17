@@ -98,7 +98,7 @@ export async function listAdminPromoCodes(): Promise<AdminPromoCode[]> {
 
 async function values(input: PromoCodeInput) {
   const code = input.code.trim().toUpperCase()
-  if (!/^[A-Z0-9_-]{3,40}$/.test(code)) throw new AdminError('A code is 3 to 40 letters or numbers, no spaces.')
+  if (!/^[A-Z0-9-]{3,40}$/.test(code)) throw new AdminError('A code is 3 to 40 letters, numbers or dashes, no spaces.')
   if (input.discountType === 'PERCENTAGE' && (input.discountValue < 1 || input.discountValue > 90))
     throw new AdminError('A percentage must be between 1 and 90.')
   if (input.discountType === 'FIXED' && input.discountValue < 1) throw new AdminError('Enter an amount off.')

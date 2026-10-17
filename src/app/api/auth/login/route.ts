@@ -13,11 +13,17 @@ import { readCartToken, setSessionCookie } from '@/lib/auth/session'
 import { mergeGuestCart } from '@/lib/cart'
 import { mergeGuestViews } from '@/lib/views'
 import { loginSchema } from '@/lib/validation'
+import { clientKey, hit } from '@/lib/rate-limit'
 
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 
 export async function POST(request: Request) {
+  /* Per address, on top of the per-account lockout: one machine cannot try
+     password after password across many accounts. */
+  if (!hit(`login:${clientKey(request)}`, 20, 15 * 60).ok) {
+    return json({ ok: false, error: 'TOO_MANY', message: 'Too many sign-in attempts. Wait a few minutes and try again.' }, 429)
+  }
   let raw: unknown
   try {
     raw = await request.json()

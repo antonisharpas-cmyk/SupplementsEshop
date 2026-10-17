@@ -13,10 +13,12 @@
 import { z } from 'zod'
 import { getCurrentUser, readCartToken } from '@/lib/auth/session'
 import { recordProductView } from '@/lib/views'
+import { clientKey, hit } from '@/lib/rate-limit'
 
 const bodySchema = z.object({ productId: z.string().uuid() })
 
 export async function POST(request: Request) {
+  if (!hit(`views:${clientKey(request)}`, 60, 60).ok) return new Response(null, { status: 204 })
   let raw: unknown
   try {
     raw = await request.json()

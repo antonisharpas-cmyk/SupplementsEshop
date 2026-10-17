@@ -12,7 +12,7 @@ import { and, desc, eq, isNull, lte, or, sql } from 'drizzle-orm'
 import { db } from '@/db'
 import { assertSchemaReady } from '@/db/ready'
 import { heroBanners, promotions } from '@/db/schema'
-import { BRAND, isLocale, type Locale } from '@/config/brand'
+import { BRAND, LOCALES, isLocale, type Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 import { getCategoryTree, t as tr } from '@/lib/catalog'
 import { getHomepageContent } from '@/lib/homepage-content'
@@ -27,6 +27,17 @@ import { NewsletterForm } from '@/components/NewsletterForm'
 import { OpenChatButton } from '@/components/OpenChatButton'
 
 export const revalidate = 60
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const lang = isLocale(locale) ? locale : 'en'
+  return {
+    alternates: {
+      canonical: `/${lang}`,
+      languages: Object.fromEntries(LOCALES.map((l) => [l, `/${l}`])),
+    },
+  }
+}
 
 async function getHero() {
   const now = new Date()

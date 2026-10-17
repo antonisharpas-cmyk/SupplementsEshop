@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import { LocaleLink } from './LocaleLink'
 import type { Locale } from '@/config/brand'
 import { LOCALES, LOCALE_LABELS } from '@/config/brand'
 import type { CategoryNode } from '@/lib/catalog'
@@ -99,9 +100,9 @@ export function MobileNav({ locale, categories }: { locale: Locale; categories: 
                 <p className="label mb-2 text-muted">Language</p>
                 <div className="flex gap-2">
                   {LOCALES.map((code) => (
-                    <Link
+                    <LocaleLink
                       key={code}
-                      href={`/${code}`}
+                      code={code}
                       hrefLang={code}
                       onClick={() => setOpen(false)}
                       className={`border px-3 py-1.5 text-xs ${
@@ -109,7 +110,7 @@ export function MobileNav({ locale, categories }: { locale: Locale; categories: 
                       }`}
                     >
                       {LOCALE_LABELS[code]}
-                    </Link>
+                    </LocaleLink>
                   ))}
                 </div>
               </div>

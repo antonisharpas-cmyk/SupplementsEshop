@@ -45,7 +45,7 @@ export function SignInForm({ locale, next }: { locale: Locale; next?: string }) 
       }
 
       /* refresh() so the header picks up the session on the next render. */
-      router.push(next && next.startsWith('/') ? next : `${base}/account`)
+      router.push(safeNext(next) ?? `${base}/account`)
       router.refresh()
     } catch {
       setError(t('err.network'))
@@ -98,4 +98,16 @@ export function SignInForm({ locale, next }: { locale: Locale; next?: string }) 
       </p>
     </AuthCard>
   )
+}
+
+/** Only a path on this site: "/en/cart" yes; "//evil.com", "/\\evil.com" or
+ *  "https://…" no, so a link cannot send someone elsewhere after signing in. */
+function safeNext(next: string | null | undefined): string | null {
+  if (!next || !/^\/(?![/\\])/.test(next)) return null
+  try {
+    const u = new URL(next, window.location.origin)
+    return u.origin === window.location.origin ? `${u.pathname}${u.search}${u.hash}` : null
+  } catch {
+    return null
+  }
 }

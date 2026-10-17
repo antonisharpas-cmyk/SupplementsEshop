@@ -206,8 +206,14 @@ function recordFailure(key: string) {
   const now = Date.now()
   const entry = failures.get(key)
   if (!entry || now > entry.resetAt) {
+    /* Never wipe the whole table (that would let someone reset a target's
+       lockout by flooding it with other names); drop only expired entries,
+       then the oldest if it is still too big. */
+    if (failures.size > 10_000) {
+      for (const [k, v] of failures) if (now > v.resetAt) failures.delete(k)
+      while (failures.size > 10_000) failures.delete(failures.keys().next().value!)
+    }
     failures.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS })
-    if (failures.size > 10_000) failures.clear()
     return
   }
   entry.count += 1

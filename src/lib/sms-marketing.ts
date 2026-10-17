@@ -57,6 +57,10 @@ export async function subscribeSms(args: {
         firstName: sql`coalesce(${args.firstName ?? null}::text, ${smsSubscribers.firstName})`,
         updatedAt: now,
       },
+      /* A tick at checkout or sign-up (where nobody proved the number is
+         theirs) never overrides a STOP the number's owner sent. Only the
+         signed-in owner, in their account, can turn offers back on. */
+      setWhere: args.source === 'account' || args.source === 'admin' ? undefined : sql`${smsSubscribers.status} <> 'UNSUBSCRIBED'`,
     })
   return phone
 }

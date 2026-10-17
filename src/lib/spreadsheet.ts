@@ -33,7 +33,11 @@ function csvCell(v: Cell, kind?: Column['kind']): string {
       : typeof v === 'number' && kind === 'money'
         ? v.toFixed(2)
         : String(v)
-  return /[",\r\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  /* Text that starts like a formula (=, +, -, @) would run as one when the
+     accountant opens the file in Excel. A leading apostrophe keeps it text.
+     Real numbers are left alone. */
+  const safe = typeof v === 'string' && /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+  return /[",\r\n;]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe
 }
 
 /** UTF-8 with a byte order mark, so Excel opens Greek and Russian names

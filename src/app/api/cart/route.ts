@@ -12,9 +12,13 @@
 
 import { cookies } from 'next/headers'
 import { z } from 'zod'
+import { and, eq } from 'drizzle-orm'
+import { db } from '@/db'
+import { cartItems } from '@/db/schema'
 import { CartError, addToCart, clearCart, getCartCount, getCartView, getOrCreateCart } from '@/lib/cart'
 import { getCurrentUser, getOrCreateCartToken } from '@/lib/auth/session'
 import { updateCartLineSchema } from '@/lib/validation'
+import { clientKey, hit } from '@/lib/rate-limit'
 import { isLocale, type Locale } from '@/config/brand'
 
 const json = (body: unknown, status = 200) =>
@@ -71,6 +75,11 @@ export async function POST(request: Request) {
     return json({ ok: false, error: 'INVALID_JSON' }, 400)
   }
 
+  /* A real shopper changes the bag a few times a minute, not hundreds. */
+  if (!hit(`cart:${clientKey(request)}`, 60, 60).ok) {
+    return json({ ok: false, error: 'TOO_MANY', message: 'Too many changes at once. Wait a moment and try again.' }, 429)
+  }
+
   const parsed = updateCartLineSchema.safeParse(body)
   if (!parsed.success) {
     return json(
@@ -86,7 +95,16 @@ export async function POST(request: Request) {
 
   try {
     const { cartId, user } = await resolveCart()
-    const { variantId, quantity } = parsed.data
+    const { variantId, mode } = parsed.data
+    let quantity = parsed.data.quantity
+    if (mode === 'add' && quantity > 0) {
+      const [line] = await db
+        .select({ quantity: cartItems.quantity })
+        .from(cartItems)
+        .where(and(eq(cartItems.cartId, cartId), eq(cartItems.variantId, variantId)))
+        .limit(1)
+      quantity = Math.min(20, (line?.quantity ?? 0) + quantity)
+    }
 
     await addToCart(cartId, variantId, quantity)
 

@@ -23,7 +23,8 @@
  * ========================================================================== */
 
 import Link from 'next/link'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { StockRow } from '@/lib/admin-catalog'
 import { StatusBadge, StockCount, Swatch, Thumb } from './ui'
 
@@ -63,20 +64,30 @@ export function StockEditor({
   /** Inside one product's editor: no image / product / status columns. */
   compact?: boolean
 }) {
+  const fromLine = (l: StockLine): LineState => ({
+    value: String(l.onHand),
+    status: 'idle' as const,
+    onHand: l.onHand,
+    reserved: l.reserved,
+    available: l.available,
+  })
   const [state, setState] = useState<Record<string, LineState>>(() =>
-    Object.fromEntries(
-      lines.map((l) => [
-        l.variantId,
-        {
-          value: String(l.onHand),
-          status: 'idle' as const,
-          onHand: l.onHand,
-          reserved: l.reserved,
-          available: l.available,
-        },
-      ]),
-    ),
+    Object.fromEntries(lines.map((l) => [l.variantId, fromLine(l)])),
   )
+  /* The counts above the list (low, sold out, needs attention) come from the
+     server: bring them up to date a few seconds after the last save, so
+     typing down the list is not interrupted. */
+  const router = useRouter()
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const refreshSoon = () => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    refreshTimer.current = setTimeout(() => {
+      if (inFlight.current.size === 0) router.refresh()
+    }, 4000)
+  }
+  useEffect(() => () => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current)
+  }, [])
   const inputs = useRef<(HTMLInputElement | null)[]>([])
 
   const patch = (id: string, next: Partial<LineState>) => setState((s) => ({ ...s, [id]: { ...s[id], ...next } }))
@@ -93,7 +104,7 @@ export function StockEditor({
 
   async function save(line: StockLine) {
     if (inFlight.current.has(line.variantId)) return
-    const row = state[line.variantId]
+    const row = state[line.variantId] ?? fromLine(line)
     const typed = row.value.trim()
     if (!/^\d+$/.test(typed)) {
       patch(line.variantId, {
@@ -147,6 +158,7 @@ export function StockEditor({
         value: String(onHand),
         message: undefined,
       })
+      refreshSoon()
     } catch {
       patch(line.variantId, {
         status: 'error',
@@ -179,7 +191,7 @@ export function StockEditor({
 
       <ul className="divide-y divide-[var(--color-line)]">
         {lines.map((line, index) => {
-          const row = state[line.variantId]
+          const row = state[line.variantId] ?? fromLine(line)
           const tint =
             row.status === 'error'
               ? 'bg-sale/5'

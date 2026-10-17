@@ -485,12 +485,56 @@ export async function orderCreated(orderId: string) {
     `Ordered (${order.orderNumber}).`,
   )
   await orderEvent(orderId, 'order_received', 'Order placed.')
+  /* Cash orders are real now; card orders only once Stripe says paid. */
+  if (order.paymentMethod === 'cod') await notifyStaffNewOrder(orderId, 'placed')
+}
+
+/** "New order" to the shop's own inbox (Settings, support email). */
+export async function notifyStaffNewOrder(orderId: string, when: 'placed' | 'paid') {
+  try {
+    const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)
+    if (!order || order.channel === 'phone') return
+    /* Once per order: cash at placing, card at payment. */
+    if ((order.paymentMethod === 'cod') !== (when === 'placed')) return
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId))
+    const { support_email } = await getSettings(['support_email'])
+    const a = order.shippingAddress as { line1?: string; line2?: string | null; city?: string; postalCode?: string } | null
+    await sendTemplate('order_new_staff', {
+      to: support_email || BRAND.contact.email,
+      locale: 'en',
+      replyTo: order.email || undefined,
+      relatedId: orderId,
+      vars: {
+        order_number: order.orderNumber,
+        order_total: formatMoney(order.totalCents, 'en'),
+        customer_name: order.customerName,
+        customer_email: `${order.email}${order.userId ? ' (account)' : ' (guest)'}`,
+        customer_phone: order.phone ?? '',
+        payment_method: order.paymentMethod === 'cod' ? 'Cash on delivery, to collect' : 'Card, paid',
+        delivery:
+          order.deliveryKind === 'PICKUP'
+            ? 'Collection in store'
+            : `Delivery to ${[a?.line1, a?.line2, [a?.postalCode, a?.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')}`,
+        order_items: items.map((i) => ({
+          name: i.productName,
+          image: i.imageUrl,
+          detail: [i.colorName, i.size].filter(Boolean).join(' · '),
+          quantity: i.quantity,
+          price: formatMoney(i.lineTotalCents, 'en'),
+        })),
+        admin_url: siteUrl(`/admin/orders/${orderId}`),
+      },
+    })
+  } catch (err) {
+    console.error('[automations] staff new order email failed', err)
+  }
 }
 
 /** An order's status moved: the matching email, if there is one. The
  *  tracking number goes in only when the courier gave a real one. */
 export async function orderStatusChanged(orderId: string, status: string, extra: { trackingNumber?: string; trackingUrl?: string } = {}) {
   const key = STATUS_TEMPLATE[status]
+  if (status === 'PAID') await notifyStaffNewOrder(orderId, 'paid')
   if (key) await orderEvent(orderId, key, `Status changed to ${status.toLowerCase().replace(/_/g, ' ')}.`, extra)
 }
 

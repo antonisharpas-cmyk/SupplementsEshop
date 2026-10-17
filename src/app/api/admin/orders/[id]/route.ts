@@ -20,7 +20,7 @@ const schema = z.discriminatedUnion('action', [
     action: z.literal('status'),
     status: z.enum(['PROCESSING', 'READY_FOR_PICKUP', 'SHIPPED', 'DELIVERED']),
     trackingNumber: z.string().trim().max(80).optional(),
-    trackingUrl: z.string().trim().url('Enter the full tracking link, starting https://').max(500).optional().or(z.literal('')),
+    trackingUrl: z.string().trim().url('Enter the full tracking link, starting https://').max(500).refine((u) => /^https?:\/\//i.test(u), 'Enter the full tracking link, starting https://').optional().or(z.literal('')),
   }),
   z.object({ action: z.literal('cash_received') }),
   z.object({ action: z.literal('cancel'), refund: z.boolean().default(true), reason: z.string().trim().max(300).optional() }),
