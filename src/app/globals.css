@@ -126,6 +126,24 @@
     color-scheme: dark;
   }
 
+  /* Drop-down lists (country codes, sorting…): black with white letters on
+     every system, never white on white. */
+  select option,
+  select optgroup {
+    background-color: #0b0b0b;
+    color: #ffffff;
+  }
+
+  /* Browser autofill paints fields light blue or yellow; keep them black
+     with white letters like every other box. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #ffffff;
+    caret-color: #ffffff;
+    transition: background-color 600000s 0s, color 600000s 0s;
+  }
+
   h1,
   h2,
   h3 {

@@ -37,7 +37,6 @@ export default async function ContactPage({ params }: Props) {
 
   const faq = [
     [t('help.q1'), t('help.a1', { minutes: Math.round(s.reservation_ttl_seconds / 60) })],
-    [t('help.q2'), t('help.a2', { store: BRAND.contact.pickupName, hours: BRAND.contact.openingHours })],
     [t('help.q3'), t('help.a3', { min: s.estimated_delivery_min_days, max: s.estimated_delivery_max_days, threshold })],
     [t('help.q4'), t('help.a4')],
     [t('help.q5'), t('help.a5')],

@@ -6,7 +6,7 @@ import { requireAdminApi } from '@/lib/admin'
 import { ManualOrderError, createManualOrder } from '@/lib/manual-orders'
 import { InventoryError } from '@/lib/inventory'
 import { UUID, fail, json, readJson } from '@/lib/api'
-import { emailSchema, nameSchema, phoneSchema } from '@/lib/validation'
+import { emailSchema, nameSchema, phoneSchema, cyPostalCodeSchema } from '@/lib/validation'
 import { audit } from '@/lib/audit'
 
 const schema = z.object({
@@ -22,7 +22,7 @@ const schema = z.object({
         line1: z.string().trim().min(3, 'Enter the street and number.').max(200),
         line2: z.string().trim().max(200).optional(),
         city: z.string().trim().min(2, 'Enter the town or city.').max(100),
-        postalCode: z.string().trim().min(3, 'Enter the postal code.').max(20),
+        postalCode: cyPostalCodeSchema,
         country: z.string().trim().length(2).toUpperCase().default('CY'),
       }),
     }),

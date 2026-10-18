@@ -123,6 +123,17 @@ export async function placeOrder(args: {
     throw new CheckoutError('Card payment is not available right now. Choose cash on delivery.', 'CARD_UNAVAILABLE')
   }
 
+  /* Online orders are delivered; "collect in store" is only for orders the
+     staff enter themselves (Admin, Orders, New order). */
+  const [chosen] = await db
+    .select({ kind: deliveryOptions.kind })
+    .from(deliveryOptions)
+    .where(eq(deliveryOptions.id, input.deliveryOptionId))
+    .limit(1)
+  if (!chosen || chosen.kind !== 'SHIPPING') {
+    throw new CheckoutError('Choose home delivery.', 'NO_DELIVERY')
+  }
+
   /* Cash orders hold stock until the shop deals with them. A few open ones
      per person is normal; dozens is someone tying up the shelves. */
   if (input.paymentMethod === 'cod') {

@@ -172,14 +172,12 @@ describe('placing an order', () => {
     expect((await onHand()).onHand).toBe(10)
   })
 
-  it('collection is free and needs no address', async () => {
+  it('refuses collection on the website (staff enter collection orders)', async () => {
     const c = await cart()
     await addToCart(c, variant, 1)
-    const r = await placeOrder({ cartId: c, userId: null, input: input({ deliveryOptionId: pickup, shippingAddress: undefined }) })
-    const [o] = await db.select().from(orders).where(eq(orders.id, r.orderId))
-    expect(o.deliveryCents).toBe(0)
-    expect(o.totalCents).toBe(4000)
-    expect(o.shippingAddress).toBeNull()
+    await expect(
+      placeOrder({ cartId: c, userId: null, input: input({ deliveryOptionId: pickup, shippingAddress: undefined }) }),
+    ).rejects.toMatchObject({ code: 'NO_DELIVERY' })
   })
 
   it('refuses card payment when Stripe is not set up', async () => {

@@ -118,6 +118,21 @@ export const centsSchema = z.coerce.number().int().min(0).max(100_000_000)
 
 /* ------------------------------------------------------------- addresses -- */
 
+/* The shop delivers in Cyprus only. Cyprus postal codes are four digits,
+   1000 to 8999 (Nicosia 1/2, Limassol 3/4, Famagusta 5, Larnaca 6/7,
+   Paphos 8). Anything else is refused before an order exists, so there is
+   nothing to cancel or refund later. */
+export const cyPostalCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^[1-8]\d{3}$/, 'Enter a 4 digit Cyprus postal code. We deliver in Cyprus only.')
+export const cyCountrySchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .default('CY')
+  .refine((c) => c === 'CY', 'We deliver in Cyprus only.')
+
 export const addressInputSchema = z.object({
   label: z.string().trim().max(60).optional(),
   recipientName: nameSchema.pipe(z.string().max(160)),
@@ -125,9 +140,8 @@ export const addressInputSchema = z.object({
   line1: z.string().trim().min(3, 'Enter the street and number.').max(200),
   line2: z.string().trim().max(200).optional().or(z.literal('')),
   city: z.string().trim().min(2, 'Enter the town or city.').max(100),
-  postalCode: z.string().trim().min(3, 'Enter the postal code.').max(20),
-  /* ISO 3166-1 alpha-2 */
-  country: z.string().trim().length(2).toUpperCase().default('CY'),
+  postalCode: cyPostalCodeSchema,
+  country: cyCountrySchema,
   isDefault: z.boolean().default(false),
 })
 

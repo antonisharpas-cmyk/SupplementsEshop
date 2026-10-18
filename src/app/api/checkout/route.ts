@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { getOrCreateCart } from '@/lib/cart'
 import { getCurrentUser, readCartToken } from '@/lib/auth/session'
 import { CheckoutError, placeOrder } from '@/lib/orders'
-import { emailSchema, localeSchema, nameSchema, phoneSchema, uuidSchema } from '@/lib/validation'
+import { emailSchema, localeSchema, nameSchema, phoneSchema, uuidSchema, cyCountrySchema, cyPostalCodeSchema } from '@/lib/validation'
 import { clientKey, hit } from '@/lib/rate-limit'
 import { fail, json, readJson } from '@/lib/api'
 
@@ -20,8 +20,8 @@ const address = z.object({
   line1: z.string().trim().min(3, 'Enter the street and number.').max(200),
   line2: z.string().trim().max(200).optional().or(z.literal('')),
   city: z.string().trim().min(2, 'Enter the town or city.').max(100),
-  postalCode: z.string().trim().min(3, 'Enter the postal code.').max(20),
-  country: z.string().trim().length(2).toUpperCase().default('CY'),
+  postalCode: cyPostalCodeSchema,
+  country: cyCountrySchema,
 })
 
 const schema = z.object({

@@ -111,6 +111,8 @@ export function CheckoutForm(props: {
     postalCode: '',
   })
   const [saveAddress, setSaveAddress] = useState(true)
+  /* The parcel goes to the customer unless they say otherwise (a gift). */
+  const [someoneElse, setSomeoneElse] = useState(false)
   const [method, setMethod] = useState<'card' | 'cod'>(props.cardEnabled ? 'card' : 'cod')
   const [note, setNote] = useState('')
   const [terms, setTerms] = useState(false)
@@ -130,6 +132,13 @@ export function CheckoutForm(props: {
     e.preventDefault()
     setError(null)
     setErrors({})
+    /* Cyprus only: a 4 digit postal code (1000 to 8999), checked here in the
+       customer's language and again on the server. */
+    if (shipping && !chosenAddress && !/^[1-8]\d{3}$/.test(addr.postalCode.trim())) {
+      setErrors({ 'addr.postalCode': t('co.postalCodeCy') })
+      setError(t('co.postalCodeCy'))
+      return
+    }
     if (!terms) {
       setErrors({ acceptTerms: t('co.fixErrors') })
       setError(t('co.fixErrors'))
@@ -147,7 +156,12 @@ export function CheckoutForm(props: {
             postalCode: chosenAddress.postalCode,
             country: chosenAddress.country,
           }
-        : { ...addr, country: 'CY' }
+        : {
+            ...addr,
+            recipientName: someoneElse ? addr.recipientName : `${contact.firstName} ${contact.lastName}`.trim(),
+            phone: someoneElse ? addr.phone : contact.phone,
+            country: 'CY',
+          }
 
     setBusy(true)
     try {
@@ -233,6 +247,10 @@ export function CheckoutForm(props: {
           {shipping && (
             <div className="mt-6">
               <p className="label text-muted">{t('co.address')}</p>
+              <p className="mt-1.5 flex items-center gap-2 text-xs text-muted">
+                <span aria-hidden>🇨🇾</span>
+                {t('co.cyprusOnly')}
+              </p>
               {props.saved.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {props.saved.map((a) => (
@@ -255,8 +273,24 @@ export function CheckoutForm(props: {
 
               {(addressId === 'new' || props.saved.length === 0) && (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <Input label={t('co.recipient')} name="recipientName" autoComplete="name" value={addr.recipientName} onChange={(e) => setAddr({ ...addr, recipientName: e.target.value })} error={errors['addr.recipientName']} />
-                  <Input label={t('auth.phone')} name="addrPhone" type="tel" autoComplete="tel" value={addr.phone} onChange={(e) => setAddr({ ...addr, phone: e.target.value })} error={errors['addr.phone']} />
+                  <label className="flex items-center gap-2.5 text-sm sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={someoneElse}
+                      onChange={(e) => {
+                        setSomeoneElse(e.target.checked)
+                        if (e.target.checked) setAddr((a) => ({ ...a, recipientName: '', phone: '' }))
+                      }}
+                      className="h-4 w-4 accent-[var(--color-accent)]"
+                    />
+                    {t('co.someoneElse')}
+                  </label>
+                  {someoneElse && (
+                    <>
+                      <Input label={t('co.recipient')} name="recipientName" autoComplete="off" value={addr.recipientName} onChange={(e) => setAddr({ ...addr, recipientName: e.target.value })} error={errors['addr.recipientName']} />
+                      <PhoneInput locale={locale} label={t('auth.phone')} name="addrPhone" value={addr.phone} onChange={(phone) => setAddr((a) => ({ ...a, phone }))} error={errors['addr.phone']} required />
+                    </>
+                  )}
                   <div className="sm:col-span-2">
                     <Input label={t('co.line1')} name="line1" autoComplete="address-line1" value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} error={errors['addr.line1']} />
                   </div>
@@ -264,7 +298,7 @@ export function CheckoutForm(props: {
                     <Input label={t('co.line2')} name="line2" autoComplete="address-line2" value={addr.line2} onChange={(e) => setAddr({ ...addr, line2: e.target.value })} />
                   </div>
                   <Input label={t('co.city')} name="city" autoComplete="address-level2" value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} error={errors['addr.city']} />
-                  <Input label={t('co.postalCode')} name="postalCode" autoComplete="postal-code" inputMode="numeric" value={addr.postalCode} onChange={(e) => setAddr({ ...addr, postalCode: e.target.value })} error={errors['addr.postalCode']} />
+                  <Input label={t('co.postalCode')} name="postalCode" autoComplete="postal-code" inputMode="numeric" maxLength={4} placeholder="6020" value={addr.postalCode} onChange={(e) => setAddr({ ...addr, postalCode: e.target.value.replace(/\D/g, '').slice(0, 4) })} error={errors['addr.postalCode']} />
                   {props.signedIn && (
                     <label className="flex items-center gap-2.5 text-sm sm:col-span-2">
                       <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} className="h-4 w-4 accent-[var(--color-accent)]" />

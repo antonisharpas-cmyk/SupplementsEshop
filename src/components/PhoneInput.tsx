@@ -120,7 +120,7 @@ export function PhoneInput({
               setIso(e.target.value)
               emit(e.target.value, number)
             }}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            className="absolute inset-0 h-full w-full cursor-pointer bg-paper text-white opacity-0"
           >
             {FIRST.map((c) => (
               <option key={c.iso} value={c.iso}>

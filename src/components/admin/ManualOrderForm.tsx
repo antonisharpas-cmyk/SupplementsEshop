@@ -238,16 +238,36 @@ export function ManualOrderForm({ catalogue, shippingCents }: { catalogue: Item[
               <Field label="Postal code">
                 <input className={input} value={addr.postalCode} onChange={(e) => setAddr({ ...addr, postalCode: e.target.value })} required />
               </Field>
-              <Field label="Delivery charge (€)" hint="What you agreed with the customer. 0 for free delivery.">
-                <div className="flex gap-2">
-                  <input className={`${input} tabular-nums`} inputMode="decimal" value={delivery} onChange={(e) => setDelivery(e.target.value)} />
-                  {['0', '5', '15'].map((v) => (
-                    <button key={v} type="button" onClick={() => setDelivery(`${v}.00`)} className="btn btn-ghost btn-sm shrink-0">
-                      €{v}
-                    </button>
-                  ))}
-                </div>
-              </Field>
+              <div className="sm:col-span-2">
+                <Field label="Delivery charge (€)" hint="What you agreed with the customer. 0 for free delivery.">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex h-12 w-40 items-center gap-2 rounded-xl border border-line bg-paper px-4 focus-within:border-accent">
+                      <span aria-hidden className="text-lg font-semibold text-muted">€</span>
+                      <input
+                        aria-label="Delivery charge in euros"
+                        className="w-full min-w-0 bg-transparent text-lg font-semibold tabular-nums text-heading outline-none focus:shadow-none"
+                        inputMode="decimal"
+                        value={delivery}
+                        onChange={(e) => setDelivery(e.target.value)}
+                      />
+                    </label>
+                    {['0', '5', '15'].map((v) => {
+                      const on = cents(delivery) === Number(v) * 100
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => setDelivery(`${v}.00`)}
+                          className={`btn btn-sm h-12 shrink-0 px-5 text-base ${on ? 'bg-gold border-transparent text-paper' : 'btn-ghost'}`}
+                        >
+                          €{v}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Field>
+              </div>
             </div>
           )}
         </Section>

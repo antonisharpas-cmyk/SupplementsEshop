@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6400 800" width="6400" height="800">
+<title>AIONIX</title>
+<defs>
+<linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="5200" y1="45" x2="6255" y2="754"><stop offset="0" stop-color="#FFEC3A"/><stop offset="0.55" stop-color="#FEE707"/><stop offset="1" stop-color="#F9DE00"/></linearGradient>
+<linearGradient id="shade" gradientUnits="userSpaceOnUse" x1="5300" y1="60" x2="5690" y2="330"><stop offset="0" stop-color="#5E4F00" stop-opacity="0.04"/><stop offset="0.5" stop-color="#5E4F00" stop-opacity="0.32"/><stop offset="1" stop-color="#2E2700" stop-opacity="0.6"/></linearGradient>
+</defs>
+<g fill="#F8F8F8"><path fill-rule="evenodd" d="M574.5,45.0 L748.5,45.0 L1253.7,754.0 L69.3,754.0 Z M661.5,254.1 L765.4,400.0 L557.6,400.0 Z M472.1,520.0 L850.9,520.0 L1017.7,754.0 L305.3,754.0 Z"/><rect x="1528" y="45" width="194" height="709" rx="6"/><path fill-rule="evenodd" d="M2332,45 H2866 A200,200 0 0 1 3066,245 V554 A200,200 0 0 1 2866,754 H2332 A200,200 0 0 1 2132,554 V245 A200,200 0 0 1 2332,45 Z M2377,224 H2825 A55,55 0 0 1 2880,279 V519 A55,55 0 0 1 2825,574 H2377 A55,55 0 0 1 2322,519 V279 A55,55 0 0 1 2377,224 Z"/><path d="M3472.0,45.0 L3662.0,45.0 L4167.0,511.3 L4167.0,45.0 L4351.0,45.0 L4351.0,754.0 L4146.0,754.0 L3656.0,301.6 L3656.0,754.0 L3472.0,754.0 Z"/><rect x="4759" y="45" width="192" height="709" rx="6"/></g>
+<path fill="url(#gold)" d="M5202.0,45.0 L5476.0,45.0 L5725.0,271.0 L5974.0,45.0 L6248.0,45.0 L5861.0,396.0 L6255.0,754.0 L5978.0,754.0 L5728.0,527.0 L5478.0,754.0 L5200.0,754.0 L5590.0,399.0 Z"/>
+<path fill="url(#shade)" d="M5202.0,45.0 L5476.0,45.0 L5725.0,271.0 L5590.0,399.0 Z"/>
+</svg>
