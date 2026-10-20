@@ -56,6 +56,9 @@ export function StaffMenu({ locale, name }: { locale: Locale; name: string }) {
           <Link role="menuitem" href="/admin" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-paper-2 hover:text-accent">
             Admin panel
           </Link>
+          <Link role="menuitem" href="/admin/account" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm hover:bg-paper-2 hover:text-accent">
+            Change password
+          </Link>
           <button
             role="menuitem"
             type="button"

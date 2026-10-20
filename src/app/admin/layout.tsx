@@ -67,6 +67,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       items: [
         { href: '/admin/accounting', label: 'Accounting', icon: 'accounting' as const },
         { href: '/admin/settings', label: 'Settings', icon: 'settings' as const },
+        { href: '/admin/account', label: 'Change password', icon: 'key' as const },
       ],
     },
   ]
