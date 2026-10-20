@@ -115,7 +115,13 @@ export default async function LocaleLayout({
         />
 
         <main id="main" className="flex-1">
-          <WishlistProvider key={user?.id ?? "guest"} locale={locale} signedIn={Boolean(user)} initial={savedIds}>
+          <WishlistProvider
+            key={user?.id ?? 'guest'}
+            locale={locale}
+            signedIn={Boolean(user)}
+            initial={savedIds}
+            staff={user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'}
+          >
             {children}
           </WishlistProvider>
         </main>

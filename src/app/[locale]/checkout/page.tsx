@@ -41,6 +41,8 @@ export default async function CheckoutPage({
   const base = `/${locale}`
 
   const [user, token] = await Promise.all([getCurrentUser(), readCartToken()])
+  /* Admin accounts (owners, support) do not shop. */
+  if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') redirect('/admin')
   if (!user && !token) redirect(`${base}/cart`)
   const cartId = await getOrCreateCart({
     userId: user?.id ?? null,

@@ -7,6 +7,7 @@
  * ========================================================================== */
 
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { BRAND, isLocale, type Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
@@ -30,6 +31,8 @@ export default async function CartPage({ params }: { params: Promise<{ locale: s
   const base = `/${locale}`
 
   const [user, token] = await Promise.all([getCurrentUser(), readCartToken()])
+  /* Admin accounts (owners, support) do not shop. */
+  if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') redirect('/admin')
 
   /* Nothing to show and nothing to create — a visitor who has never added
      anything should not get a cart row just for looking. */

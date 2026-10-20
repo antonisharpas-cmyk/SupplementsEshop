@@ -9,18 +9,21 @@ import { usePathname, useRouter } from 'next/navigation'
 import type { Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 
-type Ctx = { signedIn: boolean; saved: Set<string>; toggle: (id: string) => Promise<void>; locale: Locale }
+type Ctx = { signedIn: boolean; saved: Set<string>; toggle: (id: string) => Promise<void>; locale: Locale; staff: boolean }
 const WishlistCtx = createContext<Ctx | null>(null)
 
 export function WishlistProvider({
   locale,
   signedIn,
   initial,
+  staff = false,
   children,
 }: {
   locale: Locale
   signedIn: boolean
   initial: string[]
+  /** An admin account: no hearts, owners do not save products. */
+  staff?: boolean
   children: React.ReactNode
 }) {
   const [saved, setSaved] = useState(() => new Set(initial))
@@ -52,14 +55,14 @@ export function WishlistProvider({
     [signedIn, saved, router, locale, path],
   )
 
-  const value = useMemo(() => ({ signedIn, saved, toggle, locale }), [signedIn, saved, toggle, locale])
+  const value = useMemo(() => ({ signedIn, saved, toggle, locale, staff }), [signedIn, saved, toggle, locale, staff])
   return <WishlistCtx.Provider value={value}>{children}</WishlistCtx.Provider>
 }
 
 /** The small heart beside a product's name on cards. */
 export function CardHeart({ productId, tabIndex, className = '' }: { productId: string; tabIndex?: number; className?: string }) {
   const ctx = useContext(WishlistCtx)
-  if (!ctx) return null
+  if (!ctx || ctx.staff) return null
   const on = ctx.saved.has(productId)
   const t = getTranslator(ctx.locale)
   const label = on ? t('wl.remove') : t('wl.add')

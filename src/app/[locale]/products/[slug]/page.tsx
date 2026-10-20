@@ -162,17 +162,37 @@ export default async function ProductPage({ params }: Props) {
             />
           </div>
 
-          <div className="mt-8">
-            <AddToBag
-              locale={locale}
-              variants={product.variants}
-              reservationMinutes={Math.round(ttlSeconds / 60)}
-              soldOut={product.soldOut}
-            />
-            <div className="mt-4">
-              <WishlistButton locale={locale} productId={product.id} initial={saved} signedIn={Boolean(user)} />
+          {user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? (
+            /* Signed in as an owner: no buying, a way into the admin instead. */
+            <div className="mt-8 rounded-2xl border border-accent/40 bg-accent/5 p-5">
+              <p className="text-sm text-ink-soft">
+                You are signed in with an admin account, so Add to bag is hidden. Customers see it here.
+              </p>
+              <ul className="mt-3 space-y-1 text-sm">
+                {product.variants.map((v) => (
+                  <li key={v.id} className="flex justify-between gap-3 tabular-nums">
+                    <span className="text-ink">{[v.colorName ? tr(v.colorName, locale) : null, v.size].filter(Boolean).join(' · ')}</span>
+                    <span className={v.available > 0 ? 'text-muted' : 'text-sale'}>{v.available} available</span>
+                  </li>
+                ))}
+              </ul>
+              <Link href={`/admin/products/${product.id}`} className="btn btn-primary mt-4">
+                Edit this product
+              </Link>
             </div>
-          </div>
+          ) : (
+            <div className="mt-8">
+              <AddToBag
+                locale={locale}
+                variants={product.variants}
+                reservationMinutes={Math.round(ttlSeconds / 60)}
+                soldOut={product.soldOut}
+              />
+              <div className="mt-4">
+                <WishlistButton locale={locale} productId={product.id} initial={saved} signedIn={Boolean(user)} />
+              </div>
+            </div>
+          )}
 
           {/* details */}
           {product.description && (

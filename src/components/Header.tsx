@@ -145,7 +145,8 @@ export function Header({
             </Link>
           )}
 
-          <HeaderBag locale={locale} initialCount={cartCount} />
+          {/* Owners do not shop: no bag for an admin account. */}
+          {!staff && <HeaderBag locale={locale} initialCount={cartCount} />}
 
           <MobileNav locale={locale} categories={categories} />
         </div>
