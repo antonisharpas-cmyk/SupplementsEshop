@@ -15,6 +15,8 @@ const schema = z
     support_auto_reply_en: text.optional(),
     support_auto_reply_el: text.optional(),
     support_auto_reply_ru: text.optional(),
+    support_ai_enabled: z.boolean().optional(),
+    support_ai_notes: z.string().trim().max(3000).optional(),
   })
   .strict()
   .refine((v) => v.support_auto_reply_enabled !== true || v.support_auto_reply_en === undefined || v.support_auto_reply_en.length > 0, {

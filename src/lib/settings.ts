@@ -32,6 +32,8 @@ export const SETTING_DEFAULTS: {
   support_auto_reply_en: string
   support_auto_reply_el: string
   support_auto_reply_ru: string
+  support_ai_enabled: boolean
+  support_ai_notes: string
   marketing_cooldown_hours: number
   email_test_address: string
   company_legal_name: string
@@ -79,6 +81,12 @@ export const SETTING_DEFAULTS: {
     'Γεια σου! Ευχαριστούμε που επικοινώνησες με την Εξυπηρέτηση Πελατών AIONIX. Κάποιος από την ομάδα μας θα σου απαντήσει το συντομότερο.',
   support_auto_reply_ru:
     'Здравствуйте! Спасибо, что обратились в службу поддержки AIONIX. Сотрудник нашей команды ответит вам как можно скорее.',
+  /* The AI assistant in the chat answers first (needs ANTHROPIC_API_KEY);
+     off means people answer everything, as before. */
+  support_ai_enabled: true,
+  /* Anything the owner wants the assistant to know: offers, rules, answers
+     to common questions. Plain text. */
+  support_ai_notes: '',
   /* Frequency protection: at most one marketing email (abandoned bag,
      newsletter, promotion) to an address within this many hours. 0 = off. */
   marketing_cooldown_hours: 20,

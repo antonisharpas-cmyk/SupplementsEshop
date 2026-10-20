@@ -1,8 +1,9 @@
 /* ============================================================================
  * Customer Service — live conversations between shoppers and staff.
  *
- * What it is on screen: "AIONIX Customer Service". Real people answer. It is
- * never called a bot, an assistant or AI, and nothing here pretends a person
+ * What it is on screen: "AIONIX Customer Service". When the AI assistant is
+ * on (lib/support-ai.ts) it answers first and is always labelled as an AI
+ * assistant; people take over from it. Nothing here pretends a person
  * replied when none did.
  *
  * The rules, all enforced in this file:
@@ -36,6 +37,8 @@ import { BRAND } from '@/config/brand'
 import { siteUrl } from '@/lib/email'
 import { asEmailLocale, sendTemplate } from '@/lib/mailer'
 import { getSettings } from '@/lib/settings'
+import { aiAvailable, ASSISTANT_NAME } from '@/lib/support-ai'
+import type { SupportMessageMeta } from '@/db/schema'
 
 export const MESSAGE_MAX = 2000
 export const SUPPORT_COOKIE = 'sf_support'
@@ -81,14 +84,22 @@ async function idleMinutes(): Promise<number> {
 
 /* ======================================================= customer side == */
 
-function ownedBy(actor: SupportActor) {
+export function ownedBy(actor: SupportActor) {
   const parts = []
   if (actor.userId) parts.push(eq(supportConversations.userId, actor.userId))
   if (actor.guestToken) parts.push(eq(supportConversations.guestTokenHash, hashGuestToken(actor.guestToken)))
   return parts.length ? or(...parts)! : sql`false`
 }
 
-export type CustomerMessage = { id: string; sender: 'CUSTOMER' | 'STAFF'; body: string; createdAt: string; automated?: boolean }
+export type CustomerMessage = {
+  id: string
+  sender: 'CUSTOMER' | 'STAFF'
+  body: string
+  createdAt: string
+  automated?: boolean
+  ai?: boolean
+  meta?: SupportMessageMeta | null
+}
 export type CustomerView = {
   conversation: {
     id: string
@@ -98,6 +109,9 @@ export type CustomerView = {
     email: string | null
     /** The newest customer message staff have read, for "Seen". */
     staffLastReadAt: string | null
+    /** The AI assistant: answering in this chat, writing right now, or
+     *  already passed to a person. */
+    assistant: { active: boolean; typing: boolean; handedOff: boolean }
   } | null
   messages: CustomerMessage[]
   idleMinutes: number
@@ -133,6 +147,8 @@ export async function customerView(actor: SupportActor, opts: { after?: Date; ma
       sender: supportMessages.sender,
       body: supportMessages.body,
       automated: supportMessages.automated,
+      ai: supportMessages.ai,
+      meta: supportMessages.meta,
       createdAt: supportMessages.createdAt,
     })
     .from(supportMessages)
@@ -158,6 +174,11 @@ export async function customerView(actor: SupportActor, opts: { after?: Date; ma
       closedAt: current.closedAt?.toISOString() ?? null,
       email: current.email,
       staffLastReadAt: current.staffLastReadAt?.toISOString() ?? null,
+      assistant: {
+        active: current.status === 'OPEN' && current.aiActive && (await aiAvailable()),
+        typing: Boolean(current.aiTypingAt && current.aiTypingAt.getTime() > Date.now() - 90_000),
+        handedOff: Boolean(current.handoffAt),
+      },
     },
     /* staffUserId is deliberately not selected: who replied stays internal. */
     messages: messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() })),
@@ -220,7 +241,9 @@ export async function startConversation(
     return conv.id
   })
 
-  await autoReply(conversationId, input.locale, now)
+  /* With the AI assistant on, it answers instead of the canned first reply
+     (the route starts it once the response has gone). */
+  if (!(await aiAvailable())) await autoReply(conversationId, input.locale, now)
   await notifyStaffOnce(conversationId)
   return { conversationId, created: true }
 }
@@ -328,6 +351,9 @@ export type InboxRow = {
   lastMessage: string
   lastSender: 'CUSTOMER' | 'STAFF' | null
   lastAutomated: boolean
+  lastAi: boolean
+  /** The assistant (or the customer) asked for a person and nobody has replied yet. */
+  needsPerson: boolean
   unread: number
   signedIn: boolean
 }
@@ -352,18 +378,23 @@ export async function listInbox(opts: { status: 'OPEN' | 'CLOSED' | 'ALL'; q?: s
     last_body: string | null
     last_sender: 'CUSTOMER' | 'STAFF' | null
     last_automated: boolean | null
+    last_ai: boolean | null
+    needs_person: boolean
     unread: number
     total: number
   }>(sql`
     select c.id, c.name, c.email, c.status, c.opened_at, c.last_activity_at, c.closed_at, c.closed_reason, c.user_id,
-           lm.body as last_body, lm.sender as last_sender, lm.automated as last_automated,
+           lm.body as last_body, lm.sender as last_sender, lm.automated as last_automated, lm.ai as last_ai,
+           (c.handoff_at is not null and c.status = 'OPEN' and not exists (
+              select 1 from support_messages sm2 where sm2.conversation_id = c.id and sm2.sender = 'STAFF'
+                and not sm2.ai and not sm2.automated and sm2.created_at > c.handoff_at)) as needs_person,
            (select count(*)::int from support_messages m
               where m.conversation_id = c.id and m.sender = 'CUSTOMER'
                 and m.created_at > coalesce(c.staff_last_read_at, 'epoch'::timestamptz)) as unread,
            count(*) over ()::int as total
     from support_conversations c
     left join lateral (
-      select body, sender, automated from support_messages m where m.conversation_id = c.id
+      select body, sender, automated, ai from support_messages m where m.conversation_id = c.id
       order by m.created_at desc limit 1
     ) lm on true
     where ${opts.status === 'ALL' ? sql`true` : sql`c.status = ${opts.status}`}
@@ -385,6 +416,8 @@ export async function listInbox(opts: { status: 'OPEN' | 'CLOSED' | 'ALL'; q?: s
     lastMessage: (r.last_body ?? '').slice(0, 160),
     lastSender: r.last_sender,
     lastAutomated: Boolean(r.last_automated),
+    lastAi: Boolean(r.last_ai),
+    needsPerson: Boolean(r.needs_person),
     unread: Number(r.unread),
     signedIn: Boolean(r.user_id),
   }))
@@ -439,8 +472,11 @@ export async function staffThread(id: string, opts: { markRead?: boolean } = {})
       sender: m.sender,
       body: m.body,
       automated: m.automated,
+      ai: m.ai,
+      meta: m.meta,
       createdAt: m.createdAt.toISOString(),
     })),
+    assistant: { active: conv.aiActive, handedOff: Boolean(conv.handoffAt), replies: conv.aiReplies },
     idleMinutes: await idleMinutes(),
   }
 }
@@ -453,6 +489,11 @@ export async function staffReply(conversationId: string, staffUserId: string, me
     .where(eq(supportConversations.id, conversationId))
     .limit(1)
   if (!conv) throw new SupportError('Conversation not found.', 'NOT_FOUND')
+  /* A person has taken over: the assistant stops answering here. */
+  await db
+    .update(supportConversations)
+    .set({ aiActive: false, aiTypingAt: null })
+    .where(eq(supportConversations.id, conversationId))
   return appendMessage(conversationId, 'STAFF', body, staffUserId)
 }
 
@@ -561,7 +602,7 @@ async function sendTranscriptOnce(conversationId: string) {
   if (!conv?.email) return
 
   const messages = await db
-    .select({ sender: supportMessages.sender, body: supportMessages.body, createdAt: supportMessages.createdAt })
+    .select({ sender: supportMessages.sender, body: supportMessages.body, ai: supportMessages.ai, createdAt: supportMessages.createdAt })
     .from(supportMessages)
     .where(eq(supportMessages.conversationId, conversationId))
     .orderBy(asc(supportMessages.createdAt))
@@ -577,7 +618,7 @@ async function sendTranscriptOnce(conversationId: string) {
       conversation_date: fmt(conv.openedAt, locale),
       /* Sender labels are "You" and the service name — never a staff member. */
       transcript: messages.map((m) => ({
-        from: m.sender === 'CUSTOMER' ? YOU[locale] : SERVICE_NAME,
+        from: m.sender === 'CUSTOMER' ? YOU[locale] : m.ai ? `${ASSISTANT_NAME} (AI)` : SERVICE_NAME,
         at: fmt(m.createdAt, locale),
         text: m.body,
         customer: m.sender === 'CUSTOMER',

@@ -1244,6 +1244,14 @@ export const supportConversations = pgTable(
     customerLastReadAt: timestamp('customer_last_read_at', { withTimezone: true }),
     notifiedAt: timestamp('notified_at', { withTimezone: true }),
     transcriptSentAt: timestamp('transcript_sent_at', { withTimezone: true }),
+    /* The AI assistant answers until a person takes over: staff reply, or
+       the customer asks for a person, or the assistant hands over itself. */
+    aiActive: boolean('ai_active').notNull().default(true),
+    /* Set while the assistant is writing ("typing…"); cleared when done. */
+    aiTypingAt: timestamp('ai_typing_at', { withTimezone: true }),
+    /* When it was passed to a person, so the inbox can show "needs a person". */
+    handoffAt: timestamp('handoff_at', { withTimezone: true }),
+    aiReplies: integer('ai_replies').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1253,6 +1261,11 @@ export const supportConversations = pgTable(
     index('support_guest_idx').on(t.guestTokenHash),
   ],
 )
+
+export type SupportMessageMeta = {
+  products?: { slug: string; name: string; price: string; image: string | null; inStock: boolean }[]
+  suggestions?: string[]
+}
 
 export const supportMessages = pgTable(
   'support_messages',
@@ -1266,6 +1279,10 @@ export const supportMessages = pgTable(
     staffUserId: uuid('staff_user_id').references(() => users.id, { onDelete: 'set null' }),
     /* The automatic first reply ("Thank you for contacting…"), not a person. */
     automated: boolean('automated').notNull().default(false),
+    /* Written by the AI assistant (always shown to the customer as such). */
+    ai: boolean('ai').notNull().default(false),
+    /* Extras the assistant attached: product cards and suggested replies. */
+    meta: jsonb('meta').$type<SupportMessageMeta>(),
     body: text('body').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

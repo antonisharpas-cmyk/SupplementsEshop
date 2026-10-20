@@ -78,6 +78,13 @@
       "when": 1792155468004,
       "tag": "0010_manual_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792483479312,
+      "tag": "0011_support_ai",
+      "breakpoints": true
     }
   ]
 }

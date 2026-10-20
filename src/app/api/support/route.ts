@@ -9,6 +9,8 @@
  * ========================================================================== */
 
 import { z } from 'zod'
+import { after } from 'next/server'
+import { aiAvailable, runAssistant } from '@/lib/support-ai'
 import { customerView, startConversation } from '@/lib/support'
 import { currentActor, ensureGuestToken, json, supportErrorResponse } from '@/lib/support-http'
 import { clientKey, hit } from '@/lib/rate-limit'
@@ -27,6 +29,8 @@ export async function GET(request: Request) {
     ...view,
     /* Prefill for a signed-in customer; nothing about anyone else. */
     me: actor.user ? { name: `${actor.user.firstName} ${actor.user.lastName}`.trim(), email: actor.user.email } : null,
+    /* Whether the AI assistant answers new conversations. */
+    ai: await aiAvailable(),
   })
 }
 
@@ -70,6 +74,9 @@ export async function POST(request: Request) {
       locale: parsed.data.locale,
       pageUrl: parsed.data.pageUrl,
     })
+    /* The AI assistant answers once this response has gone; the chat shows
+       it "typing" and picks the answer up on its next poll. */
+    after(() => runAssistant(result.conversationId))
     return json({ ok: true, ...result })
   } catch (err) {
     return supportErrorResponse(err, 'api/support')

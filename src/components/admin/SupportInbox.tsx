@@ -34,7 +34,16 @@ type Thread = {
     customerLastReadAt: string | null
     transcriptSentAt: string | null
   }
-  messages: { id: string; sender: 'CUSTOMER' | 'STAFF'; body: string; createdAt: string; automated?: boolean }[]
+  messages: {
+    id: string
+    sender: 'CUSTOMER' | 'STAFF'
+    body: string
+    createdAt: string
+    automated?: boolean
+    ai?: boolean
+    meta?: { products?: { slug: string; name: string; price: string }[]; suggestions?: string[] } | null
+  }[]
+  assistant?: { active: boolean; handedOff: boolean; replies: number }
   idleMinutes: number
 }
 
@@ -223,6 +232,11 @@ export function SupportInbox({
                   <span className="shrink-0 border border-line px-1 text-[10px] uppercase tracking-wide">
                     {r.signedIn ? 'Signed in' : 'Guest'}
                   </span>
+                  {r.needsPerson && (
+                    <span className="shrink-0 rounded-full bg-sale/15 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-sale">
+                      Needs a person
+                    </span>
+                  )}
                   {status === 'ALL' && (
                     <span className={`shrink-0 text-[10px] uppercase tracking-wide ${r.status === 'OPEN' ? 'text-ink' : ''}`}>
                       {r.status === 'OPEN' ? 'Open' : 'Closed'}
@@ -231,7 +245,7 @@ export function SupportInbox({
                 </span>
                 <span className="mt-1 flex items-center gap-2">
                   <span className={`truncate text-xs ${r.unread ? 'text-ink' : 'text-muted'}`}>
-                    {r.lastSender === 'STAFF' && (r.lastAutomated ? 'Automatic reply: ' : 'You: ')}
+                    {r.lastSender === 'STAFF' && (r.lastAi ? 'AI assistant: ' : r.lastAutomated ? 'Automatic reply: ' : 'You: ')}
                     {r.lastMessage}
                   </span>
                   {r.unread > 0 && (
@@ -271,6 +285,17 @@ export function SupportInbox({
                   {c.signedIn ? ' · signed-in customer' : ' · guest'} · {c.locale.toUpperCase()} · opened {ago(c.openedAt, now)}
                 </p>
                 {c.pageUrl && <p className="truncate text-xs text-muted">Was on {c.pageUrl}</p>}
+                {thread.assistant && thread.messages.some((m) => m.ai) && (
+                  <p className="mt-1 text-xs">
+                    {thread.assistant.active ? (
+                      <span className="text-accent">AI assistant is answering. Reply here to take over.</span>
+                    ) : thread.assistant.handedOff ? (
+                      <span className="text-sale">Passed to the team by the AI assistant or the customer.</span>
+                    ) : (
+                      <span className="text-muted">A person has taken over from the AI assistant.</span>
+                    )}
+                  </p>
+                )}
               </div>
               {c.status === 'OPEN' ? (
                 <div className="text-right">
@@ -291,16 +316,27 @@ export function SupportInbox({
               {thread.messages.map((m) => (
                 <li key={m.id} className={`flex flex-col ${m.sender === 'STAFF' ? 'items-end' : 'items-start'}`}>
                   <span className="mb-1 text-[11px] text-muted">
-                    {m.sender === 'STAFF' ? serviceName : c.name || 'Customer'} · {clock(m.createdAt)}
+                    {m.sender === 'STAFF' ? (m.ai ? 'AI assistant' : serviceName) : c.name || 'Customer'} · {clock(m.createdAt)}
                     {m.automated && ' · automatic reply'}
                   </span>
                   <p
                     className={`max-w-[80%] whitespace-pre-wrap break-words px-3.5 py-2.5 text-sm ${
-                      m.automated ? 'border border-dashed border-line bg-paper text-ink-soft' : m.sender === 'STAFF' ? 'bg-accent text-paper' : 'bg-paper-2'
+                      m.automated
+                        ? 'border border-dashed border-line bg-paper text-ink-soft'
+                        : m.ai
+                          ? 'border border-accent/40 bg-paper text-ink'
+                          : m.sender === 'STAFF'
+                            ? 'bg-accent text-paper'
+                            : 'bg-paper-2'
                     }`}
                   >
                     {m.body}
                   </p>
+                  {m.meta?.products && m.meta.products.length > 0 && (
+                    <p className="mt-1 max-w-[80%] text-right text-[11px] text-muted">
+                      Showed: {m.meta.products.map((p) => `${p.name} (${p.price})`).join(', ')}
+                    </p>
+                  )}
                 </li>
               ))}
               <div ref={listEnd} />

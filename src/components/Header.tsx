@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { LocaleLink } from './LocaleLink'
+import { NavGroup } from './NavGroup'
 import { BRAND, LOCALE_LABELS, LOCALES, type Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 import { t as tr } from '@/lib/catalog'
@@ -50,7 +51,7 @@ export function Header({
         {/* desktop nav */}
         <nav className="ml-6 hidden items-center gap-2 lg:flex" aria-label="Main">
           {categories.map((root) => (
-            <div key={root.id} className="group relative flex items-center py-3">
+            <NavGroup key={root.id}>
               <Link
                 href={`${base}/${root.slug}`}
                 className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-line bg-paper-2/60 px-3.5 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition-colors group-hover:border-accent group-hover:text-accent"
@@ -64,7 +65,7 @@ export function Header({
               </Link>
 
               {root.children.length > 0 && (
-                <div className="invisible absolute top-full left-0 min-w-60 overflow-hidden rounded-2xl border border-line bg-paper opacity-0 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.8)] transition-opacity group-hover:visible group-hover:opacity-100 focus-within:visible focus-within:opacity-100">
+                <div className="invisible absolute top-full left-0 min-w-60 overflow-hidden rounded-2xl border border-line bg-paper opacity-0 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.8)] transition-opacity group-hover:visible group-hover:opacity-100 focus-within:visible focus-within:opacity-100 group-data-[closed]:invisible! group-data-[closed]:opacity-0!">
                   <ul className="py-2">
                     {root.children.map((child) => (
                       <li key={child.id}>
@@ -98,7 +99,7 @@ export function Header({
                   </ul>
                 </div>
               )}
-            </div>
+            </NavGroup>
           ))}
         </nav>
 
