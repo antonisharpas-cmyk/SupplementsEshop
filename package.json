@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:seed": "tsx scripts/seed.ts",
+    "staff": "tsx scripts/staff.ts",
     "check:concurrency": "tsx scripts/concurrency-check.ts",
     "check:promo": "tsx scripts/promo-check.ts",
     "check:views": "tsx scripts/views-check.ts",

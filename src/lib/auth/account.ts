@@ -396,7 +396,8 @@ export async function adminTriggerPasswordReset(customerId: string) {
   const [row] = await db
     .select({ email: users.email })
     .from(users)
-    .where(eq(users.id, customerId))
+    /* Customers only: an admin account's password is changed by its owner. */
+    .where(and(eq(users.id, customerId), eq(users.role, 'CUSTOMER')))
     .limit(1)
   if (!row) return null
 

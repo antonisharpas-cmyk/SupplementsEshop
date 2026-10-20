@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { LocaleLink } from './LocaleLink'
 import { NavGroup } from './NavGroup'
+import { StaffMenu } from './StaffMenu'
 import { BRAND, LOCALE_LABELS, LOCALES, type Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 import { t as tr } from '@/lib/catalog'
@@ -20,11 +21,14 @@ export function Header({
   categories,
   cartCount,
   signedIn,
+  staff,
 }: {
   locale: Locale
   categories: CategoryNode[]
   cartCount: number
   signedIn: boolean
+  /** Signed in with an admin account: the owners and support. */
+  staff?: { name: string } | null
 }) {
   const t = getTranslator(locale)
   const base = `/${locale}`
@@ -127,15 +131,19 @@ export function Header({
             ))}
           </div>
 
-          <Link
-            href={signedIn ? `${base}/account` : `${base}/sign-in`}
-            aria-label={signedIn ? t('nav.account') : t('auth.signIn')}
-            title={signedIn ? t('nav.account') : t('auth.signIn')}
-            className="relative grid h-10 w-10 place-items-center hover:text-ink-soft"
-          >
-            <UserIcon />
-            {signedIn && <span aria-hidden className="absolute bottom-2 right-2 h-1.5 w-1.5 rounded-full bg-accent" />}
-          </Link>
+          {staff ? (
+            <StaffMenu locale={locale} name={staff.name} />
+          ) : (
+            <Link
+              href={signedIn ? `${base}/account` : `${base}/sign-in`}
+              aria-label={signedIn ? t('nav.account') : t('auth.signIn')}
+              title={signedIn ? t('nav.account') : t('auth.signIn')}
+              className="relative grid h-10 w-10 place-items-center hover:text-ink-soft"
+            >
+              <UserIcon />
+              {signedIn && <span aria-hidden className="absolute bottom-2 right-2 h-1.5 w-1.5 rounded-full bg-accent" />}
+            </Link>
+          )}
 
           <HeaderBag locale={locale} initialCount={cartCount} />
 

@@ -111,6 +111,7 @@ export default async function LocaleLayout({
           categories={categories}
           cartCount={cartCount}
           signedIn={Boolean(user)}
+          staff={user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') ? { name: `${user.firstName} ${user.lastName}`.trim() } : null}
         />
 
         <main id="main" className="flex-1">

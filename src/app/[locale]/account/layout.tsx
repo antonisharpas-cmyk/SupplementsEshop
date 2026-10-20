@@ -31,6 +31,8 @@ export default async function AccountLayout({
 
   const user = await getCurrentUser()
   if (!user) redirect(`/${locale}/sign-in?next=${encodeURIComponent(base)}`)
+  /* Admin accounts (owners, support) do not shop: their account is in the admin. */
+  if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') redirect('/admin')
 
   const [u] = await db.select({ createdAt: users.createdAt }).from(users).where(eq(users.id, user.id))
   const current = (await listOrdersForUser(user.id)).filter((o) => CURRENT_STATUSES.includes(o.status)).length

@@ -131,15 +131,20 @@ export function AdminSidebar({
 
   const footer = (
     <div className="border-t border-line px-4 py-4">
-      <div className="flex items-center gap-3">
+      <Link
+        href="/admin/account"
+        onClick={() => setOpen(false)}
+        title="My account: change your password"
+        className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-paper-2"
+      >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-paper-2 text-sm font-semibold text-accent">
           {user.name.slice(0, 1).toUpperCase()}
         </span>
         <span className="min-w-0">
           <span className="block truncate text-sm text-heading">{user.name}</span>
-          <span className="block text-[10px] uppercase tracking-wider text-muted">{user.role}</span>
+          <span className="block text-[10px] uppercase tracking-wider text-muted">{user.role} · My account</span>
         </span>
-      </div>
+      </Link>
       <div className="mt-4 flex items-center justify-between text-sm">
         <Link href="/en" className="inline-flex items-center gap-1.5 text-muted hover:text-accent" target="_blank">
           <span className="h-4 w-4">{ICONS.shop}</span>
