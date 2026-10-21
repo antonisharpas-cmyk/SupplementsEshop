@@ -13,7 +13,7 @@
 
 import type { Metadata } from 'next'
 import { BRAND } from '@/config/brand'
-import { AdminAutoRefresh } from '@/components/admin/AdminAutoRefresh'
+import { LiveRefresh } from '@/components/LiveRefresh'
 import { guardAdmin } from '@/lib/admin'
 import { assertSchemaReady } from '@/db/ready'
 import { inboxCounts } from '@/lib/support'
@@ -81,7 +81,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           logo={{ mark: BRAND.logo.mark, wordmark: BRAND.logo.wordmark, name: BRAND.name }}
           signOut={<SignOutButton locale="en" />}
         />
-        <AdminAutoRefresh />
+        <LiveRefresh everySeconds={60} afterAwaySeconds={0} />
         <main className="min-w-0 px-5 py-8 sm:px-8 lg:ml-64 lg:px-10 lg:py-10 print:m-0 print:p-0">
           <div className="mx-auto max-w-[96rem]">{children}</div>
         </main>

@@ -154,14 +154,14 @@ export function SettingsForm({ initial }: { initial: SettingsForm }) {
 
       <Row
         label="Free delivery over"
-        hint="Orders at or above this total ship free. Shown as a progress bar in the bag."
+        hint="Orders at or above this total are delivered free. Shown as a progress bar in the bag."
       >
         {numberField('freeDelivery')}
       </Row>
 
       <Row
         label="Hold stock in a cart for"
-        hint="How long an item stays reserved for a customer who has not checked out. Longer is kinder on a slow checkout; shorter puts stock back on the shelf sooner. Minutes."
+        hint="How long an item in a bag is kept aside for that customer. After this it stays in their bag but goes back on sale for everyone, and it is held again when they check out if it is still there. Minutes."
       >
         {numberField('holdMinutes')}
       </Row>

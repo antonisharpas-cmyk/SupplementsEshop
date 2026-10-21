@@ -17,6 +17,7 @@ import { wishlistProductIds } from '@/lib/wishlist'
 import { WishlistProvider } from '@/components/WishlistProvider'
 import { Footer, Header } from '@/components/Header'
 import { SupportWidget } from '@/components/SupportWidget'
+import { LiveRefresh } from '@/components/LiveRefresh'
 
 /* The brand is written in capitals everywhere, sentences included. */
 const serviceBrand = BRAND.name
@@ -127,11 +128,9 @@ export default async function LocaleLayout({
         </main>
 
         <Footer locale={locale} />
-        {/* Room below the footer on a phone, so the Customer Service button
-            never sits on top of the last thing on the page. */}
-        <div aria-hidden className="h-20 sm:hidden" />
 
         <SupportWidget locale={locale} brand={serviceBrand} />
+        <LiveRefresh />
       </body>
     </html>
   )

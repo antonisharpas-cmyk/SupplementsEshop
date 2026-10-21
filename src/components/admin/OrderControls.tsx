@@ -11,7 +11,7 @@ import { btn, input } from './ui'
 const LABEL: Record<string, string> = {
   PROCESSING: 'Confirm and start preparing',
   READY_FOR_PICKUP: 'Ready for collection',
-  SHIPPED: 'Mark as shipped',
+  SHIPPED: 'Mark as out for delivery',
   DELIVERED: 'Mark as delivered',
 }
 

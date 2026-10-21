@@ -16,8 +16,13 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(self)' },
 ]
 
+/* The version of this build. Open tabs compare it with the server's
+   (/api/version) and reload themselves when a new version is live. */
+const version = process.env.NEXT_DEPLOYMENT_ID || process.env.RENDER_GIT_COMMIT || String(Date.now())
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  env: { NEXT_PUBLIC_APP_VERSION: version },
   /* A new deploy makes open tabs reload onto the new version instead of
      breaking on files the old version needed ("press refresh" errors).
      Render sets RENDER_GIT_COMMIT; elsewhere set NEXT_DEPLOYMENT_ID. */

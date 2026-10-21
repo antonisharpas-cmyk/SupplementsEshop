@@ -8,7 +8,7 @@ export const STATUS_LABEL: Record<string, string> = {
   PAID: 'Paid, to prepare',
   PROCESSING: 'Preparing',
   READY_FOR_PICKUP: 'Ready to collect',
-  SHIPPED: 'Shipped',
+  SHIPPED: 'Out for delivery',
   DELIVERED: 'Delivered',
   CANCELLED: 'Cancelled',
   REFUNDED: 'Refunded',

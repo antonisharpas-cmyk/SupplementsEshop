@@ -185,13 +185,14 @@ export function FilterGroups({
   const [allColours, setAllColours] = useState(false)
   const set = (patch: Partial<ListingFilters>) => onChange({ ...value, ...patch })
 
-  /* Options that exist on this page. One that would show nothing with the
-     other filters as they are is dimmed and disabled, kept in place so the
-     panel does not rearrange itself under the shopper, unless it is
-     already chosen, so it can always be un-chosen. */
-  const sizes = facets.sizes.map((s) => ({ size: s.size, empty: s.count === 0 }))
+  /* Only what this selection actually has: pick Creatine and only creatine
+     sizes and flavours remain. A chosen one always stays, so it can be
+     un-chosen. */
+  const sizes = facets.sizes
+    .filter((s) => s.count > 0 || value.sizes.includes(s.size))
+    .map((s) => ({ size: s.size, empty: s.count === 0 }))
   for (const s of value.sizes) if (!sizes.some((x) => x.size === s)) sizes.push({ size: s, empty: true })
-  const colours = facets.colours
+  const colours = facets.colours.filter((c) => c.count > 0 || value.colours.includes(c.value))
   const COLOUR_PREVIEW = 8
   /* Chosen ones always stay in view, even when the list is folded. */
   const shownColours =

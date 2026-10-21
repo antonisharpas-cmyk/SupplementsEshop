@@ -34,9 +34,12 @@ function arg(name: string) {
 }
 
 async function main() {
-  const supportPassword = arg('support-password')
-  const shareholderPassword = arg('shareholder-password')
+  /* From the command line, or from .env.local (STAFF_SUPPORT_PASSWORD and
+     STAFF_SHAREHOLDER_PASSWORD), which `npm run dev` uses automatically. */
+  const supportPassword = arg('support-password') ?? process.env.STAFF_SUPPORT_PASSWORD
+  const shareholderPassword = arg('shareholder-password') ?? process.env.STAFF_SHAREHOLDER_PASSWORD
   const reset = process.argv.includes('--reset')
+  if (process.argv.includes('--if-configured') && (!supportPassword || !shareholderPassword)) return
   for (const [n, p] of [['support-password', supportPassword], ['shareholder-password', shareholderPassword]] as const) {
     if (!p || Buffer.byteLength(p) < 10) throw new Error(`--${n} is required, at least 10 characters.`)
   }

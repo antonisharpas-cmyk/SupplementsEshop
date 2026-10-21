@@ -150,7 +150,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
               </p>
             )}
             {order.trackingNumber && <p className="mt-2">Tracking: <span className="font-mono">{order.trackingNumber}</span></p>}
-            <p className="mt-2 text-xs text-muted">Shipped {when(order.shippedAt)} · Delivered {when(order.deliveredAt)}</p>
+            <p className="mt-2 text-xs text-muted">Out for delivery {when(order.shippedAt)} · Delivered {when(order.deliveredAt)}</p>
           </Box>
 
           <Box title="Payment">

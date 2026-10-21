@@ -180,14 +180,21 @@ export function Footer({ locale }: { locale: Locale }) {
   ]
 
   return (
-    <footer className="mt-20 border-t border-line bg-paper-2">
-      <div className="container-x grid gap-10 py-12 md:grid-cols-4">
-        <div className="md:col-span-2">
+    /* The bottom padding on a phone keeps the Customer Service button off the
+       last lines, on any screen, in the footer's own colour rather than a black band. */
+    <footer className="mt-20 border-t border-line bg-paper-2 pb-20">
+      {/* On a phone: the brand block across the top, then Help and About side
+          by side, then the legal lines and the credit, all left aligned except
+          the credit, which sits centred at the very bottom. */}
+      <div className="container-x grid grid-cols-2 gap-x-6 gap-y-10 py-10 sm:py-12 md:grid-cols-4">
+        <div className="col-span-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={BRAND.logo.full} alt={BRAND.name} width={800} height={454} className="h-20 w-auto" />
+          <img src={BRAND.logo.full} alt={BRAND.name} width={800} height={454} className="h-14 w-auto sm:h-20" />
           <p className="mt-3 max-w-sm text-sm text-muted">{BRAND.contact.addressLines.join(', ')}</p>
-          <p className="mt-2 text-sm text-muted">
-            {BRAND.contact.email} · {BRAND.contact.phone}
+          <p className="mt-2 flex flex-col gap-1 text-sm text-muted sm:flex-row sm:gap-0">
+            <a href={`mailto:${BRAND.contact.email}`} className="hover:text-ink">{BRAND.contact.email}</a>
+            <span aria-hidden className="hidden sm:inline">&nbsp;·&nbsp;</span>
+            <a href={`tel:${BRAND.contact.phone.replace(/\s/g, '')}`} className="hover:text-ink">{BRAND.contact.phone}</a>
           </p>
           <div className="mt-4 flex gap-2">
             {LOCALES.map((code) => (
@@ -205,7 +212,7 @@ export function Footer({ locale }: { locale: Locale }) {
 
         {columns.map((col) => (
           <div key={col.title}>
-            <h3 className="label mb-4 text-muted">{col.title}</h3>
+            <h3 className="label mb-3 text-muted sm:mb-4">{col.title}</h3>
             <ul className="space-y-2.5">
               {col.links.map(([label, href]) => (
                 <li key={href}>
@@ -220,13 +227,30 @@ export function Footer({ locale }: { locale: Locale }) {
       </div>
 
       <div className="border-t border-line">
-        <div className="container-x flex flex-wrap gap-2 py-5 text-xs text-muted">
+        <div className="container-x flex flex-col gap-1.5 py-5 text-xs text-muted sm:flex-row sm:flex-wrap sm:gap-2">
           <p>
             © {new Date().getFullYear()} {BRAND.legal.companyName}. {t('footer.rights')}
           </p>
-          <p className="ml-auto">
+          <p className="sm:ml-auto">
             {t('footer.vat')} {BRAND.legal.vatNumber} · Reg. {BRAND.legal.registrationNumber}
           </p>
+        </div>
+        {/* The credit to the studio that built the shop: centred, quiet, the
+            ErgonSite wordmark rather than its name in text. */}
+        <div className="container-x flex justify-center border-t border-line/60 py-5 sm:border-0 sm:pb-6 sm:pt-0">
+          <a
+            href="https://www.ergonsite.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${t('footer.builtBy')} ErgonSite`}
+            className="group flex items-center gap-2.5 opacity-70 transition-opacity duration-300 hover:opacity-100"
+          >
+            <span className="whitespace-nowrap text-[11px] text-muted transition-colors group-hover:text-ink sm:text-xs">
+              {t('footer.builtBy')}
+            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/ergonsite.png" alt="ErgonSite" width={480} height={104} className="h-auto w-[78px] sm:w-[90px]" />
+          </a>
         </div>
       </div>
     </footer>

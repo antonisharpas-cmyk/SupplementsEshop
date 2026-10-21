@@ -679,14 +679,20 @@ export async function runAutomations(now = new Date()) {
   const { sweepIdleConversations } = await import('@/lib/support')
   const { runDueCampaigns } = await import('@/lib/newsletter')
   const { sweepUnpaidOrders } = await import('@/lib/orders')
+  const { sweepExpiredReservations } = await import('@/lib/inventory')
   const closed = await sweepIdleConversations(now)
+  /* Bag holds past their time go back on sale for everyone. */
+  const { released } = await sweepExpiredReservations().catch((err) => {
+    console.error('[automations] expired holds sweep failed', err)
+    return { released: 0 }
+  })
   const unpaid = await sweepUnpaidOrders(now).catch((err) => {
     console.error('[automations] unpaid order sweep failed', err)
     return 0
   })
   const jobs = await processDueJobs(now)
   const campaigns = await runDueCampaigns(now)
-  return { closed, unpaid, jobs, campaigns }
+  return { closed, unpaid, released, jobs, campaigns }
 }
 
 /* =========================================================== reading == */

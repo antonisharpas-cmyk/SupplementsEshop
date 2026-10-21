@@ -9,6 +9,9 @@
  * launch. Until then the site runs with placeholders rather than guesses.
  * ========================================================================== */
 
+/* Added to logo links so a replaced logo shows at once, not an old cached copy. */
+const ASSET_VERSION = (process.env.NEXT_PUBLIC_APP_VERSION ?? '1').slice(0, 12)
+
 export const BRAND = {
   /** Shown in the header, page titles, emails and the footer. */
   name: 'AIONIX',
@@ -20,9 +23,9 @@ export const BRAND = {
 
   /** Logo files in public/brand. The mark is the "A" on its own. */
   logo: {
-    mark: '/brand/aionix-mark.png',
-    wordmark: '/brand/aionix-wordmark.png',
-    full: '/brand/aionix-logo.png',
+    mark: `/brand/aionix-mark.png?v=${ASSET_VERSION}`,
+    wordmark: `/brand/aionix-wordmark.png?v=${ASSET_VERSION}`,
+    full: `/brand/aionix-logo.png?v=${ASSET_VERSION}`,
   },
 
   /** Appears in the footer. Required of an EU online trader — see LAUNCH notes. */

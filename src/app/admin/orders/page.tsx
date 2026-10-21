@@ -20,7 +20,7 @@ type SP = Record<string, string | string[] | undefined>
 const VIEWS: { key: string; label: string; statuses: string[] }[] = [
   { key: 'open', label: 'To do', statuses: ['PENDING', 'PAID', 'PROCESSING', 'READY_FOR_PICKUP'] },
   { key: 'PAYMENT_PENDING', label: 'Awaiting payment', statuses: ['PAYMENT_PENDING'] },
-  { key: 'SHIPPED', label: 'Shipped', statuses: ['SHIPPED'] },
+  { key: 'SHIPPED', label: 'Out for delivery', statuses: ['SHIPPED'] },
   { key: 'DELIVERED', label: 'Delivered', statuses: ['DELIVERED'] },
   { key: 'CANCELLED', label: 'Cancelled', statuses: ['CANCELLED', 'REFUNDED'] },
   { key: 'all', label: 'All', statuses: [] },

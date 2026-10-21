@@ -184,6 +184,9 @@ async function main() {
   /* New photographs or a new hero video dropped into /public show up on the
      next start, without a re-seed wiping accounts and stock. */
   if (isLocal) await run('media:sync', [TSX, 'scripts/sync-media.ts'])
+  /* Admin accounts for the owners and support, when their first passwords
+     are in .env.local. Existing passwords are never touched. */
+  if (isLocal) await run('staff', [TSX, 'scripts/staff.ts', '--if-configured'])
 
   /* Checked before Next is started, because Next's own EADDRINUSE arrives as a
      stack trace and the fix is one environment variable. */

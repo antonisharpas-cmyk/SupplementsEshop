@@ -565,8 +565,8 @@ function orderTemplates(): TemplateDef[] {
       el: { subject: 'Η παραγγελία {{order_number}} είναι έτοιμη για παραλαβή', body: 'Η παραγγελία σου {{order_number}} είναι έτοιμη.\n\nΠαραλαβή από: {{pickup_address}}\nΩράριο: {{opening_hours}}\n\nΦέρε τον αριθμό παραγγελίας.', cta: view.el },
       ru: { subject: 'Заказ {{order_number}} готов к выдаче', body: 'Ваш заказ {{order_number}} готов.\n\nЗабрать: {{pickup_address}}\nЧасы работы: {{opening_hours}}\n\nВозьмите номер заказа.', cta: view.ru },
     }),
-    base('order_shipped', 'Order shipped', 'Status → shipped', ['tracking_number', 'tracking_url', 'delivery_estimate'], {
-      en: { subject: 'Order {{order_number}} is on its way', body: 'Your order {{order_number}} has left us.\n\nTracking number: {{tracking_number}}\n\nTrack it: {{tracking_url}}\n\nEstimated arrival: {{delivery_estimate}}', cta: view.en },
+    base('order_shipped', 'Out for delivery', 'Status → out for delivery', ['tracking_number', 'tracking_url', 'delivery_estimate'], {
+      en: { subject: 'Order {{order_number}} is on its way', body: 'Your order {{order_number}} is out for delivery.\n\nTracking number: {{tracking_number}}\n\nTrack it: {{tracking_url}}\n\nEstimated arrival: {{delivery_estimate}}', cta: view.en },
       el: { subject: 'Η παραγγελία {{order_number}} είναι καθ’ οδόν', body: 'Η παραγγελία σου {{order_number}} ξεκίνησε.\n\nΑριθμός αποστολής: {{tracking_number}}\n\nΠαρακολούθηση: {{tracking_url}}\n\nΕκτιμώμενη άφιξη: {{delivery_estimate}}', cta: view.el },
       ru: { subject: 'Заказ {{order_number}} в пути', body: 'Ваш заказ {{order_number}} отправлен.\n\nТрек-номер: {{tracking_number}}\n\nОтследить: {{tracking_url}}\n\nОриентировочная доставка: {{delivery_estimate}}', cta: view.ru },
     }, { note: `${ORDER_NOTE} The tracking lines appear only when the courier gave a real number.` }),
