@@ -100,6 +100,8 @@ export const config = {
   /* The API (only for the cross-site check above), and everything except
      Next internals, the API (which is locale-agnostic),
      /admin (staff-only, one language — sending it through locale negotiation
-     would rewrite /admin to /en/admin and 404), and static files. */
-  matcher: ['/api/:path*', '/((?!api|admin|_next|.*\\..*).*)'],
+     would rewrite /admin to /en/admin and 404), /link (the Instagram bio
+     card, which picks its own language and must stay exactly /link), and
+     static files. */
+  matcher: ['/api/:path*', '/((?!api|admin|link|_next|.*\\..*).*)'],
 }
