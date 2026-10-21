@@ -12,6 +12,7 @@
  * ========================================================================== */
 
 import type { Metadata } from 'next'
+import { connection } from 'next/server'
 import { BRAND } from '@/config/brand'
 import { LiveRefresh } from '@/components/LiveRefresh'
 import { guardAdmin } from '@/lib/admin'
@@ -28,6 +29,10 @@ export const metadata: Metadata = {
 }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  /* Every page shows live stock, prices and the visitor's own bag or session,
+     so it is built when it is visited, never during `next build` (which has
+     no database to read). */
+  await connection()
   /* Before anything reads a table: on this machine's database, new code's
      migrations are applied here rather than surfacing as a failed query. */
   await assertSchemaReady()

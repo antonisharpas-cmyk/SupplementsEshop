@@ -7,6 +7,7 @@
  * ========================================================================== */
 
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import type { Metadata, Viewport } from 'next'
 import { BRAND, LOCALES, isLocale, type Locale } from '@/config/brand'
 import { assertSchemaReady } from '@/db/ready'
@@ -72,6 +73,10 @@ export default async function LocaleLayout({
   if (!isLocale(raw)) notFound()
   const locale = raw as Locale
 
+  /* Every page shows live stock, prices and the visitor's own bag or session,
+     so it is built when it is visited, never during `next build` (which has
+     no database to read). */
+  await connection()
   /* Fail with the two commands to run, rather than with a page of SQL, when
      the database is connected but has no tables yet. */
   await assertSchemaReady()

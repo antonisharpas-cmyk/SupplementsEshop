@@ -18,7 +18,7 @@ import type { Metadata } from 'next'
 import { cookies, headers } from 'next/headers'
 import { BRAND, DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from '@/config/brand'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+const BASE = (process.env.PUBLIC_SITE_URL ?? '').replace(/\/$/, '')
 
 export const metadata: Metadata = {
   title: `${BRAND.name} · Supplement Store Cyprus`,

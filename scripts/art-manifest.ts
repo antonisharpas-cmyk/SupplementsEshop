@@ -24,7 +24,10 @@ export function heroDir() {
 /** The first of these that exists in `dir`, as a public URL under `base`. */
 function firstPhoto(dir: string, base: string, name: string): string | null {
   for (const ext of PHOTO_EXTENSIONS) {
-    if (existsSync(join(dir, `${name}${ext}`))) return `${base}/${name}${ext}`
+    /* Ignore comments: the folder is only known at run time, and without them
+       the production build would bundle the whole project to be safe. */
+    if (existsSync(/*turbopackIgnore: true*/ join(/*turbopackIgnore: true*/ dir, `${name}${ext}`)))
+      return `${base}/${name}${ext}`
   }
   return null
 }

@@ -14,7 +14,11 @@ import { sslFor } from './ssl'
 
 const connectionString = process.env.DATABASE_URL
 
-if (!connectionString) {
+/* `next build` loads every route to read its settings, without a database.
+   Nothing queries during that step, so the check waits for the running site. */
+const building = process.env.NEXT_PHASE === 'phase-production-build'
+
+if (!connectionString && !building) {
   throw new Error(
     'DATABASE_URL is not set. For local development the committed .env.development ' +
       'supplies one; otherwise copy .env.example to .env.local and fill it in ' +
@@ -34,7 +38,7 @@ export const pool =
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     /* One rule, shared with the migration and seed scripts. */
-    ssl: sslFor(connectionString),
+    ssl: connectionString ? sslFor(connectionString) : undefined,
   })
 
 if (process.env.NODE_ENV !== 'production') globalForDb.__pool = pool
