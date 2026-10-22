@@ -212,6 +212,17 @@ export async function issueRegistrationOtp(input: RegisterInput): Promise<{
     : { code: code!, expiresAt }
 }
 
+/** The email with the code could not be sent: take the code back, so the
+ *  customer can simply try again (no 60 second wait, no hourly count used). */
+export async function withdrawLatestOtp(email: string, purpose: OtpPurpose) {
+  await db.execute(sql`
+    delete from otp_codes where id = (
+      select id from otp_codes
+      where lower(email) = ${email.toLowerCase()} and purpose = ${purpose} and consumed_at is null
+      order by created_at desc limit 1
+    )`)
+}
+
 export async function issuePasswordResetOtp(
   email: string,
 ): Promise<{ code: string; expiresAt: Date } | null> {

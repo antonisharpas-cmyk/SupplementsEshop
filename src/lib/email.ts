@@ -47,12 +47,16 @@ const GMAIL_USER = process.env.GMAIL_USER?.trim()
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '')
 const FROM =
   process.env.EMAIL_FROM ??
-  (PROVIDER === 'gmail' && GMAIL_USER ? `${BRAND.name} <${GMAIL_USER}>` : `${BRAND.name} <no-reply@example.com>`)
+  (PROVIDER === 'gmail' && GMAIL_USER
+    ? `${BRAND.name} <${GMAIL_USER}>`
+    : `${BRAND.name} <no-reply@example.com>`)
 
 /** True when a real provider is configured and mail actually leaves. */
-export const emailEnabled = PROVIDER === 'gmail' ? Boolean(GMAIL_USER && GMAIL_APP_PASSWORD) : Boolean(API_KEY)
+export const emailEnabled =
+  PROVIDER === 'gmail' ? Boolean(GMAIL_USER && GMAIL_APP_PASSWORD) : Boolean(API_KEY)
 /** For the admin: which service sends the shop's email. */
-export const emailProviderName = PROVIDER === 'gmail' ? 'Google Workspace (Gmail)' : PROVIDER === 'resend' ? 'Resend' : PROVIDER
+export const emailProviderName =
+  PROVIDER === 'gmail' ? 'Google Workspace (Gmail)' : PROVIDER === 'resend' ? 'Resend' : PROVIDER
 
 /* ------------------------------------------------------------------ send --- */
 
@@ -79,7 +83,11 @@ export async function send(message: EmailMessage): Promise<SendResult> {
       /* A failed email must never fail the request that triggered it. An order
          that is paid for but whose confirmation email bounced is still an order. */
       console.error('[email] send threw:', err instanceof Error ? err.message : err)
-      result = { sent: false, reason: 'PROVIDER_ERROR', detail: err instanceof Error ? err.message : undefined }
+      result = {
+        sent: false,
+        reason: 'PROVIDER_ERROR',
+        detail: err instanceof Error ? err.message : undefined,
+      }
     }
   }
 
@@ -94,19 +102,22 @@ async function logEmail(message: EmailMessage, result: SendResult): Promise<stri
   try {
     const [{ db }, { emailLog }] = await Promise.all([import('@/db'), import('@/db/schema')])
     const kind = message.kind ?? 'other'
-    const [row] = await db.insert(emailLog).values({
-      kind,
-      category: message.category ?? 'transactional',
-      toEmail: message.to.slice(0, 255),
-      subject: message.subject.slice(0, 300),
-      status: result.sent ? 'sent' : result.reason === 'NO_PROVIDER' ? 'logged' : 'failed',
-      error: result.sent ? null : (result.detail ?? null),
-      /* With no provider (development) the body is the only copy there is,
+    const [row] = await db
+      .insert(emailLog)
+      .values({
+        kind,
+        category: message.category ?? 'transactional',
+        toEmail: message.to.slice(0, 255),
+        subject: message.subject.slice(0, 300),
+        status: result.sent ? 'sent' : result.reason === 'NO_PROVIDER' ? 'logged' : 'failed',
+        error: result.sent ? null : (result.detail ?? null),
+        /* With no provider (development) the body is the only copy there is,
          so it is kept to be read and tested. Never for sign-in codes, and
          never once a real provider is sending. */
-      body: !emailEnabled && !kind.startsWith('auth') ? message.text : null,
-      relatedId: message.relatedId ?? null,
-    }).returning({ id: emailLog.id })
+        body: !emailEnabled && !kind.startsWith('auth') ? message.text : null,
+        relatedId: message.relatedId ?? null,
+      })
+      .returning({ id: emailLog.id })
     return row?.id
   } catch {
     /* no database, or it is down — the email outcome stands regardless */
@@ -140,7 +151,9 @@ async function gmail() {
 
 async function sendViaGmail(message: EmailMessage): Promise<SendResult> {
   try {
-    const info = await (await gmail()).sendMail({
+    const info = await (
+      await gmail()
+    ).sendMail({
       from: FROM,
       to: message.to,
       subject: message.subject,
@@ -158,19 +171,28 @@ async function sendViaGmail(message: EmailMessage): Promise<SendResult> {
 }
 
 async function sendViaResend(message: EmailMessage): Promise<SendResult> {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: FROM,
-      to: [message.to],
-      subject: message.subject,
-      text: message.text,
-      html: message.html,
-      reply_to: message.replyTo,
-      headers: message.headers,
-    }),
-  })
+  let res: Response
+  try {
+    res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      signal: AbortSignal.timeout(15_000),
+      headers: { Authorization: `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: FROM,
+        to: [message.to],
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+        reply_to: message.replyTo,
+        headers: message.headers,
+      }),
+    })
+  } catch (err) {
+    const detail =
+      `Could not reach Resend: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300)
+    console.error('[email]', detail)
+    return { sent: false, reason: 'PROVIDER_ERROR', detail }
+  }
 
   if (!res.ok) {
     const detail = (await res.text()).slice(0, 300)

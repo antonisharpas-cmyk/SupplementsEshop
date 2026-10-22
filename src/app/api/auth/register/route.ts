@@ -14,7 +14,9 @@
  * ========================================================================== */
 
 import { z } from 'zod'
-import { OtpError, OTP_TTL_SECONDS, issueRegistrationOtp } from '@/lib/auth/otp'
+import { OtpError, OTP_TTL_SECONDS, issueRegistrationOtp, withdrawLatestOtp } from '@/lib/auth/otp'
+import { getTranslator } from '@/i18n/messages'
+import { asEmailLocale } from '@/lib/mailer'
 import { sendTemplate } from '@/lib/mailer'
 import { registerRequestSchema } from '@/lib/validation'
 
@@ -45,18 +47,28 @@ export async function POST(request: Request) {
        that is how you finish a signup without a mail service configured.
        An address that already has an account is told so by email; the
        response below is identical either way. */
-    if (existingAccount) {
-      await sendTemplate('auth_existing_account', {
-        to: parsed.data.email,
-        locale: existingAccount.locale,
-        vars: { customer_name: existingAccount.firstName },
-      })
-    } else {
-      await sendTemplate('auth_verification', {
-        to: parsed.data.email,
-        locale: parsed.data.locale,
-        vars: { code: code!, minutes: Math.round(OTP_TTL_SECONDS / 60), customer_name: parsed.data.firstName },
-      })
+    const sent = existingAccount
+      ? await sendTemplate('auth_existing_account', {
+          to: parsed.data.email,
+          locale: existingAccount.locale,
+          vars: { customer_name: existingAccount.firstName },
+        })
+      : await sendTemplate('auth_verification', {
+          to: parsed.data.email,
+          locale: parsed.data.locale,
+          vars: { code: code!, minutes: Math.round(OTP_TTL_SECONDS / 60), customer_name: parsed.data.firstName },
+        })
+
+    /* Never say "check your inbox" when nothing was sent. On the live site an
+       email that did not go (no email service set, or the service refused)
+       is an error the customer sees; locally the code is printed in the
+       terminal instead ("logged"), which is the documented way to test. */
+    const notSent = sent.status === 'failed' || (sent.status === 'logged' && process.env.NODE_ENV === 'production')
+    if (notSent) {
+      console.error('[api/auth/register] verification email NOT sent:', sent.status, sent.detail ?? 'no email service configured (EMAIL_PROVIDER)')
+      await withdrawLatestOtp(parsed.data.email, 'REGISTRATION').catch(() => undefined)
+      const t = getTranslator(asEmailLocale(parsed.data.locale))
+      return json({ ok: false, error: 'EMAIL_NOT_SENT', message: t('auth.emailNotSent') }, 503)
     }
 
     return json({
