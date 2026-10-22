@@ -5,7 +5,7 @@ import { getSettings } from '@/lib/settings'
 import { SettingsForm } from '@/components/admin/SettingsForm'
 import { PageHead } from '@/components/admin/ui'
 import { IntegrationsPanel } from '@/components/admin/IntegrationsPanel'
-import { stripeMode } from '@/lib/stripe'
+import { stripeKeyDiagnosis, stripeMode } from '@/lib/stripe'
 import { boxnowConfig, boxnowStatus } from '@/lib/boxnow'
 import { siteUrl } from '@/lib/email'
 
@@ -36,7 +36,7 @@ export default async function AdminSettingsPage() {
       />
       <SettingsForm initial={settings} />
       <IntegrationsPanel
-        stripe={{ mode: stripeMode(), webhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET), webhookUrl: siteUrl('/api/stripe/webhook') }}
+        stripe={{ mode: stripeMode(), diagnosis: stripeKeyDiagnosis(), webhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET), webhookUrl: siteUrl('/api/stripe/webhook') }}
         boxnow={{ ...boxnowStatus(), webhookUrl: siteUrl('/api/boxnow/webhook'), token: Boolean(boxnowConfig().webhookToken) }}
       />
     </>

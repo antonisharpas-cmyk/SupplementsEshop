@@ -21,9 +21,38 @@ let warned = false
 
 export type StripeMode = 'test' | 'live' | 'off'
 
+/** The key as typed into Render, forgiving the usual paste slips: quotes
+ *  around it, spaces, or the name pasted in front ("STRIPE_SECRET_KEY=…"). */
+function secretKey(): string {
+  return (process.env.STRIPE_SECRET_KEY ?? '')
+    .trim()
+    .replace(/^STRIPE_SECRET_KEY\s*=\s*/i, '')
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .trim()
+}
+
+/** For Admin, Settings: what the server actually received, without revealing
+ *  the secret (only the kind of key, from its first characters). */
+export function stripeKeyDiagnosis(): string {
+  const raw = process.env.STRIPE_SECRET_KEY
+  if (raw === undefined) return 'STRIPE_SECRET_KEY is not set on this server at all.'
+  const key = secretKey()
+  if (!key) return 'STRIPE_SECRET_KEY is set but empty.'
+  const kind = key.startsWith('pk_')
+    ? 'a publishable key (pk_…). Use the Secret key (sk_test_…) instead'
+    : key.startsWith('whsec_')
+      ? 'the webhook signing secret (whsec_…). That belongs in STRIPE_WEBHOOK_SECRET'
+      : /^(sk|rk)_live_/.test(key)
+        ? 'a LIVE key. Use the test key (sk_test_…)'
+        : /^(sk|rk)_test_/.test(key)
+          ? 'a test secret key: correct'
+          : `not a Stripe key (it starts with "${key.slice(0, 3)}…")`
+  return `STRIPE_SECRET_KEY is ${kind}.`
+}
+
 /** Which Stripe account the key belongs to: test, live, or none (or refused). */
 export function stripeMode(): StripeMode {
-  const key = process.env.STRIPE_SECRET_KEY?.trim()
+  const key = secretKey()
   if (!key) return 'off'
   if (/^(sk|rk)_test_/.test(key)) return 'test'
   if (/^(sk|rk)_live_/.test(key)) {
@@ -55,7 +84,7 @@ export function stripeTestMode(): boolean {
 
 export function stripe(): Stripe {
   if (!stripeEnabled()) throw new Error('Card payment is not configured (STRIPE_SECRET_KEY missing or refused).')
-  if (!client) client = new Stripe(process.env.STRIPE_SECRET_KEY!.trim())
+  if (!client) client = new Stripe(secretKey())
   return client
 }
 

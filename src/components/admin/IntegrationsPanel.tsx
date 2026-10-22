@@ -24,7 +24,7 @@ export function IntegrationsPanel({
   stripe,
   boxnow,
 }: {
-  stripe: { mode: 'test' | 'live' | 'off'; webhook: boolean; webhookUrl: string }
+  stripe: { mode: 'test' | 'live' | 'off'; webhook: boolean; webhookUrl: string; diagnosis: string }
   boxnow: { checkout: boolean; api: boolean; canShip: boolean; missing: string[]; stage: boolean; cod: boolean; webhookUrl: string; token: boolean }
 }) {
   const [busy, setBusy] = useState(false)
@@ -55,6 +55,7 @@ export function IntegrationsPanel({
                 ? 'LIVE mode. Real payments are taken.'
                 : 'Off. Set STRIPE_SECRET_KEY to the test secret key (sk_test_…). Live keys are refused.'}
           </Row>
+          {stripe.mode === 'off' && <li className="pl-6 text-xs text-ink-soft">What this server sees: {stripe.diagnosis}</li>}
           <Row ok={stripe.webhook}>
             {stripe.webhook ? 'Webhook secret set.' : 'STRIPE_WEBHOOK_SECRET not set. Payments still confirm when the customer returns from Stripe, but set it so a closed tab is caught too.'}
           </Row>
