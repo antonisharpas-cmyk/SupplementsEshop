@@ -27,6 +27,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { drizzle } from 'drizzle-orm/pglite'
 import { migrate } from 'drizzle-orm/pglite/migrator'
 import { createRequire } from 'node:module'
+import { createServer } from 'node:http'
 import { join } from 'node:path'
 import { startEmbedded } from './pg-embedded'
 
@@ -47,6 +48,7 @@ const env: NodeJS.ProcessEnv = { ...process.env }
 
 let db: Awaited<ReturnType<typeof startEmbedded>> | null = null
 let site: ChildProcess | null = null
+let inProcess: { close(): Promise<void> } | null = null
 let stopping = false
 
 async function stop(code = 0) {
@@ -56,6 +58,7 @@ async function stop(code = 0) {
     site.kill('SIGTERM')
     await new Promise((r) => site!.once('exit', r))
   }
+  if (inProcess) await inProcess.close().catch(() => undefined)
   /* The database closes last, cleanly, so its files are never half written. */
   if (db) await db.stop().catch((err) => console.error('database did not close cleanly', err))
   process.exit(code)
@@ -119,6 +122,28 @@ async function main() {
   } else {
     await run('Database', script('prepare-db'))
     if (stopping) return
+  }
+
+  if (db) {
+    /* Embedded on a small server: the shop runs in this same process as the
+       database, which saves a whole second Node (about 50 MB). */
+    Object.assign(process.env, env, { NODE_ENV: 'production' })
+    const { default: next } = await import('next')
+    const app = next({ dev: false, dir: process.cwd() })
+    const handle = app.getRequestHandler()
+    await app.prepare()
+    const port = Number(process.env.PORT ?? 3000)
+    const server = createServer((req, res) => void handle(req, res))
+    await new Promise<void>((r) => server.listen(port, '0.0.0.0', r))
+    inProcess = {
+      close: () =>
+        new Promise<void>((r) => {
+          server.close(() => r())
+          server.closeAllConnections()
+        }).then(() => app.close()),
+    }
+    console.log(`✓ site listening on port ${port} (${Math.round(process.memoryUsage().rss / 1048576)} MB in use)`)
+    return
   }
 
   /* A small server: keep the site's JavaScript heap modest so the database
