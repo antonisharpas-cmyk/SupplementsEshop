@@ -487,6 +487,9 @@ export const orders = pgTable(
     /* Full address copied in, not referenced — the customer may delete theirs. */
     shippingAddress: jsonb('shipping_address').$type<Record<string, unknown>>(),
     billingAddress: jsonb('billing_address').$type<Record<string, unknown>>(),
+    /* The parcel locker chosen at checkout, copied in: { provider: 'boxnow',
+       id, name, address, postalCode }. Null for delivery to an address. */
+    pickupPoint: jsonb('pickup_point').$type<PickupPoint>(),
 
     subtotalCents: integer('subtotal_cents').notNull(),
     promotionDiscountCents: integer('promotion_discount_cents').notNull().default(0),
@@ -531,6 +534,53 @@ export const orders = pgTable(
     index('orders_created_idx').on(t.createdAt),
     /* Guest tracking looks up by number + email together. */
     index('orders_number_email_idx').on(t.orderNumber, sql`lower(${t.email})`),
+  ],
+)
+
+export type PickupPoint = {
+  provider: 'boxnow'
+  id: string
+  name: string
+  address: string
+  postalCode: string
+  /** False when BOX NOW could not be asked at checkout; checked again when the shipment is created. */
+  verified: boolean
+}
+
+/* A parcel handed to a carrier (BOX NOW). One order normally has one; a
+   cancelled shipment stays on record and a new one can be created. */
+export const shipments = pgTable(
+  'shipments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'cascade' }),
+    carrier: varchar('carrier', { length: 20 }).notNull(),
+    /* BOX NOW's delivery request id, and the parcel id printed on the label. */
+    deliveryRequestId: varchar('delivery_request_id', { length: 40 }),
+    parcelId: varchar('parcel_id', { length: 40 }),
+    /* The reference sent to BOX NOW (the order number, plus -2, -3 after a cancel). */
+    reference: varchar('reference', { length: 40 }).notNull(),
+    lockerId: varchar('locker_id', { length: 40 }).notNull(),
+    compartmentSize: integer('compartment_size').notNull().default(2),
+    paymentMode: varchar('payment_mode', { length: 10 }).notNull().default('prepaid'),
+    amountToCollectCents: integer('amount_to_collect_cents').notNull().default(0),
+    /* BOX NOW's parcel state (new, in-depot, in-final-destination, delivered …). */
+    state: varchar('state', { length: 40 }).notNull().default('new'),
+    lastEvent: varchar('last_event', { length: 60 }),
+    lastEventAt: timestamp('last_event_at', { withTimezone: true }),
+    lastEventPlace: varchar('last_event_place', { length: 160 }),
+    checkedAt: timestamp('checked_at', { withTimezone: true }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('shipments_parcel_unique').on(t.parcelId),
+    index('shipments_order_idx').on(t.orderId),
+    index('shipments_open_idx').on(t.state, t.checkedAt),
   ],
 )
 
@@ -909,6 +959,8 @@ export const deliveryOptions = pgTable(
     minDays: integer('min_days'),
     maxDays: integer('max_days'),
     countries: jsonb('countries').$type<string[]>(),
+    /* 'boxnow' for delivery to a BOX NOW locker; null for the shop's own van. */
+    carrier: varchar('carrier', { length: 20 }),
     position: integer('position').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
   },

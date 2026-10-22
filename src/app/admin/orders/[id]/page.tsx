@@ -1,6 +1,7 @@
 /* One order, for staff: what was bought, by whom, where it goes, how it was
    paid, and the buttons that move it along. */
 
+import { stripeTestMode } from '@/lib/stripe'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { guardAdmin } from '@/lib/admin'
@@ -12,6 +13,9 @@ import { UUID } from '@/lib/api'
 import { PageHead, Thumb } from '@/components/admin/ui'
 import { OrderControls } from '@/components/admin/OrderControls'
 import { OrderStatusPill, PaymentPill } from '@/components/admin/OrderStatus'
+import { BoxNowPanel } from '@/components/admin/BoxNowPanel'
+import { boxnowStatus } from '@/lib/boxnow'
+import { shipmentsForOrder } from '@/lib/shipments'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Order' }
@@ -35,6 +39,15 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   const order = await getOrderById(id)
   if (!order) notFound()
   const docs = await invoicesForOrder(order.id)
+  const locker = order.pickupPoint?.provider === 'boxnow' ? order.pickupPoint : null
+  const parcels = locker ? await shipmentsForOrder(order.id) : []
+  const bn = boxnowStatus()
+  const shipWhy =
+    order.status === 'PAYMENT_PENDING'
+      ? 'Waiting for the card payment before it can be shipped.'
+      : !['PENDING', 'PAID', 'PROCESSING'].includes(order.status)
+        ? `A shipment can be created while the order is pending, paid or being prepared (it is ${order.status.toLowerCase().replace(/_/g, ' ')}).`
+        : null
 
   const address = order.shippingAddress as Record<string, string> | null
   const latest = order.payments[0]
@@ -153,6 +166,33 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
             <p className="mt-2 text-xs text-muted">Out for delivery {when(order.shippedAt)} · Delivered {when(order.deliveredAt)}</p>
           </Box>
 
+          {locker && (
+            <Box title="BOX NOW">
+              <BoxNowPanel
+                orderId={order.id}
+                locker={locker}
+                shipments={parcels.map((p) => ({
+                  id: p.id,
+                  parcelId: p.parcelId,
+                  reference: p.reference,
+                  state: p.state,
+                  lastEvent: p.lastEvent,
+                  lastEventAt: p.lastEventAt?.toISOString() ?? null,
+                  lastEventPlace: p.lastEventPlace,
+                  checkedAt: p.checkedAt?.toISOString() ?? null,
+                  cancelledAt: p.cancelledAt?.toISOString() ?? null,
+                  compartmentSize: p.compartmentSize,
+                  paymentMode: p.paymentMode,
+                  amountToCollect: p.amountToCollectCents ? formatMoney(p.amountToCollectCents) : null,
+                }))}
+                missing={bn.canShip ? [] : bn.missing}
+                canCreate={bn.canShip && !shipWhy}
+                why={shipWhy}
+                stage={bn.stage}
+              />
+            </Box>
+          )}
+
           <Box title="Payment">
             {order.payments.length === 0 && <p className="text-muted">No payment recorded.</p>}
             <ul className="space-y-3">
@@ -167,9 +207,10 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                     {p.paidAt ? ` · ${when(p.paidAt)}` : ''}
                     {p.refundedCents ? ` · refunded ${formatMoney(p.refundedCents)}` : ''}
                   </p>
+                  {p.failureMessage && <p className="mt-1 text-xs text-sale">Last attempt declined: {p.failureMessage}</p>}
                   {p.providerPaymentId && (
                     <a
-                      href={`https://dashboard.stripe.com/payments/${p.providerPaymentId}`}
+                      href={`https://dashboard.stripe.com/${stripeTestMode() ? 'test/' : ''}payments/${p.providerPaymentId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-accent underline"

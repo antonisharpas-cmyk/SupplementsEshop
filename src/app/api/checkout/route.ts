@@ -31,6 +31,15 @@ const schema = z.object({
   lastName: nameSchema,
   deliveryOptionId: uuidSchema,
   shippingAddress: address.optional(),
+  /* The BOX NOW locker picked on the map; re-checked with BOX NOW on the server. */
+  pickupPoint: z
+    .object({
+      id: z.string().trim().min(1).max(40),
+      name: z.string().trim().max(160).default(''),
+      address: z.string().trim().max(200).default(''),
+      postalCode: z.string().trim().max(10).default(''),
+    })
+    .optional(),
   customerNote: z.string().trim().max(500).optional().or(z.literal('')),
   paymentMethod: z.enum(['card', 'cod']),
   saveAddress: z.boolean().default(false),

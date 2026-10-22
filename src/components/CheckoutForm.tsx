@@ -16,6 +16,7 @@ import { getTranslator } from '@/i18n/messages'
 import { PhoneInput } from '@/components/PhoneInput'
 import { button } from '@/components/ui'
 import { announceBagCount } from '@/lib/bag-events'
+import { BoxNowPicker, type Locker } from '@/components/BoxNowPicker'
 
 type Address = {
   id: string
@@ -30,7 +31,7 @@ type Address = {
   isDefault: boolean
 }
 
-type Option = { id: string; kind: 'PICKUP' | 'SHIPPING'; name: string; priceCents: number; minDays: number | null; maxDays: number | null }
+type Option = { id: string; kind: 'PICKUP' | 'SHIPPING'; carrier?: string | null; name: string; priceCents: number; minDays: number | null; maxDays: number | null }
 
 type Line = { variantId: string; name: string; detail: string; imageUrl: string | null; quantity: number; lineFinalCents: number }
 
@@ -68,6 +69,10 @@ export function CheckoutForm(props: {
   locale: Locale
   signedIn: boolean
   cardEnabled: boolean
+  /** Stripe test keys: say so, and show the test card. */
+  cardTestMode?: boolean
+  /** BOX NOW's map, when the locker option is offered. */
+  boxnow?: { widgetUrl: string; partnerId: string; cod: boolean } | null
   profile: { firstName: string; lastName: string; phone: string; email: string } | null
   saved: Address[]
   options: Option[]
@@ -97,7 +102,7 @@ export function CheckoutForm(props: {
     firstName: props.profile?.firstName ?? '',
     lastName: props.profile?.lastName ?? '',
   })
-  const defaultOption = options.find((o) => o.kind === 'SHIPPING') ?? options[0]
+  const defaultOption = options.find((o) => o.kind === 'SHIPPING' && o.carrier !== 'boxnow') ?? options[0]
   const [optionId, setOptionId] = useState(defaultOption?.id ?? '')
   const option = options.find((o) => o.id === optionId)
   const defaultAddress = props.saved.find((a) => a.isDefault) ?? props.saved[0]
@@ -124,7 +129,13 @@ export function CheckoutForm(props: {
   const deliveryCents = option?.priceCents ?? 0
   const total = totals.subtotalAfterDiscounts + deliveryCents
   const vat = Math.round(total - (total * 10_000) / (10_000 + totals.vatRateBp))
-  const shipping = option?.kind === 'SHIPPING'
+  /* A BOX NOW locker instead of an address. */
+  const locker = option?.carrier === 'boxnow'
+  const shipping = option?.kind === 'SHIPPING' && !locker
+  const [chosenLocker, setChosenLocker] = useState<Locker | null>(null)
+  /* Cash at the locker only if the BOX NOW contract allows it. */
+  const codAllowed = !locker || Boolean(props.boxnow?.cod)
+  const payMethod = !codAllowed && props.cardEnabled ? 'card' : method
 
   const chosenAddress = useMemo(() => props.saved.find((a) => a.id === addressId) ?? null, [props.saved, addressId])
 
@@ -137,6 +148,15 @@ export function CheckoutForm(props: {
     if (shipping && !chosenAddress && !/^[1-8]\d{3}$/.test(addr.postalCode.trim())) {
       setErrors({ 'addr.postalCode': t('co.postalCodeCy') })
       setError(t('co.postalCodeCy'))
+      return
+    }
+    if (locker && !chosenLocker) {
+      setErrors({ locker: t('co.boxnowRequired') })
+      setError(t('co.boxnowRequired'))
+      return
+    }
+    if (!codAllowed && payMethod === 'cod') {
+      setError(t('co.boxnowCardOnly'))
       return
     }
     if (!terms) {
@@ -172,8 +192,9 @@ export function CheckoutForm(props: {
           ...contact,
           deliveryOptionId: optionId,
           shippingAddress,
+          pickupPoint: locker && chosenLocker ? chosenLocker : undefined,
           customerNote: note,
-          paymentMethod: method,
+          paymentMethod: payMethod,
           saveAddress: props.signedIn && shipping && !chosenAddress && saveAddress,
           acceptTerms: true,
           smsConsent,
@@ -237,12 +258,34 @@ export function CheckoutForm(props: {
                   <span className="mt-0.5 block text-xs text-muted">
                     {o.kind === 'PICKUP'
                       ? `${props.pickupPlace}. ${t('co.ready')}`
-                      : t('co.deliveryDays', { min: o.minDays ?? 2, max: o.maxDays ?? 4 })}
+                      : o.carrier === 'boxnow'
+                        ? `${t('co.boxnowNote')} ${t('co.deliveryDays', { min: o.minDays ?? 1, max: o.maxDays ?? 3 })}`
+                        : t('co.deliveryDays', { min: o.minDays ?? 2, max: o.maxDays ?? 4 })}
                   </span>
                 </span>
               </label>
             ))}
           </div>
+
+          {locker && props.boxnow && (
+            <BoxNowPicker
+              widgetUrl={props.boxnow.widgetUrl}
+              partnerId={props.boxnow.partnerId}
+              value={chosenLocker}
+              onChange={(l) => {
+                setChosenLocker(l)
+                setErrors((e) => ({ ...e, locker: '' }))
+              }}
+              error={errors.locker || errors.pickupPoint || undefined}
+              labels={{
+                choose: t('co.boxnowChoose'),
+                change: t('co.boxnowChange'),
+                chosen: t('co.boxnowChosen'),
+                close: t('nav.close'),
+                mapTitle: t('co.boxnowMap'),
+              }}
+            />
+          )}
 
           {shipping && (
             <div className="mt-6">
@@ -314,18 +357,23 @@ export function CheckoutForm(props: {
 
         <Step n={3} title={t('co.payment')}>
           <div className="space-y-2" role="radiogroup" aria-label={t('co.payment')}>
-            <label className={`${radio(method === 'card')} ${props.cardEnabled ? '' : 'cursor-not-allowed opacity-50'}`}>
-              <input type="radio" name="method" disabled={!props.cardEnabled} className="mt-1 h-4 w-4 accent-[var(--color-accent)]" checked={method === 'card'} onChange={() => setMethod('card')} />
+            <label className={`${radio(payMethod === 'card')} ${props.cardEnabled ? '' : 'cursor-not-allowed opacity-50'}`}>
+              <input type="radio" name="method" disabled={!props.cardEnabled} className="mt-1 h-4 w-4 accent-[var(--color-accent)]" checked={payMethod === 'card'} onChange={() => setMethod('card')} />
               <span className="text-sm">
                 <span className="font-medium text-heading">{t('co.payCard')}</span>
                 <span className="mt-0.5 block text-xs text-muted">{props.cardEnabled ? t('co.payCardNote') : t('co.payCardOff')}</span>
+                {props.cardEnabled && props.cardTestMode && (
+                  <span className="mt-1.5 block rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-ink">{t('co.testMode')}</span>
+                )}
               </span>
             </label>
-            <label className={radio(method === 'cod')}>
-              <input type="radio" name="method" className="mt-1 h-4 w-4 accent-[var(--color-accent)]" checked={method === 'cod'} onChange={() => setMethod('cod')} />
+            <label className={`${radio(payMethod === 'cod')} ${codAllowed ? '' : 'cursor-not-allowed opacity-50'}`}>
+              <input type="radio" name="method" disabled={!codAllowed} className="mt-1 h-4 w-4 accent-[var(--color-accent)]" checked={payMethod === 'cod'} onChange={() => setMethod('cod')} />
               <span className="text-sm">
-                <span className="font-medium text-heading">{shipping ? t('co.payCod') : t('co.payCodPickup')}</span>
-                <span className="mt-0.5 block text-xs text-muted">{shipping ? t('co.payCodNote') : t('co.payCodPickupNote')}</span>
+                <span className="font-medium text-heading">{shipping || locker ? t('co.payCod') : t('co.payCodPickup')}</span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {!codAllowed ? t('co.boxnowCardOnly') : shipping || locker ? t('co.payCodNote') : t('co.payCodPickupNote')}
+                </span>
               </span>
             </label>
           </div>
@@ -415,7 +463,7 @@ export function CheckoutForm(props: {
           </label>
 
           <button type="submit" className={`${button.primary} mt-5 w-full`} disabled={busy || !optionId}>
-            {busy ? t('co.placing') : method === 'card' ? `${t('co.payNow')} · ${money(total)}` : `${t('co.placeOrder')} · ${money(total)}`}
+            {busy ? t('co.placing') : payMethod === 'card' ? `${t('co.payNow')} · ${money(total)}` : `${t('co.placeOrder')} · ${money(total)}`}
           </button>
         </div>
       </aside>

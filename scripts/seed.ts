@@ -714,6 +714,23 @@ async function main() {
       position: 1,
       isActive: true,
     },
+    {
+      /* Offered at checkout only once BOX NOW is set up (see lib/boxnow.ts). */
+      kind: 'SHIPPING',
+      carrier: 'boxnow',
+      name: { en: 'BOX NOW locker', el: 'Θυρίδα BOX NOW', ru: 'Постамат BOX NOW' },
+      description: {
+        en: 'Collect from a BOX NOW locker near you, any time of day.',
+        el: 'Παραλαβή από θυρίδα BOX NOW κοντά σου, όποια ώρα θέλεις.',
+        ru: 'Заберите в постамате BOX NOW рядом с вами в любое время.',
+      },
+      priceCents: 500,
+      minDays: 1,
+      maxDays: 3,
+      countries: ['CY'],
+      position: 2,
+      isActive: true,
+    },
   ])
 
   console.log('→ promotions and a promo code')

@@ -41,9 +41,9 @@ function negotiateLocale(request: NextRequest): string {
 
 /* POST, PATCH and DELETE to the API from another website are refused: a
    page elsewhere cannot sign someone in or out, or change anything, using
-   their cookies. Stripe, the scheduler and mail providers' one-click
+   their cookies. Stripe, BOX NOW, the scheduler and mail providers' one-click
    unsubscribe call from outside on purpose and prove themselves otherwise. */
-const CROSS_SITE_ALLOWED = ['/api/stripe/webhook', '/api/cron/', '/api/newsletter/unsubscribe']
+const CROSS_SITE_ALLOWED = ['/api/stripe/webhook', '/api/boxnow/webhook', '/api/cron/', '/api/newsletter/unsubscribe']
 
 function crossSite(request: NextRequest): boolean {
   if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return false

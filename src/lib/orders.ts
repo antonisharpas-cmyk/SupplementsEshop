@@ -40,6 +40,7 @@ import {
   webhookEvents,
 } from '@/db/schema'
 import type { Locale } from '@/config/brand'
+import type { PickupPoint } from '@/db/schema'
 import { BRAND } from '@/config/brand'
 import { tField } from '@/i18n/field'
 import { addToCart, getCartView } from '@/lib/cart'
@@ -106,6 +107,8 @@ export type PlaceOrderInput = {
   lastName: string
   deliveryOptionId: string
   shippingAddress?: OrderAddress
+  /** A BOX NOW locker, when that delivery option is chosen. */
+  pickupPoint?: { id: string; name: string; address: string; postalCode: string }
   customerNote?: string
   paymentMethod: PaymentMethod
   saveAddress?: boolean
@@ -183,6 +186,24 @@ export async function placeOrder(args: {
   if (!option || view.totals.deliveryOptionId !== option.id) {
     throw new CheckoutError('Choose how you would like to receive your order.', 'NO_DELIVERY')
   }
+  /* A BOX NOW locker: the parcel goes to the locker, so the locker is the
+     delivery address. Its details are read back from BOX NOW, never taken
+     on trust from the browser. */
+  let pickupPoint: PickupPoint | null = null
+  if (option.carrier === 'boxnow') {
+    const { resolveLocker } = await import('@/lib/boxnow-checkout')
+    const resolved = await resolveLocker(input.pickupPoint, input.paymentMethod)
+    pickupPoint = resolved
+    input.shippingAddress = {
+      recipientName: `${input.firstName} ${input.lastName}`.trim(),
+      phone: input.phone,
+      line1: `BOX NOW ${resolved.name}`.slice(0, 200),
+      line2: resolved.address.slice(0, 200),
+      city: resolved.address.split(',').at(-1)?.trim().slice(0, 100) || 'Cyprus',
+      postalCode: resolved.postalCode,
+      country: 'CY',
+    }
+  }
   if (option.kind === 'SHIPPING' && !input.shippingAddress) {
     throw new CheckoutError('Enter the delivery address.', 'ADDRESS_REQUIRED')
   }
@@ -235,6 +256,7 @@ export async function placeOrder(args: {
             deliveryOptionId: option.id,
             deliveryOptionName: option.name,
             shippingAddress: option.kind === 'SHIPPING' ? (input.shippingAddress as Record<string, unknown>) : null,
+            pickupPoint,
             billingAddress: null,
             subtotalCents: t.listTotalCents,
             promotionDiscountCents: t.promotionDiscountCents,
@@ -336,7 +358,7 @@ export async function placeOrder(args: {
   if (!created) throw new Error('Could not allocate an order number.')
 
   /* Not part of the sale: a failure here must not undo the order. */
-  if (userId && input.saveAddress && input.shippingAddress && option.kind === 'SHIPPING') {
+  if (userId && input.saveAddress && input.shippingAddress && option.kind === 'SHIPPING' && !pickupPoint) {
     await saveAddressIfNew(userId, input.shippingAddress).catch((err) => console.error('[orders] address not saved', err))
   }
   await afterOrderPlaced(created.id)
@@ -433,10 +455,14 @@ export async function startCardPayment(orderId: string): Promise<string> {
     cancel_url: `${back}${join}payment=cancelled`,
   })
 
+  /* A new attempt: any earlier decline is history, and an attempt that
+     failed outright is reopened. */
   await db
     .update(payments)
-    .set({ providerSessionId: session.id, updatedAt: new Date() })
-    .where(and(eq(payments.orderId, orderId), eq(payments.provider, 'stripe'), eq(payments.status, 'PENDING')))
+    .set({ providerSessionId: session.id, status: 'PENDING', failureCode: null, failureMessage: null, updatedAt: new Date() })
+    .where(
+      and(eq(payments.orderId, orderId), eq(payments.provider, 'stripe'), inArray(payments.status, ['PENDING', 'FAILED'])),
+    )
 
   if (!session.url) throw new Error('Stripe returned no payment page.')
   return session.url
@@ -474,6 +500,8 @@ export async function syncCheckoutSession(sessionId: string): Promise<'paid' | '
         providerSessionId: session.id,
         cardBrand: card?.brand ?? null,
         cardLast4: card?.last4 ?? null,
+        failureCode: null,
+        failureMessage: null,
         paidAt: now,
         updatedAt: now,
       })
@@ -541,6 +569,38 @@ async function applyStripeEvent(event: { id: string; type: string; data: { objec
       if (order?.status === 'PAYMENT_PENDING' && newer) {
         await cancelOrder(orderId, { reason: 'The card payment was not completed.', by: null })
       }
+    }
+  } else if (event.type === 'payment_intent.payment_failed') {
+    /* A declined card. On Stripe's page the customer can simply try another
+       card, so the order stays open; the reason is kept so the order page and
+       the admin can say why. */
+    const pi = obj as {
+      id?: string
+      metadata?: Record<string, string> | null
+      last_payment_error?: { code?: string | null; decline_code?: string | null; message?: string | null } | null
+    }
+    const orderId = pi.metadata?.orderId
+    if (orderId) {
+      const err = pi.last_payment_error
+      await db
+        .update(payments)
+        .set({
+          failureCode: (err?.decline_code || err?.code || 'payment_failed').slice(0, 80),
+          failureMessage: err?.message ?? 'The card payment was declined.',
+          updatedAt: new Date(),
+        })
+        .where(and(eq(payments.orderId, orderId), eq(payments.provider, 'stripe'), eq(payments.status, 'PENDING')))
+    }
+  } else if (event.type === 'checkout.session.async_payment_failed') {
+    /* A bank transfer style payment that was refused after the customer left
+       Stripe's page. The order stays open for "Pay now" until the unpaid
+       order sweep cancels it. */
+    const orderId = obj.metadata?.orderId ?? obj.client_reference_id
+    if (orderId && obj.id) {
+      await db
+        .update(payments)
+        .set({ status: 'FAILED', failureCode: 'async_payment_failed', failureMessage: 'The payment was refused by the bank.', updatedAt: new Date() })
+        .where(and(eq(payments.orderId, orderId), eq(payments.providerSessionId, obj.id), eq(payments.status, 'PENDING')))
     }
   } else if (event.type === 'charge.refunded') {
     /* Refunds made in the Stripe dashboard show up on the order too. */
@@ -622,6 +682,8 @@ export async function cancelOrder(
   for (const p of pending) {
     if (p.sessionId && stripeEnabled()) await stripe().checkout.sessions.expire(p.sessionId).catch(() => undefined)
   }
+  /* A BOX NOW parcel not yet handed over is cancelled with the order. */
+  await safely(async () => (await import('@/lib/shipments')).cancelShipmentsForOrder(orderId), 'BOX NOW cancel')
   await notifyStatus(orderId, 'CANCELLED')
 }
 

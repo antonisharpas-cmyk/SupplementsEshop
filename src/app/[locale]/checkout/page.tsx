@@ -18,7 +18,8 @@ import { addresses, users } from '@/db/schema'
 import { getCartView, getOrCreateCart } from '@/lib/cart'
 import { getCurrentUser, readCartToken } from '@/lib/auth/session'
 import { quoteDelivery } from '@/lib/pricing'
-import { stripeEnabled } from '@/lib/stripe'
+import { stripeEnabled, stripeTestMode } from '@/lib/stripe'
+import { boxnowConfig, boxnowStatus } from '@/lib/boxnow'
 import { tField } from '@/i18n/field'
 import { CheckoutForm } from '@/components/CheckoutForm'
 
@@ -137,6 +138,12 @@ export default async function CheckoutPage({
             locale={locale}
             signedIn={Boolean(user)}
             cardEnabled={stripeEnabled()}
+            cardTestMode={stripeTestMode()}
+            boxnow={
+              boxnowStatus().checkout
+                ? { widgetUrl: boxnowConfig().widgetUrl, partnerId: boxnowConfig().partnerId, cod: boxnowConfig().cod }
+                : null
+            }
             profile={profile}
             saved={saved.map((a) => ({
               id: a.id,
@@ -153,6 +160,7 @@ export default async function CheckoutPage({
             options={quotes.map((q) => ({
               id: q.optionId,
               kind: q.kind,
+              carrier: q.carrier,
               name: tField(q.name, locale),
               priceCents: q.priceCents,
               minDays: q.minDays,

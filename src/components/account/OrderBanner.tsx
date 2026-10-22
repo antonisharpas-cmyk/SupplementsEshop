@@ -12,7 +12,14 @@ export function OrderBanner({
 }: {
   locale: Locale
   sp: Record<string, string | undefined>
-  order: { orderNumber: string; email: string; customerName: string; status: string; paymentMethod: string }
+  order: {
+    orderNumber: string
+    email: string
+    customerName: string
+    status: string
+    paymentMethod: string
+    payments?: { provider: string; status: string; failureMessage: string | null }[]
+  }
   paidNow: boolean
 }) {
   const t = getTranslator(locale)
@@ -20,6 +27,9 @@ export function OrderBanner({
   let tone: 'ok' | 'warn' = 'ok'
   let title: string | null = null
   let body: string | null = null
+  /* The latest card attempt was refused by the bank (Stripe told us why). */
+  const latest = order.payments?.find((p) => p.provider === 'stripe')
+  const declined = Boolean(latest && (latest.status === 'FAILED' || latest.failureMessage))
 
   if (paidNow || (sp.session_id && order.status === 'PAID')) {
     title = t('ord.thanks', { name })
@@ -27,6 +37,12 @@ export function OrderBanner({
   } else if (sp.placed && order.paymentMethod === 'cod') {
     title = t('ord.thanks', { name })
     body = t('ord.placedCod', { number: order.orderNumber, email: order.email })
+  } else if (order.status === 'PAYMENT_PENDING' && declined) {
+    tone = 'warn'
+    body = t('ord.paymentDeclined')
+  } else if (sp.session_id && order.status === 'PAYMENT_PENDING') {
+    /* Back from Stripe, but the bank has not confirmed yet. */
+    body = t('ord.paymentProcessing')
   } else if (sp.payment === 'cancelled' && order.status === 'PAYMENT_PENDING') {
     tone = 'warn'
     body = t('ord.paymentCancelled')

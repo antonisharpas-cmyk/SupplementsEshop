@@ -464,6 +464,8 @@ export async function validatePromoCode(args: {
 export type DeliveryQuote = {
   optionId: string
   kind: 'PICKUP' | 'SHIPPING'
+  /** 'boxnow' for a parcel locker, null for the shop's own delivery. */
+  carrier: string | null
   name: Record<string, string>
   priceCents: number
   /** What it would cost without the free-delivery rule, for "you saved" copy. */
@@ -491,11 +493,14 @@ export async function quoteDelivery(
   const conditions = [eq(deliveryOptions.isActive, true)]
   if (optionId) conditions.push(eq(deliveryOptions.id, optionId))
 
-  const options = await db
+  const all = await db
     .select()
     .from(deliveryOptions)
     .where(and(...conditions))
     .orderBy(deliveryOptions.position)
+  /* BOX NOW lockers are only offered once the account is set up. */
+  const { boxnowStatus } = await import('@/lib/boxnow')
+  const options = all.filter((o) => o.carrier !== 'boxnow' || boxnowStatus().checkout)
 
   return options.map((option) => {
     const threshold = option.freeOverCents ?? globalThreshold
@@ -508,6 +513,7 @@ export async function quoteDelivery(
     return {
       optionId: option.id,
       kind: option.kind,
+      carrier: option.carrier ?? null,
       name: option.name,
       baseCents: option.priceCents,
       priceCents: qualifies ? 0 : option.priceCents,

@@ -8,11 +8,15 @@
  * Set it up in the Stripe dashboard: Developers, Webhooks, add endpoint
  * https://<your site>/api/stripe/webhook with the events
  * checkout.session.completed, checkout.session.async_payment_succeeded,
- * checkout.session.expired and charge.refunded.
+ * checkout.session.async_payment_failed, checkout.session.expired,
+ * payment_intent.payment_failed and charge.refunded.
+ *
+ * In test mode, events from the live account are ignored (and the other way
+ * round), so the two can never mix.
  * ========================================================================== */
 
 import { handleStripeEvent } from '@/lib/orders'
-import { stripe, stripeEnabled } from '@/lib/stripe'
+import { stripe, stripeEnabled, stripeTestMode } from '@/lib/stripe'
 
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET
@@ -27,6 +31,10 @@ export async function POST(request: Request) {
     event = await stripe().webhooks.constructEventAsync(body, signature, secret)
   } catch {
     return new Response('Bad signature', { status: 400 })
+  }
+
+  if (Boolean((event as { livemode?: boolean }).livemode) === stripeTestMode()) {
+    return new Response('ok, ignored: other mode')
   }
 
   try {

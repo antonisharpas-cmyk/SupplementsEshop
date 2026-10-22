@@ -692,7 +692,13 @@ export async function runAutomations(now = new Date()) {
   })
   const jobs = await processDueJobs(now)
   const campaigns = await runDueCampaigns(now)
-  return { closed, unpaid, released, jobs, campaigns }
+  /* BOX NOW parcels on their way: read their state, in case a webhook was missed. */
+  const { pollShipments } = await import('@/lib/shipments')
+  const parcels = await pollShipments(now).catch((err) => {
+    console.error('[automations] BOX NOW tracking failed', err)
+    return 0
+  })
+  return { closed, unpaid, released, jobs, campaigns, parcels }
 }
 
 /* =========================================================== reading == */
