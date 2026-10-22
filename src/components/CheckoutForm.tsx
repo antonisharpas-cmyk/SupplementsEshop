@@ -5,8 +5,8 @@
  *
  * Three steps on one page: your details, how it reaches you, how you pay.
  * The summary on the right follows the delivery choice. Placing the order
- * either opens Stripe's payment page (card) or goes straight to the order
- * confirmation (cash on delivery).
+ * opens Stripe's payment page: the website takes card only (cash orders are
+ * entered by staff in Admin).
  * ========================================================================== */
 
 import { useMemo, useState } from 'react'
@@ -118,7 +118,6 @@ export function CheckoutForm(props: {
   const [saveAddress, setSaveAddress] = useState(true)
   /* The parcel goes to the customer unless they say otherwise (a gift). */
   const [someoneElse, setSomeoneElse] = useState(false)
-  const [method, setMethod] = useState<'card' | 'cod'>(props.cardEnabled ? 'card' : 'cod')
   const [note, setNote] = useState('')
   const [terms, setTerms] = useState(false)
   const [smsConsent, setSmsConsent] = useState(false)
@@ -133,9 +132,7 @@ export function CheckoutForm(props: {
   const locker = option?.carrier === 'boxnow'
   const shipping = option?.kind === 'SHIPPING' && !locker
   const [chosenLocker, setChosenLocker] = useState<Locker | null>(null)
-  /* Cash at the locker only if the BOX NOW contract allows it. */
-  const codAllowed = !locker || Boolean(props.boxnow?.cod)
-  const payMethod = !codAllowed && props.cardEnabled ? 'card' : method
+  const payMethod = 'card' as const
 
   const chosenAddress = useMemo(() => props.saved.find((a) => a.id === addressId) ?? null, [props.saved, addressId])
 
@@ -155,8 +152,8 @@ export function CheckoutForm(props: {
       setError(t('co.boxnowRequired'))
       return
     }
-    if (!codAllowed && payMethod === 'cod') {
-      setError(t('co.boxnowCardOnly'))
+    if (!props.cardEnabled) {
+      setError(t('co.payCardOff'))
       return
     }
     if (!terms) {
@@ -356,26 +353,20 @@ export function CheckoutForm(props: {
         </Step>
 
         <Step n={3} title={t('co.payment')}>
-          <div className="space-y-2" role="radiogroup" aria-label={t('co.payment')}>
-            <label className={`${radio(payMethod === 'card')} ${props.cardEnabled ? '' : 'cursor-not-allowed opacity-50'}`}>
-              <input type="radio" name="method" disabled={!props.cardEnabled} className="mt-1 h-4 w-4 accent-[var(--color-accent)]" checked={payMethod === 'card'} onChange={() => setMethod('card')} />
-              <span className="text-sm">
-                <span className="font-medium text-heading">{t('co.payCard')}</span>
-                <span className="mt-0.5 block text-xs text-muted">{props.cardEnabled ? t('co.payCardNote') : t('co.payCardOff')}</span>
-                {props.cardEnabled && props.cardTestMode && (
-                  <span className="mt-1.5 block rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-ink">{t('co.testMode')}</span>
-                )}
-              </span>
-            </label>
-            <label className={`${radio(payMethod === 'cod')} ${codAllowed ? '' : 'cursor-not-allowed opacity-50'}`}>
-              <input type="radio" name="method" disabled={!codAllowed} className="mt-1 h-4 w-4 accent-[var(--color-accent)]" checked={payMethod === 'cod'} onChange={() => setMethod('cod')} />
-              <span className="text-sm">
-                <span className="font-medium text-heading">{shipping || locker ? t('co.payCod') : t('co.payCodPickup')}</span>
-                <span className="mt-0.5 block text-xs text-muted">
-                  {!codAllowed ? t('co.boxnowCardOnly') : shipping || locker ? t('co.payCodNote') : t('co.payCodPickupNote')}
-                </span>
-              </span>
-            </label>
+          <div className={`flex items-start gap-3 border p-4 ${props.cardEnabled ? 'border-accent bg-paper' : 'border-line bg-paper opacity-60'}`}>
+            <span aria-hidden className="mt-0.5 text-accent">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="5.5" width="18" height="13" rx="2" />
+                <path d="M3 10h18M7 15h3" />
+              </svg>
+            </span>
+            <span className="text-sm">
+              <span className="font-medium text-heading">{t('co.payCard')}</span>
+              <span className="mt-0.5 block text-xs text-muted">{props.cardEnabled ? t('co.payCardNote') : t('co.payCardOff')}</span>
+              {props.cardEnabled && props.cardTestMode && (
+                <span className="mt-1.5 block rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-ink">{t('co.testMode')}</span>
+              )}
+            </span>
           </div>
 
           <label className="mt-5 block">
@@ -462,8 +453,8 @@ export function CheckoutForm(props: {
             </span>
           </label>
 
-          <button type="submit" className={`${button.primary} mt-5 w-full`} disabled={busy || !optionId}>
-            {busy ? t('co.placing') : payMethod === 'card' ? `${t('co.payNow')} · ${money(total)}` : `${t('co.placeOrder')} · ${money(total)}`}
+          <button type="submit" className={`${button.primary} mt-5 w-full`} disabled={busy || !optionId || !props.cardEnabled}>
+            {busy ? t('co.placing') : `${t('co.payNow')} · ${money(total)}`}
           </button>
         </div>
       </aside>

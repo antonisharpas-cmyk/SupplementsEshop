@@ -41,7 +41,9 @@ const schema = z.object({
     })
     .optional(),
   customerNote: z.string().trim().max(500).optional().or(z.literal('')),
-  paymentMethod: z.enum(['card', 'cod']),
+  /* The website takes card only. Cash orders exist only when staff enter
+     them in Admin (phone orders). */
+  paymentMethod: z.literal('card', { message: 'Online orders are paid by card.' }),
   saveAddress: z.boolean().default(false),
   acceptTerms: z.literal(true, { message: 'Tick the box to accept the terms.' }),
   /* Optional yes to offers by SMS, to the phone given above. */

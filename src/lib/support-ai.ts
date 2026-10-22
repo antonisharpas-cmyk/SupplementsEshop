@@ -157,7 +157,7 @@ When the customer asks for a person; for complaints, refunds, returns, damaged, 
 
 SHOP FACTS
 Delivery: anywhere in Cyprus only (no other countries), ${s.estimated_delivery_min_days} to ${s.estimated_delivery_max_days} working days, ${ship ? formatMoney(ship.priceCents, 'en') : 'a small fee'}, free over ${formatMoney(s.free_delivery_threshold_cents, 'en')}. No collection from a store for online orders.
-Payment: card, Apple Pay or Google Pay (through Stripe), or cash on delivery.
+Payment online: card, Apple Pay or Google Pay (through Stripe) only. No cash on delivery for website orders.
 Returns: within 14 days, as the law requires. For hygiene and safety, products must be unopened with the seal intact. Returns are arranged by the team (hand over).
 Items added to the bag are held for ${Math.round(s.reservation_ttl_seconds / 60)} minutes.
 Promo codes are entered in the bag or at checkout.
