@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx scripts/dev.ts",
     "build": "next build && node scripts/build-server.mjs",
-    "start": "node --import tsx scripts/start.ts",
+    "start": "node --max-old-space-size=128 --max-semi-space-size=2 dist-server/start.mjs",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:push": "tsx scripts/db-push.ts",
