@@ -131,6 +131,8 @@ async function makeOrder(status: 'PENDING' | 'PAID' = 'PENDING') {
       phone: '+35799111222',
       customerName: 'Maria P',
       status,
+      /* A cash order: card orders send nothing until paid (stripe-payments.test.ts). */
+      paymentMethod: 'cod',
       deliveryKind: 'SHIPPING',
       subtotalCents: 5500,
       totalCents: 5500,

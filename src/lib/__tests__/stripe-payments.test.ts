@@ -183,6 +183,8 @@ describe('card payment', () => {
 
   it('a successful payment marks the order paid, keeps the card and issues one invoice', async () => {
     const r = await cardOrder()
+    /* Nothing is emailed while the card order is unpaid. */
+    expect((await db.select().from(emailJobs).where(eq(emailJobs.email, 'card@orders.test'))).map((j) => j.automation)).toEqual([])
     pay(r.sessionId)
     await handleStripeEvent({ id: 'evt_1', type: 'checkout.session.completed', data: { object: { id: r.sessionId } } })
     /* The return page asks Stripe too, and a replayed event changes nothing. */
@@ -194,6 +196,9 @@ describe('card payment', () => {
     expect(p).toMatchObject({ status: 'SUCCEEDED', providerPaymentId: `pi_test_${r.sessionId}`, cardBrand: 'visa', cardLast4: '4242' })
     const docs = await db.select().from(invoices).where(eq(invoices.orderId, r.orderId))
     expect(docs).toHaveLength(1)
+    /* Once paid: one email, the payment confirmation (with the items). */
+    const jobs = (await db.select().from(emailJobs).where(eq(emailJobs.email, 'card@orders.test'))).map((j) => j.automation)
+    expect(jobs).toEqual(['payment_confirmed'])
   })
 
   it('a declined card keeps the order open with the reason; paying again clears it', async () => {
@@ -229,6 +234,8 @@ describe('card payment', () => {
     const { o } = await state(r.orderId)
     expect(o.status).toBe('CANCELLED')
     expect(await onHand()).toBe(10)
+    /* Never paid, never told: no "received" and no "cancelled" email. */
+    expect(await db.select().from(emailJobs).where(eq(emailJobs.email, 'card@orders.test'))).toHaveLength(0)
   })
 
   it('an unpaid return from Stripe does not mark anything paid', async () => {

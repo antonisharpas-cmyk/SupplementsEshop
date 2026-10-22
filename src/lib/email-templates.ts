@@ -545,10 +545,11 @@ function orderTemplates(): TemplateDef[] {
       el: { subject: 'Λάβαμε την παραγγελία {{order_number}}', body: 'Ευχαριστούμε {{customer_name}}, λάβαμε την παραγγελία σου.\n\nΠαραγγελία: {{order_number}}\nΣύνολο: {{order_total}}\n\n{{order_items}}\n\nΘα σε ενημερώνουμε σε κάθε βήμα.', cta: view.el },
       ru: { subject: 'Заказ {{order_number}} получен', body: 'Спасибо, {{customer_name}}, мы получили ваш заказ.\n\nЗаказ: {{order_number}}\nСумма: {{order_total}}\n\n{{order_items}}\n\nМы напишем, когда он будет продвигаться.', cta: view.ru },
     }),
-    base('payment_confirmed', 'Payment confirmed', 'Payment succeeded', ['order_total'], {
-      en: { subject: 'Payment received for {{order_number}}', body: 'We’ve received your payment of {{order_total}} for order {{order_number}}. We’re getting it ready.', cta: view.en },
-      el: { subject: 'Λάβαμε την πληρωμή για την {{order_number}}', body: 'Λάβαμε την πληρωμή σου {{order_total}} για την παραγγελία {{order_number}}. Την ετοιμάζουμε.', cta: view.el },
-      ru: { subject: 'Оплата заказа {{order_number}} получена', body: 'Мы получили оплату {{order_total}} за заказ {{order_number}} и готовим его.', cta: view.ru },
+    /* For card orders this is the only confirmation: nothing is sent before the payment succeeds. */
+    base('payment_confirmed', 'Payment confirmed', 'Payment succeeded', ['order_total', 'order_items'], {
+      en: { subject: 'Order {{order_number}}: payment received', body: 'Thanks {{customer_name}}, your payment of {{order_total}} went through and we have your order.\n\nOrder: {{order_number}}\n\n{{order_items}}\n\nWe’re getting it ready and will email you again as it moves along.', cta: view.en },
+      el: { subject: 'Παραγγελία {{order_number}}: λάβαμε την πληρωμή', body: 'Ευχαριστούμε {{customer_name}}, η πληρωμή σου {{order_total}} ολοκληρώθηκε και λάβαμε την παραγγελία σου.\n\nΠαραγγελία: {{order_number}}\n\n{{order_items}}\n\nΤην ετοιμάζουμε και θα σε ενημερώνουμε σε κάθε βήμα.', cta: view.el },
+      ru: { subject: 'Заказ {{order_number}}: оплата получена', body: 'Спасибо, {{customer_name}}, оплата {{order_total}} прошла, и мы получили ваш заказ.\n\nЗаказ: {{order_number}}\n\n{{order_items}}\n\nМы готовим его и напишем, когда он будет продвигаться.', cta: view.ru },
     }),
     base('order_confirmed', 'Order confirmed', 'Store confirms the order', ['delivery_estimate'], {
       en: { subject: 'Order {{order_number}} confirmed', body: 'Good news, {{customer_name}}, we’ve confirmed your order {{order_number}}.\n\nEstimated delivery: {{delivery_estimate}}', cta: view.en },

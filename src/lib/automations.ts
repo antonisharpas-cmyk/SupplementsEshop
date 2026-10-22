@@ -484,8 +484,10 @@ export async function orderCreated(orderId: string) {
     ),
     `Ordered (${order.orderNumber}).`,
   )
+  /* A card order is not real until Stripe says it is paid: nothing is
+     emailed now. The payment email (payment_confirmed) is its confirmation. */
+  if (order.paymentMethod === 'card' && !order.paidAt) return
   await orderEvent(orderId, 'order_received', 'Order placed.')
-  /* Cash orders are real now; card orders only once Stripe says paid. */
   if (order.paymentMethod === 'cod') await notifyStaffNewOrder(orderId, 'placed')
 }
 
@@ -535,6 +537,12 @@ export async function notifyStaffNewOrder(orderId: string, when: 'placed' | 'pai
 export async function orderStatusChanged(orderId: string, status: string, extra: { trackingNumber?: string; trackingUrl?: string } = {}) {
   const key = STATUS_TEMPLATE[status]
   if (status === 'PAID') await notifyStaffNewOrder(orderId, 'paid')
+  if (status === 'CANCELLED') {
+    /* A card order that was never paid (the customer left Stripe's page):
+       they were never told it existed, so no cancellation email either. */
+    const [o] = await db.select({ paymentMethod: orders.paymentMethod, paidAt: orders.paidAt }).from(orders).where(eq(orders.id, orderId))
+    if (o?.paymentMethod === 'card' && !o.paidAt) return
+  }
   if (key) await orderEvent(orderId, key, `Status changed to ${status.toLowerCase().replace(/_/g, ' ')}.`, extra)
 }
 
@@ -568,6 +576,10 @@ async function prepareOrder(job: Job, now: Date): Promise<Prepared> {
       .where(and(eq(emailJobs.dedupeKey, `order:${orderId}:${key}`), eq(emailJobs.status, 'SENT')))
       .limit(1)
     return row?.at && now.getTime() - row.at.getTime() < withinMs ? row.at : null
+  }
+  /* Queued before payment (an older version did that): never sent unpaid. */
+  if ((job.automation === 'order_received' || job.automation === 'order_cancelled') && order.paymentMethod === 'card' && !order.paidAt) {
+    return { skip: 'A card order that was never paid.' }
   }
   if (job.automation === 'order_confirmed') {
     const paid = await sentFor('payment_confirmed', minutes(15))
