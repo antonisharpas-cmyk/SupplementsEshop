@@ -4,14 +4,16 @@
  *
  * Kept small on purpose:
  *  · Postgres runs with small caches (16 MB shared buffers instead of 128 MB).
- *  · A brand new database is unpacked from an empty template made at build
- *    time (scripts/build-server.mjs), because creating one from scratch
- *    briefly needs more memory than the server has.
+ *  · A brand new database is unpacked from a template made at build time
+ *    (scripts/build-server.mjs: tables, starting data, admin accounts),
+ *    because creating and filling one briefly needs more memory than the
+ *    server has.
  *  · Unlike the development database, writes are flushed to disk (fsync on),
  *    so a crash cannot lose committed orders.
  * ========================================================================== */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm'
@@ -45,26 +47,26 @@ export async function startEmbedded(dir: string, port: number) {
   if (fresh && !existsSync(TEMPLATE)) {
     console.warn('  no database template found (.pgdata-template.tar.gz); creating one from scratch, which needs extra memory')
   }
+  /* Unpacked by the system's tar, before the database starts: unpacking it
+     inside the database would hold the whole archive in memory at once. */
+  let unpacked = false
+  if (fresh && existsSync(TEMPLATE)) {
+    unpacked = spawnSync('tar', ['-xzf', TEMPLATE, '-C', dir], { stdio: 'ignore' }).status === 0
+    if (!unpacked) for (const f of readdirSync(dir)) rmSync(join(dir, f), { recursive: true, force: true })
+  }
   const db = await PGlite.create({
     dataDir: dir,
     extensions: { pg_trgm },
     startParams: START_PARAMS,
-    ...(fresh && existsSync(TEMPLATE) ? { loadDataDir: new Blob([readFileSync(TEMPLATE)]) } : {}),
+    ...(fresh && !unpacked && existsSync(TEMPLATE) ? { loadDataDir: new Blob([readFileSync(TEMPLATE)]) } : {}),
   })
   const server = new PGLiteSocketServer({ db, port, host: '127.0.0.1', maxConnections: 20 })
   await server.start()
   return {
+    db,
     async stop() {
       await server.stop()
       await db.close()
     },
   }
-}
-
-/** Build step: an empty, initialised data folder packed as the template. */
-export async function makeTemplate() {
-  const db = await PGlite.create({ extensions: { pg_trgm } })
-  const blob = await db.dumpDataDir('gzip')
-  await db.close()
-  return Buffer.from(await blob.arrayBuffer())
 }
