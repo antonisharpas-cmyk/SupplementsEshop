@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx scripts/dev.ts",
-    "build": "next build",
+    "build": "next build && node scripts/build-server.mjs",
     "start": "node --import tsx scripts/start.ts",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",

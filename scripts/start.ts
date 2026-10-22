@@ -22,41 +22,30 @@
  * its files are never left half written.
  * ========================================================================== */
 
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { connect } from 'node:net'
+import { join } from 'node:path'
+import { startEmbedded } from './pg-embedded'
 
 /* Children are started with this same Node directly (no npx, npm or shell in
-   between), so a stop signal reaches them and nothing is left running. */
+   between), so a stop signal reaches them and nothing is left running. The
+   compiled scripts from `npm run build` (dist-server/) are used when present:
+   no TypeScript compiler in memory on the server. */
 const NODE = process.execPath
 const NEXT_BIN = createRequire(import.meta.url).resolve('next/dist/bin/next')
+const script = (name: string) => {
+  const compiled = join(process.cwd(), 'dist-server', `${name}.mjs`)
+  return existsSync(compiled) ? [compiled] : ['--import', 'tsx', join('scripts', `${name}.ts`)]
+}
 
 const EMBEDDED_DIR = process.env.EMBEDDED_DB_DIR?.trim()
 const DB_PORT = Number(process.env.EMBEDDED_DB_PORT ?? 5433)
 const env: NodeJS.ProcessEnv = { ...process.env }
 
-let db: ChildProcess | null = null
+let db: { stop(): Promise<void> } | null = null
 let site: ChildProcess | null = null
 let stopping = false
-
-function waitForPort(port: number, ms: number) {
-  const until = Date.now() + ms
-  return new Promise<void>((resolve, reject) => {
-    const tryOnce = () => {
-      const s = connect(port, '127.0.0.1')
-      s.once('connect', () => {
-        s.destroy()
-        resolve()
-      })
-      s.once('error', () => {
-        s.destroy()
-        if (Date.now() > until) reject(new Error(`the embedded database did not start within ${ms / 1000}s`))
-        else setTimeout(tryOnce, 300)
-      })
-    }
-    tryOnce()
-  })
-}
 
 async function stop(code = 0) {
   if (stopping) return
@@ -65,11 +54,8 @@ async function stop(code = 0) {
     site.kill('SIGTERM')
     await new Promise((r) => site!.once('exit', r))
   }
-  if (db && db.exitCode === null) {
-    /* local-db.ts closes the engine on SIGTERM before exiting. */
-    db.kill('SIGTERM')
-    await Promise.race([new Promise((r) => db!.once('exit', r)), new Promise((r) => setTimeout(r, 20_000))])
-  }
+  /* The database closes last, cleanly, so its files are never half written. */
+  if (db) await db.stop().catch((err) => console.error('database did not close cleanly', err))
   process.exit(code)
 }
 
@@ -80,30 +66,28 @@ async function main() {
   if (EMBEDDED_DIR) {
     console.log(`▶ Embedded database on the disk: ${EMBEDDED_DIR}`)
     console.log('  (for testing; move to Render Postgres before launch)')
-    db = spawn(NODE, ['--import', 'tsx', 'scripts/local-db.ts'], {
-      stdio: 'inherit',
-      env: { ...process.env, LOCAL_DB_DIR: EMBEDDED_DIR, LOCAL_DB_PORT: String(DB_PORT), LOCAL_DB_SUPERVISED: '1' },
-    })
-    db.once('exit', (code) => {
-      if (!stopping) {
-        console.error(`✗ the embedded database stopped (code ${code}). Stopping the site.`)
-        void stop(1)
-      }
-    })
-    await waitForPort(DB_PORT, 120_000)
+    /* In this same process: one Node instead of two saves memory. */
+    db = await startEmbedded(EMBEDDED_DIR, DB_PORT)
+    console.log(`  ready (${Math.round(process.memoryUsage().rss / 1048576)} MB)`)
     env.DATABASE_URL = `postgresql://postgres@127.0.0.1:${DB_PORT}/postgres`
     /* Inside the service: no TLS, and a few connections (queries queue in the engine). */
     env.DATABASE_SSL = 'disable'
-    env.DATABASE_POOL_MAX = env.EMBEDDED_DB_POOL_MAX ?? '4'
+    env.DATABASE_POOL_MAX = env.EMBEDDED_DB_POOL_MAX ?? '3'
   }
 
-  const prep = spawnSync(NODE, ['--import', 'tsx', 'scripts/prepare-db.ts'], { stdio: 'inherit', env })
-  if (prep.status !== 0) {
+  /* Not spawnSync: this process also serves the database, so it must stay free. */
+  const prep = spawn(NODE, script('prepare-db'), { stdio: 'inherit', env })
+  const status = await new Promise<number>((r) => prep.once('exit', (code) => r(code ?? 1)))
+  if (status !== 0) {
     console.error('✗ database preparation failed, the site was not started.')
-    return stop(prep.status ?? 1)
+    return stop(status)
   }
 
-  site = spawn(NODE, [NEXT_BIN, 'start'], { stdio: 'inherit', env })
+  /* A small server: keep the site's JavaScript heap modest so the database
+     keeps its share (override with SITE_MAX_HEAP_MB). */
+  const heap = env.SITE_MAX_HEAP_MB ?? (EMBEDDED_DIR ? '128' : '')
+  const siteEnv = heap ? { ...env, NODE_OPTIONS: `${env.NODE_OPTIONS ?? ''} --max-old-space-size=${heap}`.trim() } : env
+  site = spawn(NODE, [NEXT_BIN, 'start'], { stdio: 'inherit', env: siteEnv })
   site.once('exit', (code) => {
     if (!stopping) void stop(code ?? 1)
   })

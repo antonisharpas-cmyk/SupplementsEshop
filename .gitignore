@@ -51,3 +51,7 @@ next-env.d.ts
 
 # scratch folder for files waiting to be deleted
 /_to_delete/
+
+# server build output (npm run build)
+/dist-server/
+/.pgdata-template.tar.gz

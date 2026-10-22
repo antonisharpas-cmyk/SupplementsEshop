@@ -16,18 +16,20 @@
 
 import './load-env'
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { basename, join } from 'node:path'
 import { Pool } from 'pg'
 import { sslFor } from '../src/db/ssl'
 
-const TSX = process.platform === 'win32' ? 'tsx.cmd' : 'tsx'
-
+/* Each step runs in its own short-lived Node, started directly (no npx in
+   between), which keeps memory low on a small server. */
 function step(label: string, args: string[], env: NodeJS.ProcessEnv = process.env) {
   console.log(`\n▶ ${label}`)
-  const r = spawnSync('npx', [TSX, ...args], {
-    stdio: 'inherit',
-    env,
-    shell: process.platform === 'win32',
-  })
+  /* The compiled copy from `npm run build` when there is one (less memory). */
+  const [file, ...rest] = args
+  const compiled = join(process.cwd(), 'dist-server', basename(file).replace(/\.ts$/, '.mjs'))
+  const argv = existsSync(compiled) ? [compiled, ...rest] : ['--import', 'tsx', file, ...rest]
+  const r = spawnSync(process.execPath, argv, { stdio: 'inherit', env })
   if (r.status !== 0) {
     console.error(`✗ ${label} failed, the site was not started.`)
     process.exit(r.status ?? 1)
