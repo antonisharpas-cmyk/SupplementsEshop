@@ -95,9 +95,22 @@ async function main() {
     /* Embedded: everything that can run inside this process does, so a
        normal restart starts no extra programs at all (512 MB servers). */
     console.log('\n▶ Database tables')
-    await migrate(drizzle(db.db), { migrationsFolder: join(process.cwd(), 'drizzle') })
-    await db.db.exec(readFileSync(join(process.cwd(), 'src/db/constraints.sql'), 'utf8'))
-    console.log('✓ schema is up to date')
+    /* Only when this version brings new migrations: applying them (and the
+       constraints file) briefly costs a lot of memory, and a normal restart
+       has nothing to apply. */
+    const expected = (JSON.parse(readFileSync(join(process.cwd(), 'drizzle/meta/_journal.json'), 'utf8')) as { entries: unknown[] })
+      .entries.length
+    const applied = await db.db
+      .query<{ n: number }>('select count(*)::int as n from drizzle.__drizzle_migrations')
+      .then((r) => r.rows[0].n)
+      .catch(() => 0)
+    if (applied >= expected) {
+      console.log('✓ schema is up to date (nothing new)')
+    } else {
+      await migrate(drizzle(db.db), { migrationsFolder: join(process.cwd(), 'drizzle') })
+      await db.db.exec(readFileSync(join(process.cwd(), 'src/db/constraints.sql'), 'utf8'))
+      console.log(`✓ schema updated (${expected - applied} new)`)
+    }
 
     const { rows } = await db.db.query<{ n: number }>('select count(*)::int as n from categories')
     if (rows[0].n === 0) {

@@ -2,6 +2,9 @@
   "name": "aionix-supplement-store",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "tsx scripts/dev.ts",
     "build": "next build && node scripts/build-server.mjs",
