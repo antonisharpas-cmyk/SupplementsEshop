@@ -13,6 +13,7 @@
  *  · If the email belongs to an account, the order shows in that account.
  * ========================================================================== */
 
+import { costsOf } from '@/lib/stock'
 import { randomBytes } from 'node:crypto'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/db'
@@ -198,6 +199,8 @@ export async function createManualOrder(input: ManualOrderInput, staff: { id: st
           })
           .returning({ id: orders.id, orderNumber: orders.orderNumber })
 
+        /* What each unit cost the shop right now, for the profit (lib/stock.ts). */
+        const unitCosts = await costsOf(priced.map((l) => l.variantId), tx)
         await tx.insert(orderItems).values(
           priced.map((l) => ({
             orderId: order.id,
@@ -214,6 +217,7 @@ export async function createManualOrder(input: ManualOrderInput, staff: { id: st
             lineTotalCents: l.lineTotalCents,
             appliedPromotionId: l.promotionId,
             appliedPromotionSnapshot: l.promotionSnapshot,
+            unitCostCents: unitCosts.has(l.variantId) ? Math.round(unitCosts.get(l.variantId)!) : null,
           })),
         )
 

@@ -369,7 +369,12 @@ export async function getInvoice(id: string) {
   const related = await db
     .select({ id: invoices.id, number: invoices.number, kind: invoices.kind, totalCents: invoices.totalCents })
     .from(invoices)
-    .where(and(eq(invoices.orderId, inv.orderId), sql`${invoices.id} <> ${inv.id}`))
+    .where(
+      and(
+        inv.orderId ? eq(invoices.orderId, inv.orderId) : eq(invoices.wholesaleSaleId, inv.wholesaleSaleId!),
+        sql`${invoices.id} <> ${inv.id}`,
+      ),
+    )
     .orderBy(asc(invoices.issuedAt))
   return { invoice: inv, related }
 }
@@ -379,5 +384,96 @@ export async function invoicesForOrder(orderId: string) {
     .select({ id: invoices.id, number: invoices.number, kind: invoices.kind, totalCents: invoices.totalCents, issuedAt: invoices.issuedAt })
     .from(invoices)
     .where(eq(invoices.orderId, orderId))
+    .orderBy(asc(invoices.issuedAt))
+}
+
+/* ======================================================== wholesale == */
+
+/**
+ * The invoice for a sale to a retailer, in the same numbering as every other
+ * invoice. Prices on it are before VAT and VAT is added at the end. Issued
+ * when the sale is made (paid or not); the due date says when to pay.
+ * Runs inside the sale's own transaction.
+ */
+export async function insertWholesaleInvoice(
+  tx: Tx,
+  args: {
+    saleId: string
+    saleNumber: string
+    issuedAt: Date
+    dueAt: Date | null
+    customer: InvoiceParty
+    lines: InvoiceLine[]
+    netCents: number
+    vatCents: number
+    vatRateBp: number
+    paymentMethod: string
+    note?: string | null
+  },
+): Promise<Invoice> {
+  const { party: seller, footer } = await sellerParty()
+  const [inv] = await tx
+    .insert(invoices)
+    .values({
+      number: await nextNumber(tx, 'INVOICE', args.issuedAt),
+      kind: 'INVOICE',
+      orderId: null,
+      wholesaleSaleId: args.saleId,
+      orderNumber: args.saleNumber,
+      issuedAt: args.issuedAt,
+      dueAt: args.dueAt,
+      linesNet: true,
+      netCents: args.netCents,
+      vatCents: args.vatCents,
+      totalCents: args.netCents + args.vatCents,
+      vatRateBp: args.vatRateBp,
+      paymentMethod: args.paymentMethod,
+      customer: args.customer,
+      seller,
+      lines: args.lines,
+      note: [args.note, footer].filter(Boolean).join('\n') || null,
+    })
+    .returning()
+  return inv
+}
+
+/** A credit note against a wholesale invoice (goods back, or a discount). */
+export async function insertWholesaleCreditNote(
+  tx: Tx,
+  invoice: Invoice,
+  args: { lines: InvoiceLine[]; netCents: number; reason: string; at: Date },
+): Promise<Invoice> {
+  const vat = Math.round((args.netCents * invoice.vatRateBp) / 10_000)
+  const [cn] = await tx
+    .insert(invoices)
+    .values({
+      number: await nextNumber(tx, 'CREDIT_NOTE', args.at),
+      kind: 'CREDIT_NOTE',
+      orderId: null,
+      wholesaleSaleId: invoice.wholesaleSaleId,
+      orderNumber: invoice.orderNumber,
+      relatesToId: invoice.id,
+      issuedAt: args.at,
+      linesNet: true,
+      currency: invoice.currency,
+      netCents: args.netCents,
+      vatCents: vat,
+      totalCents: args.netCents + vat,
+      vatRateBp: invoice.vatRateBp,
+      paymentMethod: invoice.paymentMethod,
+      customer: invoice.customer,
+      seller: invoice.seller,
+      lines: args.lines,
+      note: `${args.reason}. Credits invoice ${invoice.number}.`,
+    })
+    .returning()
+  return cn
+}
+
+export async function invoicesForWholesale(saleId: string) {
+  return db
+    .select()
+    .from(invoices)
+    .where(eq(invoices.wholesaleSaleId, saleId))
     .orderBy(asc(invoices.issuedAt))
 }

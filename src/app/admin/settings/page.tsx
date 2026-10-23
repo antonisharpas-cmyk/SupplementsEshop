@@ -1,5 +1,7 @@
 /* Shop settings — the values the storefront reads live. */
 
+import { loyaltyConfig, tierCounts } from '@/lib/loyalty'
+import { LoyaltySettings } from '@/components/admin/LoyaltySettings'
 import { guardAdmin } from '@/lib/admin'
 import { getSettings } from '@/lib/settings'
 import { SettingsForm } from '@/components/admin/SettingsForm'
@@ -35,6 +37,7 @@ export default async function AdminSettingsPage() {
         sub="Saved here and used by the shop straight away."
       />
       <SettingsForm initial={settings} />
+      <LoyaltySettings initial={await loyaltyConfig()} counts={await tierCounts()} />
       <IntegrationsPanel
         stripe={{ mode: stripeMode(), diagnosis: stripeKeyDiagnosis(), webhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET), webhookUrl: siteUrl('/api/stripe/webhook') }}
         boxnow={{ ...boxnowStatus(), webhookUrl: siteUrl('/api/boxnow/webhook'), token: Boolean(boxnowConfig().webhookToken) }}

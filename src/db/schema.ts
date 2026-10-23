@@ -17,8 +17,11 @@
 
 import { relations, sql } from 'drizzle-orm'
 import {
+  bigint,
   boolean,
   customType,
+  date,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -120,10 +123,22 @@ export const users = pgTable(
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     /* The language the customer registered in — every email to them uses it. */
     locale: varchar('locale', { length: 5 }).notNull().default('en'),
+    /* Membership tier (lib/loyalty.ts): basic, performer, elite, champion, pro.
+       Held until tierExpiresAt; then, unless the rules are met again, it
+       steps down ONE tier. A tier set by staff is kept until tierManualUntil. */
+    tier: varchar('tier', { length: 20 }).notNull().default('basic'),
+    tierSince: timestamp('tier_since', { withTimezone: true }),
+    tierExpiresAt: timestamp('tier_expires_at', { withTimezone: true }),
+    tierManualUntil: timestamp('tier_manual_until', { withTimezone: true }),
+    tierCheckedAt: timestamp('tier_checked_at', { withTimezone: true }),
+    /* Staff only: a manager, who sees costs, profit and the finance area.
+       A SUPER_ADMIN (the owner) always does. */
+    financeAccess: boolean('finance_access').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    index('users_tier_expires_idx').on(t.tierExpiresAt),
     /* Business rule 1 and 2: no duplicate email, no duplicate phone.
        Enforced by the database, not just by application checks — two
        simultaneous registrations cannot both win. */
@@ -316,7 +331,12 @@ export const productVariants = pgTable(
     productId: uuid('product_id')
       .notNull()
       .references(() => products.id, { onDelete: 'cascade' }),
+    /* Made by the system (AX-PRODUCT-FLAV-SIZE) and never typed by hand,
+       so every product follows one pattern. */
     sku: varchar('sku', { length: 64 }).notNull(),
+    /* The supplier's own code for this product (e.g. Olimp's item code), so
+       their invoice rows can be pasted into a purchase and matched. */
+    supplierCode: varchar('supplier_code', { length: 64 }),
     size: varchar('size', { length: 24 }).notNull(),
     colorName: jsonb('color_name').$type<Record<string, string>>(),
     colorHex: varchar('color_hex', { length: 7 }),
@@ -331,6 +351,7 @@ export const productVariants = pgTable(
     uniqueIndex('variants_sku_unique').on(t.sku),
     uniqueIndex('variants_product_size_color').on(t.productId, t.size, t.colorHex),
     index('variants_product_idx').on(t.productId),
+    index('variants_supplier_code_idx').on(t.supplierCode),
   ],
 )
 
@@ -502,6 +523,9 @@ export const orders = pgTable(
     /* Snapshot, so the order still explains itself if the code is deleted. */
     promoCodeId: uuid('promo_code_id'),
     promoCodeSnapshot: jsonb('promo_code_snapshot').$type<Record<string, unknown>>(),
+    /* The customer's membership tier when they ordered, and what it took off. */
+    tier: varchar('tier', { length: 20 }),
+    tierDiscountCents: integer('tier_discount_cents').notNull().default(0),
 
     customerNote: text('customer_note'),
     adminNote: text('admin_note'),
@@ -535,6 +559,26 @@ export const orders = pgTable(
     /* Guest tracking looks up by number + email together. */
     index('orders_number_email_idx').on(t.orderNumber, sql`lower(${t.email})`),
   ],
+)
+
+/* Every change of a customer's tier: earned, renewed, stepped down, or set
+   by staff. Shown on the customer's page in the admin. */
+export const tierEvents = pgTable(
+  'tier_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    fromTier: varchar('from_tier', { length: 20 }),
+    toTier: varchar('to_tier', { length: 20 }).notNull(),
+    /* 'earned' | 'renewed' | 'stepped_down' | 'manual' | 'manual_ended' */
+    reason: varchar('reason', { length: 20 }).notNull(),
+    note: text('note'),
+    byUserId: uuid('by_user_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('tier_events_user_idx').on(t.userId, t.createdAt)],
 )
 
 export type PickupPoint = {
@@ -597,10 +641,16 @@ export const invoices = pgTable(
     number: varchar('number', { length: 32 }).notNull(),
     /* 'INVOICE' or 'CREDIT_NOTE' */
     kind: varchar('kind', { length: 12 }).notNull(),
-    orderId: uuid('order_id')
-      .notNull()
-      .references(() => orders.id, { onDelete: 'restrict' }),
+    /* An online or phone order, OR a wholesale sale to a retailer. */
+    orderId: uuid('order_id').references(() => orders.id, { onDelete: 'restrict' }),
+    wholesaleSaleId: uuid('wholesale_sale_id').references(() => wholesaleSales.id, { onDelete: 'restrict' }),
+    /* The order or wholesale sale number. */
     orderNumber: varchar('order_number', { length: 20 }).notNull(),
+    /* Wholesale invoices list prices before VAT (VAT added at the end); shop
+       invoices list prices with VAT included. */
+    linesNet: boolean('lines_net').notNull().default(false),
+    /* Wholesale on credit: when it has to be paid. */
+    dueAt: timestamp('due_at', { withTimezone: true }),
     /* A credit note points at the invoice it corrects. */
     relatesToId: uuid('relates_to_id'),
     issuedAt: timestamp('issued_at', { withTimezone: true }).notNull().defaultNow(),
@@ -620,6 +670,8 @@ export const invoices = pgTable(
     uniqueIndex('invoices_number_unique').on(t.number),
     /* One invoice per order; credit notes may be several. */
     uniqueIndex('invoices_one_per_order').on(t.orderId).where(sql`${t.kind} = 'INVOICE'`),
+    uniqueIndex('invoices_one_per_wholesale').on(t.wholesaleSaleId).where(sql`${t.kind} = 'INVOICE'`),
+    index('invoices_wholesale_idx').on(t.wholesaleSaleId),
     index('invoices_issued_idx').on(t.issuedAt),
     index('invoices_order_idx').on(t.orderId),
   ],
@@ -668,6 +720,9 @@ export const orderItems = pgTable(
     lineTotalCents: integer('line_total_cents').notNull(),
     appliedPromotionId: uuid('applied_promotion_id'),
     appliedPromotionSnapshot: jsonb('applied_promotion_snapshot').$type<Record<string, unknown>>(),
+    /* What one unit cost the shop when it was sold (weighted average, before
+       VAT, lib/stock.ts). Null for sales from before costs were tracked. */
+    unitCostCents: integer('unit_cost_cents'),
   },
   (t) => [index('order_items_order_idx').on(t.orderId)],
 )
@@ -1451,3 +1506,347 @@ export const stockAlerts = pgTable(
     index('stock_alerts_pending_idx').on(t.variantId, t.notifiedAt),
   ],
 )
+
+/* ============================================================================
+ * Finance: what the shop buys, what it spends, what it sells to retailers,
+ * and every stock movement with its cost (lib/stock.ts, lib/purchases.ts,
+ * lib/expenses.ts, lib/wholesale.ts, lib/finance-reports.ts).
+ *
+ * Money is in cents. Cost of stock is the weighted average per variant, before
+ * VAT, including its share of shipping and fees (the "landed" cost).
+ * ========================================================================== */
+
+/* One row per variant: what one unit cost the shop, on average. */
+export const variantCosts = pgTable('variant_costs', {
+  variantId: uuid('variant_id')
+    .primaryKey()
+    .references(() => productVariants.id, { onDelete: 'cascade' }),
+  avgCostCents: doublePrecision('avg_cost_cents').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/* Who the shop buys from: the manufacturer (Olimp), retailers, others.
+   vatTreatment is the default for their invoices:
+     DOMESTIC    Cyprus VAT on the invoice, reclaimed
+     EU_REVERSE  an EU supplier, no VAT on the invoice: reverse charge
+     IMPORT      outside the EU: import VAT and duty paid on arrival
+     NONE        no VAT (supplier not VAT registered) */
+export const suppliers = pgTable(
+  'suppliers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 160 }).notNull(),
+    kind: varchar('kind', { length: 20 }).notNull().default('manufacturer'),
+    country: varchar('country', { length: 2 }).notNull().default('CY'),
+    vatNumber: varchar('vat_number', { length: 40 }),
+    vatTreatment: varchar('vat_treatment', { length: 12 }).notNull().default('DOMESTIC'),
+    email: varchar('email', { length: 255 }),
+    phone: varchar('phone', { length: 40 }),
+    address: text('address'),
+    note: text('note'),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('suppliers_name_idx').on(t.name)],
+)
+
+/* A supplier's invoice: products bought, plus shipping and fees. DRAFT until
+   the goods are received; receiving adds the stock and updates the costs. */
+export const purchases = pgTable(
+  'purchases',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    /* Our own reference: P-2026-0001 */
+    number: varchar('number', { length: 20 }).notNull(),
+    supplierId: uuid('supplier_id')
+      .notNull()
+      .references(() => suppliers.id, { onDelete: 'restrict' }),
+    supplierInvoiceNo: varchar('supplier_invoice_no', { length: 80 }),
+    invoiceDate: date('invoice_date', { mode: 'string' }).notNull(),
+    status: varchar('status', { length: 12 }).notNull().default('DRAFT'),
+    vatTreatment: varchar('vat_treatment', { length: 12 }).notNull(),
+    vatRateBp: integer('vat_rate_bp').notNull().default(1900),
+    /* Before VAT. */
+    goodsNetCents: integer('goods_net_cents').notNull().default(0),
+    shippingCents: integer('shipping_cents').notNull().default(0),
+    /* Customs duty, handling, bank charges on the invoice and similar. */
+    otherFeesCents: integer('other_fees_cents').notNull().default(0),
+    /* VAT on the invoice (DOMESTIC) or import VAT paid (IMPORT): reclaimable. */
+    vatCents: integer('vat_cents').notNull().default(0),
+    /* EU_REVERSE: VAT the shop accounts for itself, due and reclaimed. */
+    reverseVatCents: integer('reverse_vat_cents').notNull().default(0),
+    /* What is paid to the supplier. */
+    totalCents: integer('total_cents').notNull().default(0),
+    receivedAt: timestamp('received_at', { withTimezone: true }),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    paymentMethod: varchar('payment_method', { length: 20 }),
+    note: text('note'),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('purchases_number_unique').on(t.number),
+    index('purchases_supplier_idx').on(t.supplierId),
+    index('purchases_date_idx').on(t.invoiceDate),
+  ],
+)
+
+export const purchaseLines = pgTable(
+  'purchase_lines',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    purchaseId: uuid('purchase_id')
+      .notNull()
+      .references(() => purchases.id, { onDelete: 'cascade' }),
+    variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+    description: varchar('description', { length: 300 }).notNull(),
+    sku: varchar('sku', { length: 64 }),
+    quantity: integer('quantity').notNull(),
+    /* Free units the supplier added: in stock, at no price. */
+    freeQuantity: integer('free_quantity').notNull().default(0),
+    unitNetCents: integer('unit_net_cents').notNull(),
+    lineNetCents: integer('line_net_cents').notNull(),
+    /* Worked out when received: price plus share of shipping and fees, per unit. */
+    landedUnitCents: doublePrecision('landed_unit_cents'),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('purchase_lines_purchase_idx').on(t.purchaseId), index('purchase_lines_variant_idx').on(t.variantId)],
+)
+
+/* Every change of stock that is not an online sale: purchases received,
+   wholesale sales and returns, samples, gifts, own use, damaged or expired,
+   stock counts, supplier extras, opening stock. quantity is signed. */
+export const stockMovements = pgTable(
+  'stock_movements',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => productVariants.id, { onDelete: 'cascade' }),
+    kind: varchar('kind', { length: 20 }).notNull(),
+    quantity: integer('quantity').notNull(),
+    /* Cost per unit at the time (landed cost for purchases, the average for
+       stock going out). */
+    unitCostCents: doublePrecision('unit_cost_cents').notNull().default(0),
+    /* 'purchase' | 'wholesale' | null */
+    refType: varchar('ref_type', { length: 20 }),
+    refId: uuid('ref_id'),
+    note: text('note'),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('stock_movements_variant_idx').on(t.variantId),
+    index('stock_movements_when_idx').on(t.occurredAt),
+    index('stock_movements_ref_idx').on(t.refType, t.refId),
+  ],
+)
+
+/* Files kept with a record: supplier invoices, receipts, photos. The bytes
+   live in `media`, like product photos. */
+export const attachments = pgTable(
+  'attachments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    /* 'purchase' | 'expense' | 'wholesale' | 'movement' */
+    ownerType: varchar('owner_type', { length: 20 }).notNull(),
+    ownerId: uuid('owner_id').notNull(),
+    mediaId: uuid('media_id')
+      .notNull()
+      .references(() => media.id, { onDelete: 'cascade' }),
+    filename: varchar('filename', { length: 200 }).notNull(),
+    contentType: varchar('content_type', { length: 80 }).notNull(),
+    size: integer('size').notNull(),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('attachments_owner_idx').on(t.ownerType, t.ownerId)],
+)
+
+export const expenseCategories = pgTable('expense_categories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 80 }).notNull(),
+  position: integer('position').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/* Money out that is not stock. vatTreatment as for suppliers: DOMESTIC
+   (reclaimable VAT on the receipt), EU_REVERSE (e.g. online ads from Ireland),
+   NONE (no VAT, or VAT that cannot be reclaimed: part of the cost). */
+export const expenses = pgTable(
+  'expenses',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    expenseDate: date('expense_date', { mode: 'string' }).notNull(),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => expenseCategories.id, { onDelete: 'restrict' }),
+    payee: varchar('payee', { length: 160 }).notNull(),
+    description: varchar('description', { length: 300 }),
+    reference: varchar('reference', { length: 80 }),
+    vatTreatment: varchar('vat_treatment', { length: 12 }).notNull().default('DOMESTIC'),
+    netCents: integer('net_cents').notNull(),
+    vatCents: integer('vat_cents').notNull().default(0),
+    reverseVatCents: integer('reverse_vat_cents').notNull().default(0),
+    totalCents: integer('total_cents').notNull(),
+    paymentMethod: varchar('payment_method', { length: 20 }),
+    recurringId: uuid('recurring_id'),
+    /* For a repeating expense: the month it was made for, so it is never doubled. */
+    recurringMonth: varchar('recurring_month', { length: 7 }),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('expenses_date_idx').on(t.expenseDate),
+    index('expenses_category_idx').on(t.categoryId),
+    uniqueIndex('expenses_recurring_month_unique').on(t.recurringId, t.recurringMonth),
+  ],
+)
+
+/* Rent and other fixed costs: written as an expense every month by itself. */
+export const recurringExpenses = pgTable('recurring_expenses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  categoryId: uuid('category_id')
+    .notNull()
+    .references(() => expenseCategories.id, { onDelete: 'restrict' }),
+  payee: varchar('payee', { length: 160 }).notNull(),
+  description: varchar('description', { length: 300 }),
+  vatTreatment: varchar('vat_treatment', { length: 12 }).notNull().default('DOMESTIC'),
+  netCents: integer('net_cents').notNull(),
+  vatCents: integer('vat_cents').notNull().default(0),
+  paymentMethod: varchar('payment_method', { length: 20 }),
+  dayOfMonth: integer('day_of_month').notNull().default(1),
+  /* YYYY-MM, inclusive. */
+  startMonth: varchar('start_month', { length: 7 }).notNull(),
+  endMonth: varchar('end_month', { length: 7 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/* Shops and gyms the business sells to. Prices for them are before VAT:
+   their own price for a product, else the general wholesale price, else the
+   website price less VAT less their default discount. */
+export const retailers = pgTable(
+  'retailers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 160 }).notNull(),
+    contactName: varchar('contact_name', { length: 120 }),
+    email: varchar('email', { length: 255 }),
+    phone: varchar('phone', { length: 40 }),
+    vatNumber: varchar('vat_number', { length: 40 }),
+    taxId: varchar('tax_id', { length: 40 }),
+    address: text('address'),
+    country: varchar('country', { length: 2 }).notNull().default('CY'),
+    /* DOMESTIC: Cyprus VAT charged. EU_ZERO: VAT registered in another EU
+       country, 0% with reverse charge on their side. */
+    vatTreatment: varchar('vat_treatment', { length: 12 }).notNull().default('DOMESTIC'),
+    defaultDiscountPercent: doublePrecision('default_discount_percent').notNull().default(0),
+    /* 0 = pays upfront; otherwise days to pay. */
+    paymentTermsDays: integer('payment_terms_days').notNull().default(0),
+    note: text('note'),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('retailers_name_idx').on(t.name)],
+)
+
+/* Fixed wholesale prices, before VAT. retailerId null = for every retailer. */
+export const wholesalePrices = pgTable(
+  'wholesale_prices',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    retailerId: uuid('retailer_id').references(() => retailers.id, { onDelete: 'cascade' }),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => productVariants.id, { onDelete: 'cascade' }),
+    unitNetCents: integer('unit_net_cents').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('wholesale_prices_retailer_variant').on(t.retailerId, t.variantId).where(sql`${t.retailerId} is not null`),
+    uniqueIndex('wholesale_prices_default_variant').on(t.variantId).where(sql`${t.retailerId} is null`),
+  ],
+)
+
+/* A sale to a retailer. Its invoice is issued with it (lib/wholesale.ts). */
+export const wholesaleSales = pgTable(
+  'wholesale_sales',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    /* WS-2026-0001 */
+    number: varchar('number', { length: 20 }).notNull(),
+    retailerId: uuid('retailer_id')
+      .notNull()
+      .references(() => retailers.id, { onDelete: 'restrict' }),
+    saleDate: date('sale_date', { mode: 'string' }).notNull(),
+    dueDate: date('due_date', { mode: 'string' }).notNull(),
+    vatTreatment: varchar('vat_treatment', { length: 12 }).notNull(),
+    vatRateBp: integer('vat_rate_bp').notNull(),
+    netCents: integer('net_cents').notNull(),
+    vatCents: integer('vat_cents').notNull(),
+    totalCents: integer('total_cents').notNull(),
+    /* What the stock cost, for the profit. */
+    costCents: integer('cost_cents').notNull().default(0),
+    note: text('note'),
+    lastReminderAt: timestamp('last_reminder_at', { withTimezone: true }),
+    remindersSent: integer('reminders_sent').notNull().default(0),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('wholesale_sales_number_unique').on(t.number),
+    index('wholesale_sales_retailer_idx').on(t.retailerId),
+    index('wholesale_sales_date_idx').on(t.saleDate),
+  ],
+)
+
+export const wholesaleLines = pgTable(
+  'wholesale_lines',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    saleId: uuid('sale_id')
+      .notNull()
+      .references(() => wholesaleSales.id, { onDelete: 'cascade' }),
+    variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+    description: varchar('description', { length: 300 }).notNull(),
+    sku: varchar('sku', { length: 64 }),
+    quantity: integer('quantity').notNull(),
+    unitNetCents: integer('unit_net_cents').notNull(),
+    lineNetCents: integer('line_net_cents').notNull(),
+    unitCostCents: doublePrecision('unit_cost_cents').notNull().default(0),
+    /* Units given back on credit notes. */
+    returnedQuantity: integer('returned_quantity').notNull().default(0),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [index('wholesale_lines_sale_idx').on(t.saleId)],
+)
+
+export const wholesalePayments = pgTable(
+  'wholesale_payments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    saleId: uuid('sale_id')
+      .notNull()
+      .references(() => wholesaleSales.id, { onDelete: 'cascade' }),
+    amountCents: integer('amount_cents').notNull(),
+    method: varchar('method', { length: 20 }).notNull().default('bank'),
+    paidOn: date('paid_on', { mode: 'string' }).notNull(),
+    note: varchar('note', { length: 300 }),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('wholesale_payments_sale_idx').on(t.saleId)],
+)
+
+/* The value of the stock at the end of each month, taken by the automation
+   clock in the first hours of the next month. */
+export const stockValueSnapshots = pgTable('stock_value_snapshots', {
+  month: varchar('month', { length: 7 }).primaryKey(),
+  valueCents: bigint('value_cents', { mode: 'number' }).notNull(),
+  units: integer('units').notNull(),
+  takenAt: timestamp('taken_at', { withTimezone: true }).notNull().defaultNow(),
+})

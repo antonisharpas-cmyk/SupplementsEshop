@@ -141,6 +141,9 @@ export type ProductCard = {
   finalCents: number
   discountPercent: number
   isOnSale: boolean
+  /** The signed in member's tier, when it lowered this price. */
+  memberTier?: string | null
+  memberPercent?: number
   /** Sizes with stock, and all sizes, so a card can grey out sold-out sizes. */
   sizes: { size: string; variantId: string; available: number }[]
   /** Some size has stock on the shelf. */
@@ -275,7 +278,8 @@ async function buildListing(query: ProductQuery): Promise<Built | null> {
   }
 
   /* --- price: what the customer pays, promotions included --- */
-  const price = await effectivePriceSql()
+  const { viewerTier } = await import('./loyalty')
+  const price = await effectivePriceSql(new Date(), (await viewerTier()).percent)
   const priceParts: SQL[] = []
   if (query.minPrice !== undefined) priceParts.push(sql`${price} >= ${query.minPrice}`)
   if (query.maxPrice !== undefined) priceParts.push(sql`${price} <= ${query.maxPrice}`)
@@ -590,7 +594,9 @@ async function hydrateCards(
     listCents: r.priceCents,
     saleCents: r.salePriceCents,
   }))
-  const prices = await resolvePrices(priceInputs, promos)
+  const { viewerTier } = await import('./loyalty')
+  const member = await viewerTier()
+  const prices = await resolvePrices(priceInputs, promos, { tierPercent: member.percent })
   const availabilityById = new Map(availability.map((a) => [a.id, a.availability]))
 
   return rows.map((row) => {
@@ -602,6 +608,7 @@ async function hydrateCards(
         finalCents: row.priceCents,
         discountCents: 0,
         discountPercent: 0,
+        tierDiscountCents: 0,
         source: 'none',
         promotionId: null,
         promotionSnapshot: null,
@@ -623,7 +630,10 @@ async function hydrateCards(
       listCents: price.listCents,
       finalCents: price.finalCents,
       discountPercent: price.discountPercent,
-      isOnSale: price.discountCents > 0,
+      /* A sale or promotion; the member's own tier price is not "on sale". */
+      isOnSale: price.discountCents - price.tierDiscountCents > 0,
+      memberTier: price.tierDiscountCents > 0 ? member.tier : null,
+      memberPercent: price.tierDiscountCents > 0 ? member.percent : 0,
       sizes: sortBySize(
         productVariantsForRow.map((v) => ({
           size: v.size,
@@ -676,6 +686,9 @@ export type ProductDetail = {
   listCents: number
   finalCents: number
   discountPercent: number
+  /** The signed in member's tier, when it lowers the prices on this page. */
+  memberTier: string | null
+  memberPercent: number
   inStock: boolean
   /** Marked sold out by the owner, or nothing on the shelf — cannot be bought. */
   soldOut: boolean
@@ -745,6 +758,8 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   variantRows.sort((a, b) => a.position - b.position || compareSizes(a.size, b.size))
 
   /* Price every variant, since a variant may override the product price. */
+  const { viewerTier } = await import('./loyalty')
+  const member = await viewerTier()
   const prices = await resolvePrices(
     variantRows.map((v) => ({
       productId: row.product.id,
@@ -753,6 +768,8 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
       listCents: v.priceOverride ?? row.product.priceCents,
       saleCents: v.saleOverride ?? row.product.salePriceCents,
     })),
+    undefined,
+    { tierPercent: member.percent },
   )
 
   const variants = variantRows.map((v) => {
@@ -805,6 +822,8 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     listCents: headline.listCents,
     finalCents: headline.finalCents,
     discountPercent: headline.discountPercent,
+    memberTier: member.percent > 0 ? member.tier : null,
+    memberPercent: member.percent,
     inStock: variants.some((v) => v.inStock),
     soldOut: row.product.availability === 'SOLD_OUT' || !variants.some((v) => v.inStock),
     currency: row.product.currency,
@@ -888,6 +907,7 @@ export async function searchSuggestions(
   const firstImage = new Map<string, string>()
   for (const i of images) if (!firstImage.has(i.productId)) firstImage.set(i.productId, i.url)
 
+  const { viewerTier } = await import('./loyalty')
   const prices = await resolvePrices(
     rows.map((r) => ({
       productId: r.id,
@@ -896,6 +916,8 @@ export async function searchSuggestions(
       listCents: r.priceCents,
       saleCents: r.salePriceCents,
     })),
+    undefined,
+    { tierPercent: (await viewerTier()).percent },
   )
 
   return rows.map((r) => ({

@@ -15,7 +15,7 @@ import type { Metadata } from 'next'
 import { connection } from 'next/server'
 import { BRAND } from '@/config/brand'
 import { LiveRefresh } from '@/components/LiveRefresh'
-import { guardAdmin } from '@/lib/admin'
+import { canSeeFinance, guardAdmin } from '@/lib/admin'
 import { assertSchemaReady } from '@/db/ready'
 import { inboxCounts } from '@/lib/support'
 import { SignOutButton } from '@/components/auth/SignOutButton'
@@ -55,7 +55,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     {
       title: 'Catalogue',
       items: [
-        { href: '/admin/products', label: 'Products & stock', icon: 'products' as const, also: ['/admin/categories', '/admin/stock'] },
+        { href: '/admin/products', label: 'Products & stock', icon: 'products' as const, also: ['/admin/categories', '/admin/stock', '/admin/stock-moves'] },
         { href: '/admin/promotions', label: 'Promotions & codes', icon: 'promotions' as const },
         { href: '/admin/homepage', label: 'Homepage', icon: 'homepage' as const },
       ],
@@ -67,10 +67,23 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: '/admin/emails', label: 'Marketing & emails', icon: 'emails' as const },
       ],
     },
+    /* Costs, profit and the books: the owner and managers. Other staff see
+       purchases only to receive the goods. */
+    canSeeFinance(user)
+      ? {
+          title: 'Finance',
+          items: [
+            { href: '/admin/purchases', label: 'Purchases & suppliers', icon: 'purchases' as const },
+            { href: '/admin/wholesale', label: 'Wholesale', icon: 'wholesale' as const },
+            { href: '/admin/expenses', label: 'Expenses', icon: 'expenses' as const },
+            { href: '/admin/reports', label: 'Reports', icon: 'reports' as const },
+            { href: '/admin/accounting', label: 'Accounting', icon: 'accounting' as const },
+          ],
+        }
+      : { title: 'Stock in', items: [{ href: '/admin/purchases', label: 'Deliveries to receive', icon: 'purchases' as const }] },
     {
       title: 'Shop',
       items: [
-        { href: '/admin/accounting', label: 'Accounting', icon: 'accounting' as const },
         { href: '/admin/settings', label: 'Settings', icon: 'settings' as const },
         { href: '/admin/account', label: 'Change password', icon: 'key' as const },
       ],
@@ -82,7 +95,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <body className="min-h-screen bg-paper-2 print:bg-white">
         <AdminSidebar
           groups={groups}
-          user={{ name: `${user.firstName} ${user.lastName}`.trim(), role: user.role.replace('_', ' ') }}
+          user={{ name: `${user.firstName} ${user.lastName}`.trim(), role: user.role === 'SUPER_ADMIN' ? 'OWNER' : user.financeAccess ? 'MANAGER' : 'STAFF' }}
           logo={{ mark: BRAND.logo.mark, wordmark: BRAND.logo.wordmark, name: BRAND.name }}
           signOut={<SignOutButton locale="en" />}
         />

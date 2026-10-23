@@ -211,6 +211,7 @@ async function buildCards(
       saleCents: k.salePriceCents,
     })),
     promos,
+    { tierPercent: (await (await import('./loyalty')).viewerTier()).percent },
   )
 
   return kept.map((k) => {

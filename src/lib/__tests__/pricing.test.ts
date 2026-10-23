@@ -803,3 +803,44 @@ describe('what counts as reduced', () => {
     expect(listing.items).toHaveLength(2)
   })
 })
+
+/* ========================================================================== */
+
+describe('membership tier pricing', () => {
+  const hoodie = (listCents: number, saleCents: number | null = null) => ({
+    productId: hoodieProductId,
+    categoryId: hoodiesId,
+    variantId: hoodieVariantId,
+    listCents,
+    saleCents,
+  })
+
+  it('takes the tier discount off the list price', async () => {
+    const prices = await resolvePrices([hoodie(10000)], undefined, { tierPercent: 12 })
+    expect(prices.get(hoodieVariantId)).toMatchObject({ finalCents: 8800, tierDiscountCents: 1200, source: 'tier' })
+  })
+
+  it('applies the tier first, then the promotion on the tier price', async () => {
+    await db.insert(promotions).values({
+      name: '10% off hoodies',
+      scope: 'CATEGORY',
+      categoryId: hoodiesId,
+      discountType: 'PERCENTAGE',
+      discountValue: 10,
+      startsAt: new Date(Date.now() - 1000),
+    })
+    const prices = await resolvePrices([hoodie(10000)], undefined, { tierPercent: 12 })
+    /* €100 → Champion 12% → €88 → promotion 10% → €79.20 */
+    expect(prices.get(hoodieVariantId)).toMatchObject({ finalCents: 7920, tierDiscountCents: 1200, discountCents: 2080 })
+  })
+
+  it('takes the tier off a sale price too', async () => {
+    const prices = await resolvePrices([hoodie(10000, 8000)], undefined, { tierPercent: 5 })
+    expect(prices.get(hoodieVariantId)?.finalCents).toBe(7600)
+  })
+
+  it('changes nothing at Basic', async () => {
+    const prices = await resolvePrices([hoodie(10000)], undefined, { tierPercent: 0 })
+    expect(prices.get(hoodieVariantId)).toMatchObject({ finalCents: 10000, tierDiscountCents: 0, source: 'none' })
+  })
+})

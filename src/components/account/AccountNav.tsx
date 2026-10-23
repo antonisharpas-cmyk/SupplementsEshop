@@ -21,6 +21,9 @@ export const ACCOUNT_ICONS = {
   addresses: (
     <svg viewBox="0 0 24 24" {...s}><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
   ),
+  membership: (
+    <svg viewBox="0 0 24 24" {...s}><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8-4.3-4.1 5.9-.9z" /></svg>
+  ),
   profile: (
     <svg viewBox="0 0 24 24" {...s}><circle cx="12" cy="8" r="4" /><path d="M4 20.5c1-4 4.2-6 8-6s7 2 8 6" /></svg>
   ),

@@ -92,6 +92,27 @@
       "when": 1792658897256,
       "tag": "0012_boxnow",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792757733238,
+      "tag": "0013_loyalty_tiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792761014817,
+      "tag": "0014_finance",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792767487808,
+      "tag": "0015_supplier_codes",
+      "breakpoints": true
     }
   ]
 }

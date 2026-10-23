@@ -188,6 +188,11 @@ const HANDLERS: Partial<Record<TemplateKey, (job: Job, now: Date) => Promise<Pre
   order_delivered: prepareOrder,
   order_completed: prepareOrder,
   order_cancelled: prepareOrder,
+  tier_upgraded: prepareTier,
+  tier_near: prepareTier,
+  tier_expiring: prepareTier,
+  tier_last_call: prepareTier,
+  tier_downgraded: prepareTier,
 }
 
 /**
@@ -537,6 +542,8 @@ export async function notifyStaffNewOrder(orderId: string, when: 'placed' | 'pai
 export async function orderStatusChanged(orderId: string, status: string, extra: { trackingNumber?: string; trackingUrl?: string } = {}) {
   const key = STATUS_TEMPLATE[status]
   if (status === 'PAID') await notifyStaffNewOrder(orderId, 'paid')
+  /* A paid order (card at payment, cash when handed over) can earn a tier. */
+  if (status === 'PAID' || status === 'DELIVERED') await refreshTierForOrder(orderId)
   if (status === 'CANCELLED') {
     /* A card order that was never paid (the customer left Stripe's page):
        they were never told it existed, so no cancellation email either. */
@@ -706,11 +713,28 @@ export async function runAutomations(now = new Date()) {
   const campaigns = await runDueCampaigns(now)
   /* BOX NOW parcels on their way: read their state, in case a webhook was missed. */
   const { pollShipments } = await import('@/lib/shipments')
+  /* Membership tiers: ending, ended, or never checked yet. */
+  const { sweepTiers } = await import('@/lib/loyalty')
+  const tiers = await sweepTiers(now).catch((err) => {
+    console.error('[automations] tier sweep failed', err)
+    return 0
+  })
   const parcels = await pollShipments(now).catch((err) => {
     console.error('[automations] BOX NOW tracking failed', err)
     return 0
   })
-  return { closed, unpaid, released, jobs, campaigns, parcels }
+  /* Finance: rent and other repeating expenses, overdue retailer invoices,
+     and the stock value at the end of last month. */
+  const finance = await (async () => {
+    const { writeRecurring } = await import('@/lib/expenses')
+    const { remindOverdue } = await import('@/lib/wholesale')
+    const { snapshotStockValue } = await import('@/lib/finance-reports')
+    const recurring = await writeRecurring(now).catch((err) => (console.error('[automations] repeating expenses failed', err), 0))
+    const reminders = await remindOverdue(now).catch((err) => (console.error('[automations] wholesale reminders failed', err), 0))
+    await snapshotStockValue(now).catch((err) => console.error('[automations] stock value snapshot failed', err))
+    return { recurring, reminders }
+  })()
+  return { closed, unpaid, released, jobs, campaigns, parcels, tiers, ...finance }
 }
 
 /* =========================================================== reading == */
@@ -782,3 +806,92 @@ export async function customerActivity() {
   }
 }
 
+/* ============================================================ tiers == */
+
+/** After an order is paid: bring its customer's tier up to date. */
+export async function refreshTierForOrder(orderId: string) {
+  try {
+    const [o] = await db.select({ userId: orders.userId }).from(orders).where(eq(orders.id, orderId))
+    if (!o?.userId) return
+    const { evaluateTier } = await import('@/lib/loyalty')
+    await evaluateTier(o.userId)
+  } catch (err) {
+    console.error('[automations] tier not updated', err)
+  }
+}
+
+export async function scheduleTierEmail(
+  key: 'tier_upgraded' | 'tier_near' | 'tier_expiring' | 'tier_last_call' | 'tier_downgraded',
+  userId: string,
+  dedupe: string,
+  vars: Record<string, string>,
+) {
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+  if (!user) return
+  await scheduleJob({
+    automation: key,
+    email: user.email,
+    userId,
+    name: user.firstName,
+    locale: user.locale,
+    context: { ...vars },
+    dedupeKey: dedupe,
+    reason: { tier_upgraded: 'Earned a new tier.', tier_near: 'Close to the next tier.', tier_expiring: 'Tier ends soon.', tier_last_call: 'Tier ends in two days.', tier_downgraded: 'Tier ended, moved down one.' }[key],
+  })
+}
+
+const NEEDED_WORDS = {
+  en: { order: (n: number) => (n === 1 ? '1 more order' : `${n} more orders`), spend: (m: string) => `${m} more spent`, and: ' and ', none: 'keep shopping as you do' },
+  el: { order: (n: number) => (n === 1 ? '1 ακόμη παραγγελία' : `${n} ακόμη παραγγελίες`), spend: (m: string) => `${m} ακόμη σε αγορές`, and: ' και ', none: 'συνέχισε όπως τώρα' },
+  ru: { order: (n: number) => (n === 1 ? 'ещё 1 заказ' : `ещё ${n} заказа(ов)`), spend: (m: string) => `ещё ${m} покупок`, and: ' и ', none: 'продолжайте в том же духе' },
+} as const
+
+export function neededWords(p: { ordersNeeded: number; spendNeededCents: number }, locale: 'en' | 'el' | 'ru') {
+  const w = NEEDED_WORDS[locale]
+  const parts = [p.ordersNeeded > 0 ? w.order(p.ordersNeeded) : null, p.spendNeededCents > 0 ? w.spend(formatMoney(p.spendNeededCents, locale)) : null].filter(Boolean)
+  return parts.length ? parts.join(w.and) : w.none
+}
+
+async function prepareTier(job: Job, now: Date): Promise<Prepared> {
+  if (!job.userId) return { skip: 'No account.' }
+  const { customerTier, progressTowards, TIER_NAMES } = await import('@/lib/loyalty')
+  const ct = await customerTier(job.userId, now)
+  if (!ct || !ct.enabled) return { skip: 'Membership tiers are switched off.' }
+  const locale = asEmailLocale(job.locale)
+  const date = (d: Date | null) =>
+    d ? d.toLocaleDateString(locale === 'el' ? 'el-GR' : locale === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Nicosia' }) : ''
+
+  if (job.automation === 'tier_near' && (!ct.next || ct.next.progress.share >= 1)) return { skip: 'No longer close: already moved up.' }
+  if (job.automation === 'tier_expiring' || job.automation === 'tier_last_call') {
+    const days = job.automation === 'tier_last_call' ? ct.config.lastCallDays : ct.config.warningDays
+    if (!ct.expiresAt || ct.expiresAt.getTime() - now.getTime() > days * 86_400_000) return { skip: 'The tier was renewed in the meantime.' }
+  }
+  if (job.automation === 'tier_downgraded' && typeof job.context.old_tier !== 'string') return { skip: 'Missing details.' }
+
+  /* What is needed: for the next tier (near), to keep this one (expiring),
+     or to get back to the one they lost (downgraded). */
+  const back = ct.config.tiers.find((t) => TIER_NAMES[t.key] === job.context.old_tier)
+  const need =
+    job.automation === 'tier_near' && ct.next
+      ? ct.next.progress
+      : (job.automation === 'tier_expiring' || job.automation === 'tier_last_call') && ct.keep
+        ? ct.keep
+        : job.automation === 'tier_downgraded' && back
+          ? progressTowards(back, ct.stats)
+          : { ordersNeeded: 0, spendNeededCents: 0 }
+
+  return {
+    send: {
+      tier_name: TIER_NAMES[ct.tier],
+      tier_discount: `${ct.rule.discountPercent}%`,
+      expires_on: date(ct.expiresAt),
+      next_tier: ct.next ? TIER_NAMES[ct.next.key] : '',
+      next_discount: ct.next ? `${ct.next.discountPercent}%` : '',
+      needed: neededWords(need, locale),
+      lower_tier: ct.lower ? TIER_NAMES[ct.lower.key] : '',
+      lower_discount: ct.lower ? `${ct.lower.discountPercent}%` : '',
+      old_tier: typeof job.context.old_tier === 'string' ? job.context.old_tier : '',
+      membership_url: siteUrl(`/${locale}/account/membership`),
+    },
+  }
+}

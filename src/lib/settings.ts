@@ -41,6 +41,15 @@ export const SETTING_DEFAULTS: {
   company_tax_id: string
   company_address: string
   invoice_footer: string
+  loyalty_enabled: boolean
+  loyalty_tiers: TierRule[]
+  loyalty_window_months: number
+  loyalty_near_goal_percent: number
+  loyalty_warning_days: number
+  loyalty_last_call_days: number
+  loyalty_keep_min_orders: number
+  /* Finance: the last month closed for the accountant (YYYY-MM), '' for none. */
+  books_closed_through: string
 } = {
   /* Free delivery over this amount, in cents. Section 14: NOT hardcoded —
      this is only the value used before an admin has ever saved one. */
@@ -101,6 +110,44 @@ export const SETTING_DEFAULTS: {
   /* One line per row of the address. */
   company_address: '',
   invoice_footer: 'Thank you for shopping with AIONIX.',
+
+  /* Membership tiers (lib/loyalty.ts). A tier is earned with at least
+     minOrders paid orders AND minSpendCents spent (after discounts, before
+     delivery) within the last loyalty_window_months. It is kept while the
+     customer orders: it lasts durationMonths from their latest paid order
+     (loyalty_keep_min_orders back). A whole period with no order and it
+     steps down one tier. discountPercent comes off every price for that
+     customer, before any promotion. Basic is everyone's starting tier. */
+  loyalty_enabled: true,
+  loyalty_tiers: [
+    { key: 'basic', discountPercent: 0, minOrders: 0, minSpendCents: 0, durationMonths: 6 },
+    { key: 'performer', discountPercent: 5, minOrders: 2, minSpendCents: 15000, durationMonths: 6 },
+    { key: 'elite', discountPercent: 8, minOrders: 4, minSpendCents: 40000, durationMonths: 6 },
+    { key: 'champion', discountPercent: 12, minOrders: 8, minSpendCents: 90000, durationMonths: 6 },
+    { key: 'pro', discountPercent: 15, minOrders: 15, minSpendCents: 200000, durationMonths: 6 },
+  ],
+  loyalty_window_months: 6,
+  /* "You're close" email once a customer has this much of the next tier. */
+  loyalty_near_goal_percent: 80,
+  /* "Your tier ends soon" email this many days before stepping down. */
+  loyalty_warning_days: 14,
+  /* The last "your tier ends" email, this many days before. */
+  loyalty_last_call_days: 2,
+  /* Paid orders within a tier period that keep the tier. */
+  loyalty_keep_min_orders: 1,
+
+  /* Purchases, expenses and wholesale sales dated in a closed month cannot
+     be added or changed, so the pack sent to the accountant stays true. */
+  books_closed_through: '',
+}
+
+export type TierKey = 'basic' | 'performer' | 'elite' | 'champion' | 'pro'
+export type TierRule = {
+  key: TierKey
+  discountPercent: number
+  minOrders: number
+  minSpendCents: number
+  durationMonths: number
 }
 
 export type SettingKey = keyof typeof SETTING_DEFAULTS

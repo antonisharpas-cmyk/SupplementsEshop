@@ -30,10 +30,13 @@ export function DateTimeField({
   min,
   ariaLabel,
   className = '',
+  clearable = true,
 }: {
   value: string
   onChange?: (v: string) => void
   mode?: 'date' | 'datetime'
+  /** False for a date that must always be set (an invoice date). */
+  clearable?: boolean
   name?: string
   placeholder?: string
   /** Earliest allowed, same format as value. */
@@ -114,7 +117,7 @@ export function DateTimeField({
           <path d="M3.5 10h17M8 3v4M16 3v4" />
         </svg>
         <span className={`flex-1 truncate tabular-nums ${shown ? 'text-ink' : 'text-muted'}`}>{shown ?? placeholder ?? 'Choose a date'}</span>
-        {shown && (
+        {shown && clearable && (
           <span
             role="button"
             tabIndex={0}
@@ -249,6 +252,153 @@ export function DateTimeField({
               }}
             >
               {mode === 'datetime' ? 'Now' : 'Today'}
+            </button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(false)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+/* ------------------------------------------------------------- month -- */
+
+const p2m = (n: number) => String(n).padStart(2, '0')
+
+/** A month (YYYY-MM) in the same style: the year with arrows, twelve months. */
+export function MonthField({
+  value,
+  onChange,
+  placeholder = 'Choose a month',
+  ariaLabel,
+  className = '',
+  clearable = false,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  ariaLabel?: string
+  className?: string
+  clearable?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [flip, setFlip] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const id = useId()
+  const m = /^(\d{4})-(\d{2})$/.exec(value)
+  const cur = m ? { y: +m[1], m: +m[2] - 1 } : null
+  const [year, setYear] = useState(() => cur?.y ?? new Date().getFullYear())
+
+  useEffect(() => {
+    if (!open) return
+    const out = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false)
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', out)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', out)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+
+  const thisMonth = () => {
+    const n = new Date()
+    return { y: n.getFullYear(), m: n.getMonth() }
+  }
+
+  return (
+    <div ref={box} className={`relative ${className}`}>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={id}
+        aria-label={ariaLabel}
+        onClick={() => {
+          if (!open) setYear(cur?.y ?? thisMonth().y)
+          if (!open && box.current) setFlip(box.current.getBoundingClientRect().left + 288 > window.innerWidth - 16)
+          setOpen((o) => !o)
+        }}
+        className={`flex w-full items-center gap-2.5 rounded-xl border bg-paper px-3.5 py-2.5 text-left text-sm transition-colors ${open ? 'border-accent' : 'border-line hover:border-line-strong'}`}
+      >
+        <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+          <path d="M3.5 10h17M8 3v4M16 3v4" />
+        </svg>
+        <span className={`flex-1 truncate ${cur ? 'text-ink' : 'text-muted'}`}>{cur ? `${MONTHS[cur.m]} ${cur.y}` : placeholder}</span>
+        {cur && clearable && (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="Clear"
+            onClick={(e) => {
+              e.stopPropagation()
+              onChange('')
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                onChange('')
+              }
+            }}
+            className="grid h-5 w-5 place-items-center rounded-full text-muted hover:bg-line hover:text-ink"
+          >
+            ×
+          </span>
+        )}
+      </button>
+      {open && (
+        <div
+          id={id}
+          role="dialog"
+          aria-label="Choose a month"
+          className={`absolute top-full z-50 mt-2 w-72 rounded-2xl ${flip ? 'right-0' : 'left-0'} border border-line bg-paper p-4 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.9)]`}
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <button type="button" onClick={() => setYear((y) => y - 1)} aria-label="Previous year" className="grid h-8 w-8 place-items-center rounded-full hover:bg-paper-2">
+              ‹
+            </button>
+            <p className="font-display text-sm font-semibold text-heading">{year}</p>
+            <button type="button" onClick={() => setYear((y) => y + 1)} aria-label="Next year" className="grid h-8 w-8 place-items-center rounded-full hover:bg-paper-2">
+              ›
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {MONTHS.map((name, i) => {
+              const on = cur && cur.y === year && cur.m === i
+              const now = thisMonth()
+              const current = now.y === year && now.m === i
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  aria-pressed={!!on}
+                  onClick={() => {
+                    onChange(`${year}-${p2m(i + 1)}`)
+                    setOpen(false)
+                  }}
+                  className={`h-9 rounded-full text-[13px] transition-colors ${on ? 'bg-gold font-semibold text-paper' : current ? 'border border-accent/60 text-accent hover:bg-paper-2' : 'text-ink hover:bg-paper-2'}`}
+                >
+                  {name.slice(0, 3)}
+                </button>
+              )
+            })}
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                const n = thisMonth()
+                onChange(`${n.y}-${p2m(n.m + 1)}`)
+                setOpen(false)
+              }}
+            >
+              This month
             </button>
             <button type="button" className="btn btn-primary btn-sm" onClick={() => setOpen(false)}>
               Done

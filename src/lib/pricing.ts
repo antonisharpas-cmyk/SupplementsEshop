@@ -69,7 +69,9 @@ export type EffectivePrice = {
   /** listCents - finalCents, always >= 0. */
   discountCents: number
   discountPercent: number
-  source: 'none' | 'sale' | 'promotion'
+  /** Of discountCents, the part that is the customer's membership tier. */
+  tierDiscountCents: number
+  source: 'none' | 'sale' | 'promotion' | 'tier'
   promotionId: string | null
   promotionSnapshot: Record<string, unknown> | null
 }
@@ -184,7 +186,7 @@ export async function promotionScope(at = new Date()): Promise<{
  * Without it a €69 hoodie shown at €55.20 by a promotion would be missing
  * from "up to €60", and "price: low to high" would put it in the wrong place.
  */
-export async function effectivePriceSql(at = new Date()) {
+export async function effectivePriceSql(at = new Date(), tierPercent = 0) {
   const list = sql`${products.priceCents}`
   const candidates = [
     sql`case when ${products.salePriceCents} is not null and ${products.salePriceCents} < ${list}
@@ -217,7 +219,10 @@ export async function effectivePriceSql(at = new Date()) {
       candidates.push(sql`case when ${applies} then ${discounted} else ${list} end`)
     }
   }
-  return sql`greatest(0, least(${sql.join(candidates, sql`, `)}))`
+  const best = sql`greatest(0, least(${sql.join(candidates, sql`, `)}))`
+  /* The member's tier on top (to the cent for percentage promotions; within a
+     cent or two for fixed-amount ones, which only affects price filters). */
+  return tierPercent > 0 ? sql`(${best} - round((${best} * ${tierPercent})::numeric / 100)::int)` : best
 }
 
 /** Each category with every category beneath it (itself included). */
@@ -254,8 +259,13 @@ async function categoryDescendants(roots: string[]): Promise<Map<string, string[
 export async function resolvePrices(
   inputs: PriceInput[],
   activePromotions?: Promotion[],
+  /** The membership tier's discount (lib/loyalty.ts), applied FIRST: a
+   *  promotion then comes off the tier price. 0 for guests and Basic. */
+  opts: { tierPercent?: number } = {},
 ): Promise<Map<string, EffectivePrice>> {
   if (inputs.length === 0) return new Map()
+  const tierPercent = Math.max(0, Math.min(90, opts.tierPercent ?? 0))
+  const tier = (cents: number) => (tierPercent > 0 ? cents - applyPercent(cents, tierPercent) : cents)
 
   const promos = activePromotions ?? (await loadActivePromotions())
   const ancestry = await categoryAncestry(inputs.map((i) => i.categoryId))
@@ -265,9 +275,11 @@ export async function resolvePrices(
   for (const input of inputs) {
     const list = input.listCents
 
-    /* Candidate 1: the manual sale price. */
-    let bestCents = input.saleCents !== null && input.saleCents < list ? input.saleCents : list
-    let source: EffectivePrice['source'] = bestCents < list ? 'sale' : 'none'
+    /* Candidate 1: the manual sale price (or the list price), with the tier off it. */
+    const ownPrice = input.saleCents !== null && input.saleCents < list ? input.saleCents : list
+    let bestCents = tier(ownPrice)
+    let tierPart = ownPrice - bestCents
+    let source: EffectivePrice['source'] = ownPrice < list ? 'sale' : tierPart > 0 ? 'tier' : 'none'
     let promotionId: string | null = null
     let snapshot: Record<string, unknown> | null = null
 
@@ -285,13 +297,16 @@ export async function resolvePrices(
 
       if (!applies) continue
 
+      /* Off the tier price of the LIST price: tier first, then the promotion. */
+      const tierList = tier(list)
       const candidate =
         promo.discountType === 'PERCENTAGE'
-          ? list - applyPercent(list, promo.discountValue)
-          : Math.max(0, list - promo.discountValue)
+          ? tierList - applyPercent(tierList, promo.discountValue)
+          : Math.max(0, tierList - promo.discountValue)
 
       if (candidate < bestCents) {
         bestCents = candidate
+        tierPart = list - tierList
         source = 'promotion'
         promotionId = promo.id
         /* Rule 18: the order stores this, so expiring the promotion later
@@ -315,6 +330,7 @@ export async function resolvePrices(
       finalCents,
       discountCents,
       discountPercent: list > 0 ? Math.round((discountCents / list) * 100) : 0,
+      tierDiscountCents: Math.min(tierPart, discountCents),
       source,
       promotionId,
       promotionSnapshot: snapshot,
@@ -556,8 +572,11 @@ export type CartTotals = {
   listTotalCents: number
   /** Sum of what the lines actually cost. This is the "subtotal". */
   subtotalCents: number
-  /** listTotal - subtotal. */
+  /** listTotal - subtotal - tierDiscount: sale prices and promotions. */
   promotionDiscountCents: number
+  /** The membership tier: which one, its percent, and what it took off. */
+  tier: { key: string; percent: number } | null
+  tierDiscountCents: number
   promoCode: { id: string; code: string; discountCents: number } | null
   promoCodeDiscountCents: number
   deliveryCents: number
@@ -585,6 +604,10 @@ export async function priceCart(args: {
 }): Promise<{ totals: CartTotals; promoCodeError: PromoCodeRefusal | null }> {
   const { vat_rate_bp: vatRateBp, currency } = await getSettings(['vat_rate_bp', 'currency'])
 
+  /* The signed in customer's membership tier, from the account itself. */
+  const { tierDiscountPercent } = await import('./loyalty')
+  const member = await tierDiscountPercent(args.userId)
+
   const prices = await resolvePrices(
     args.lines.map((l) => ({
       productId: l.productId,
@@ -593,6 +616,8 @@ export async function priceCart(args: {
       listCents: l.listCents,
       saleCents: l.saleCents,
     })),
+    undefined,
+    { tierPercent: member.percent },
   )
 
   const lines: PricedLine[] = args.lines.map((line) => {
@@ -613,7 +638,8 @@ export async function priceCart(args: {
 
   const listTotalCents = lines.reduce((s, l) => s + l.lineListCents, 0)
   const subtotalCents = lines.reduce((s, l) => s + l.lineFinalCents, 0)
-  const promotionDiscountCents = listTotalCents - subtotalCents
+  const tierDiscountCents = args.lines.reduce((n, l) => n + (prices.get(l.variantId)?.tierDiscountCents ?? 0) * l.quantity, 0)
+  const promotionDiscountCents = listTotalCents - subtotalCents - tierDiscountCents
 
   /* --- promo code --- */
   let promoCodeDiscountCents = 0
@@ -669,6 +695,8 @@ export async function priceCart(args: {
       listTotalCents,
       subtotalCents,
       promotionDiscountCents,
+      tier: member.percent > 0 ? { key: member.tier, percent: member.percent } : null,
+      tierDiscountCents,
       promoCode: appliedCode,
       promoCodeDiscountCents,
       deliveryCents,

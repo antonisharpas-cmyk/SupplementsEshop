@@ -41,9 +41,29 @@ export const CATALOGUE_TABS: SectionTab[] = [
   { href: '/admin/products', label: 'Products' },
   { href: '/admin/categories', label: 'Categories' },
   { href: '/admin/stock', label: 'Stock' },
+  { href: '/admin/stock-moves', label: 'Stock movements' },
 ]
 
 export const PROMOTION_TABS: SectionTab[] = [
   { href: '/admin/promotions', label: 'Automatic promotions' },
   { href: '/admin/promotions/codes', label: 'Promo codes' },
+]
+
+export const PURCHASE_TABS: SectionTab[] = [
+  { href: '/admin/purchases', label: 'Purchases' },
+  { href: '/admin/purchases/suppliers', label: 'Suppliers' },
+  { href: '/admin/purchases/opening', label: 'Opening stock' },
+  { href: '/admin/purchases/prices', label: 'Price history' },
+]
+
+export const WHOLESALE_TABS: SectionTab[] = [
+  { href: '/admin/wholesale', label: 'Sales' },
+  { href: '/admin/wholesale/retailers', label: 'Retailers' },
+  { href: '/admin/wholesale/prices', label: 'Wholesale prices' },
+]
+
+export const EXPENSE_TABS: SectionTab[] = [
+  { href: '/admin/expenses', label: 'Expenses' },
+  { href: '/admin/expenses/repeating', label: 'Repeating' },
+  { href: '/admin/expenses/categories', label: 'Categories' },
 ]

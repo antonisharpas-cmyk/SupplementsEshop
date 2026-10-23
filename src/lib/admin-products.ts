@@ -271,6 +271,8 @@ export type VariantInput = {
   flavour: L10n
   colorHex: string
   sku?: string
+  /** The supplier's code; '' clears it, undefined leaves it. */
+  supplierCode?: string
   priceCents?: number | null
   salePriceCents?: number | null
   onHand?: number
@@ -280,6 +282,7 @@ export type VariantInput = {
 export type AdminVariant = {
   id: string
   sku: string
+  supplierCode: string | null
   size: string
   flavour: Record<string, string> | null
   colorHex: string | null
@@ -295,6 +298,7 @@ export async function listAdminVariants(productId: string): Promise<AdminVariant
     .select({
       id: productVariants.id,
       sku: productVariants.sku,
+      supplierCode: productVariants.supplierCode,
       size: productVariants.size,
       flavour: productVariants.colorName,
       colorHex: productVariants.colorHex,
@@ -345,12 +349,11 @@ export async function addVariant(productId: string, v: VariantInput) {
   const flavour = clean(v.flavour)
   if (!flavour?.en) throw new AdminError('Give the flavour a name in English.')
 
-  let sku = v.sku?.trim().toUpperCase() || makeSku(product.slug, flavour.en, v.size)
-  /* A generated SKU that happens to exist gets a short suffix. */
-  if (!v.sku?.trim()) {
-    const [taken] = await db.select({ id: productVariants.id }).from(productVariants).where(eq(productVariants.sku, sku))
-    if (taken) sku = `${sku.slice(0, 56)}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`
-  }
+  /* Always made by the system, so every product follows one pattern. A
+     generated SKU that happens to exist gets a short suffix. */
+  let sku = makeSku(product.slug, flavour.en, v.size)
+  const [taken] = await db.select({ id: productVariants.id }).from(productVariants).where(eq(productVariants.sku, sku))
+  if (taken) sku = `${sku.slice(0, 56)}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`
 
   try {
     return await db.transaction(async (tx) => {
@@ -363,6 +366,7 @@ export async function addVariant(productId: string, v: VariantInput) {
         .values({
           productId,
           sku,
+          supplierCode: v.supplierCode?.trim() || null,
           size: v.size.trim(),
           colorName: flavour,
           colorHex: v.colorHex.toLowerCase(),
@@ -393,7 +397,8 @@ export async function updateVariant(productId: string, variantId: string, v: Omi
         size: v.size.trim(),
         colorName: flavour,
         colorHex: v.colorHex.toLowerCase(),
-        ...(v.sku?.trim() ? { sku: v.sku.trim().toUpperCase() } : {}),
+        /* The SKU never changes once made. */
+        ...(v.supplierCode !== undefined ? { supplierCode: v.supplierCode.trim() || null } : {}),
         priceCentsOverride: v.priceCents ?? null,
         salePriceCentsOverride: v.salePriceCents ?? null,
         ...(v.isActive !== undefined ? { isActive: v.isActive } : {}),

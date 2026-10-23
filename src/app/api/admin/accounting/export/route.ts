@@ -7,7 +7,7 @@
  * Takes the same filters as the accounting page: from, to, kind, method, q.
  * ========================================================================== */
 
-import { requireAdminApi } from '@/lib/admin'
+import { requireFinanceApi } from '@/lib/admin'
 import { accountingSheets, filterFrom } from '@/lib/accounting-export'
 import { ensureInvoices } from '@/lib/invoices'
 import { toCsv, toXlsx } from '@/lib/spreadsheet'
@@ -16,7 +16,7 @@ import { audit } from '@/lib/audit'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const guard = await requireAdminApi()
+  const guard = await requireFinanceApi()
   if ('response' in guard) return guard.response
 
   const url = new URL(request.url)

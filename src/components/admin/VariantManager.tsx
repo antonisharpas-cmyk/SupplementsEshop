@@ -21,6 +21,7 @@ import { btn, input } from './ui'
 export type VariantRow = {
   id: string
   sku: string
+  supplierCode: string | null
   size: string
   flavour: Record<string, string> | null
   colorHex: string | null
@@ -63,7 +64,7 @@ function Line({ productId, row, basePrice }: { productId: string; row: VariantRo
     ru: row.flavour?.ru ?? '',
     hex: row.colorHex ?? '#2e2e2e',
     size: row.size,
-    sku: row.sku,
+    supplierCode: row.supplierCode ?? '',
     price: euros(row.priceCents),
     sale: euros(row.salePriceCents),
     active: row.isActive,
@@ -79,7 +80,7 @@ function Line({ productId, row, basePrice }: { productId: string; row: VariantRo
     f.ru !== (row.flavour?.ru ?? '') ||
     f.hex !== (row.colorHex ?? '#2e2e2e') ||
     f.size !== row.size ||
-    f.sku !== row.sku ||
+    f.supplierCode !== (row.supplierCode ?? '') ||
     f.price !== euros(row.priceCents) ||
     f.sale !== euros(row.salePriceCents) ||
     f.active !== row.isActive
@@ -93,7 +94,7 @@ function Line({ productId, row, basePrice }: { productId: string; row: VariantRo
       size: f.size,
       flavour: { en: f.en, el: f.el, ru: f.ru },
       colorHex: f.hex,
-      sku: f.sku,
+      supplierCode: f.supplierCode,
       priceCents: price,
       salePriceCents: sale,
       isActive: f.active,
@@ -195,7 +196,7 @@ function Line({ productId, row, basePrice }: { productId: string; row: VariantRo
       {open && (
         <tr>
           <td colSpan={6} className="bg-paper-2 px-3 py-4">
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
               <label className="text-xs text-muted">
                 Flavour in Greek
                 <input className={`${input} mt-1`} value={f.el} onChange={(e) => setF({ ...f, el: e.target.value })} />
@@ -204,9 +205,15 @@ function Line({ productId, row, basePrice }: { productId: string; row: VariantRo
                 Flavour in Russian
                 <input className={`${input} mt-1`} value={f.ru} onChange={(e) => setF({ ...f, ru: e.target.value })} />
               </label>
+              <div className="text-xs text-muted">
+                SKU (made by the system)
+                <p className="mt-1 rounded-xl border border-line bg-paper-2 px-3.5 py-2.5 font-mono text-sm text-ink" title="AX + product + flavour + size. It never changes, so orders, invoices and stock always match.">
+                  {row.sku}
+                </p>
+              </div>
               <label className="text-xs text-muted">
-                SKU
-                <input className={`${input} mt-1 font-mono`} value={f.sku} onChange={(e) => setF({ ...f, sku: e.target.value.toUpperCase() })} />
+                Supplier code
+                <input className={`${input} mt-1 font-mono`} value={f.supplierCode} onChange={(e) => setF({ ...f, supplierCode: e.target.value })} placeholder="Olimp’s code on their invoice" />
               </label>
               <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
                 <input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} className="h-4 w-4 accent-[var(--color-accent)]" />

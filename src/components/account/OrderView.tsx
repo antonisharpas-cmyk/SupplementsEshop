@@ -2,6 +2,7 @@
    cost and how it was paid. Used by the account and by the private order
    link a guest gets. */
 
+import { TierBadge } from '@/components/TierBadge'
 import Link from 'next/link'
 import type { Locale } from '@/config/brand'
 import { getTranslator, type MessageKey } from '@/i18n/messages'
@@ -137,6 +138,14 @@ export function OrderView({
               <dt className="text-muted">{t('cart.subtotal')}</dt>
               <dd>{money(order.subtotalCents)}</dd>
             </div>
+            {order.tier && order.tierDiscountCents > 0 && (
+              <div className="flex items-center justify-between text-accent">
+                <dt>
+                  <TierBadge tier={order.tier} size="xs" />
+                </dt>
+                <dd>−{money(order.tierDiscountCents)}</dd>
+              </div>
+            )}
             {order.promotionDiscountCents > 0 && (
               <div className="flex justify-between text-sale">
                 <dt>{t('cart.discount')}</dt>

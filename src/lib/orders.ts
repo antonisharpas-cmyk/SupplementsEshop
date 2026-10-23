@@ -20,6 +20,7 @@
  * lib/automations.ts, which sends the matching email once.
  * ========================================================================== */
 
+import { costsOf } from '@/lib/stock'
 import { randomBytes } from 'node:crypto'
 import { and, asc, desc, eq, ilike, inArray, lt, or, sql } from 'drizzle-orm'
 import { db } from '@/db'
@@ -260,6 +261,8 @@ export async function placeOrder(args: {
             billingAddress: null,
             subtotalCents: t.listTotalCents,
             promotionDiscountCents: t.promotionDiscountCents,
+            tier: t.tier?.key ?? null,
+            tierDiscountCents: t.tierDiscountCents,
             promoCodeDiscountCents: t.promoCodeDiscountCents,
             deliveryCents: t.deliveryCents,
             totalCents: t.totalCents,
@@ -276,6 +279,8 @@ export async function placeOrder(args: {
           })
           .returning({ id: orders.id, orderNumber: orders.orderNumber })
 
+        /* What each unit cost the shop right now, for the profit (lib/stock.ts). */
+        const unitCosts = await costsOf(view.lines.map((l) => l.variantId), tx)
         await tx.insert(orderItems).values(
           view.lines.map((l) => {
             const p = priced.get(l.variantId)!
@@ -295,6 +300,7 @@ export async function placeOrder(args: {
               lineTotalCents: p.lineFinalCents,
               appliedPromotionId: p.promotionId,
               appliedPromotionSnapshot: p.promotionSnapshot,
+              unitCostCents: unitCosts.has(l.variantId) ? Math.round(unitCosts.get(l.variantId)!) : null,
             }
           }),
         )
@@ -796,6 +802,7 @@ export async function markCashReceived(orderId: string) {
   if (!p) throw new OrderError('There is no unpaid cash payment on this order.')
   await db.update(orders).set({ paidAt: now, updatedAt: now }).where(eq(orders.id, orderId))
   await safely(() => issueInvoice(orderId), 'invoice')
+  await safely(async () => (await import('@/lib/automations')).refreshTierForOrder(orderId), 'membership tier')
 }
 
 export async function setAdminNote(orderId: string, note: string) {
@@ -1047,6 +1054,7 @@ export async function listCustomers(f: { q?: string; page?: number }) {
         email: users.email,
         phone: users.phone,
         isActive: users.isActive,
+        tier: users.tier,
         createdAt: users.createdAt,
         lastLoginAt: users.lastLoginAt,
         orders: sql<number>`(select count(*) from orders o where o.user_id = "users"."id")`.mapWith(Number),
@@ -1076,6 +1084,7 @@ export async function getCustomer(id: string) {
       createdAt: users.createdAt,
       lastLoginAt: users.lastLoginAt,
       emailVerifiedAt: users.emailVerifiedAt,
+      financeAccess: users.financeAccess,
     })
     .from(users)
     .where(eq(users.id, id))

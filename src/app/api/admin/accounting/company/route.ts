@@ -1,7 +1,7 @@
 /* Admin: the company details printed on invoices. */
 
 import { z } from 'zod'
-import { requireAdminApi } from '@/lib/admin'
+import { requireFinanceApi } from '@/lib/admin'
 import { setSetting } from '@/lib/settings'
 import { json, readJson } from '@/lib/api'
 import { audit } from '@/lib/audit'
@@ -15,7 +15,7 @@ const schema = z.object({
 })
 
 export async function PUT(request: Request) {
-  const guard = await requireAdminApi()
+  const guard = await requireFinanceApi()
   if ('response' in guard) return guard.response
   const body = await readJson(request, schema)
   if ('response' in body) return body.response

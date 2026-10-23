@@ -4,6 +4,7 @@ import { getTranslator } from '@/i18n/messages'
 import { t as tr, type ProductCard as ProductCardData } from '@/lib/catalog'
 import { Badge, Price, ProductImage } from './ui'
 import { CardHeart } from './WishlistProvider'
+import { TierBadge } from './TierBadge'
 
 /* Section 5: image, name, price, sale price, discount %, sizes, availability. */
 export function ProductCard({
@@ -36,6 +37,7 @@ export function ProductCard({
             {product.isOnSale && product.discountPercent > 0 && !product.soldOut && (
               <Badge tone="sale">{t('card.saleBadge', { percent: product.discountPercent })}</Badge>
             )}
+            {product.memberTier && !product.soldOut && <TierBadge tier={product.memberTier} suffix={`−${product.memberPercent}%`} size="xs" />}
           </div>
 
           {product.soldOut && (

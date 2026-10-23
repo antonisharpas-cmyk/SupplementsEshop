@@ -48,6 +48,32 @@ export async function guardAdmin(
   return user
 }
 
+/** Owner (SUPER_ADMIN) or a manager: may see costs, profit and the finance area. */
+export const canSeeFinance = (u: { role: UserRole; financeAccess?: boolean } | null | undefined) =>
+  Boolean(u && (u.role === 'SUPER_ADMIN' || (u.role === 'ADMIN' && u.financeAccess)))
+
+/** For finance PAGES: staff without finance access get the 404 page. */
+export async function guardFinance(next = '/admin'): Promise<SessionUser> {
+  const user = await guardAdmin(next)
+  if (!canSeeFinance(user)) notFound()
+  return user
+}
+
+/** For finance API ROUTES. */
+export async function requireFinanceApi(): Promise<{ user: SessionUser } | { response: Response }> {
+  const guard = await requireAdminApi()
+  if ('response' in guard) return guard
+  if (!canSeeFinance(guard.user)) {
+    return {
+      response: Response.json(
+        { ok: false, error: 'FORBIDDEN', message: 'Only the owner and managers can do this.' },
+        { status: 403 },
+      ),
+    }
+  }
+  return guard
+}
+
 /**
  * For API ROUTES, which must answer with a status rather than a rendered page.
  * Returns the user, or a Response to send back untouched.

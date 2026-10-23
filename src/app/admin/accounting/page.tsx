@@ -8,7 +8,7 @@
  * ========================================================================== */
 
 import Link from 'next/link'
-import { guardAdmin } from '@/lib/admin'
+import { guardFinance } from '@/lib/admin'
 import { ensureInvoices, invoiceTotals, listInvoices } from '@/lib/invoices'
 import { filterFrom } from '@/lib/accounting-export'
 import { formatMoney } from '@/lib/pricing'
@@ -16,6 +16,7 @@ import { getSettings } from '@/lib/settings'
 import { Empty, PageHead, Pagination, Pill, Stat, Table, btn, input, withParams } from '@/components/admin/ui'
 import { DateTimeField } from '@/components/admin/DateTimeField'
 import { CompanyDetailsForm } from '@/components/admin/CompanyDetailsForm'
+import { DocumentsDownload } from '@/components/admin/finance/DocumentsDownload'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Accounting' }
@@ -44,7 +45,7 @@ function periods(now = new Date()) {
 }
 
 export default async function AccountingPage({ searchParams }: { searchParams: Promise<SP> }) {
-  await guardAdmin('/admin/accounting')
+  await guardFinance('/admin/accounting')
   const sp = await searchParams
   const get = (k: string) => (typeof sp[k] === 'string' ? (sp[k] as string) : undefined)
 
@@ -108,6 +109,8 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
           Add the company name and VAT number at the bottom of this page, so they print on every new invoice.
         </p>
       )}
+
+      <DocumentsDownload from={filter.from || P[0].from} to={filter.to || P[0].to} periods={P.filter((p) => p.key !== 'all').map((p) => ({ label: p.label, from: p.from, to: p.to }))} />
 
       <div className="mb-5 flex flex-wrap gap-2">
         {P.map((p) => (
@@ -201,7 +204,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
                   {i.kind === 'CREDIT_NOTE' ? <Pill tone="bad">Credit note</Pill> : <Pill tone="ok">Invoice</Pill>}
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/admin/orders/${i.orderId}`} className="font-mono text-muted underline-offset-4 hover:text-ink hover:underline">
+                  <Link href={i.orderId ? `/admin/orders/${i.orderId}` : `/admin/wholesale/${i.wholesaleSaleId}`} className="font-mono text-muted underline-offset-4 hover:text-ink hover:underline">
                     {i.orderNumber}
                   </Link>
                 </td>

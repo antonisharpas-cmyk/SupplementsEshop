@@ -48,6 +48,11 @@ export type TemplateKey =
   | 'abandoned_bag_followup'
   | 'back_in_stock'
   | 'review_request'
+  | 'tier_upgraded'
+  | 'tier_near'
+  | 'tier_expiring'
+  | 'tier_last_call'
+  | 'tier_downgraded'
   | 'order_received'
   | 'payment_confirmed'
   | 'order_confirmed'
@@ -114,6 +119,16 @@ export const VARIABLES: Record<string, VarDef> = {
   pickup_address: { label: 'Store address for collection', sample: 'AIONIX store, Larnaca' },
   opening_hours: { label: 'Store opening hours', sample: BRAND.contact.openingHours },
   refund_amount: { label: 'Refunded amount, when there is one', sample: '€55.00' },
+  tier_name: { label: 'The customer’s membership tier', sample: 'Champion' },
+  tier_discount: { label: 'That tier’s discount', sample: '12%' },
+  expires_on: { label: 'When the tier ends unless renewed', sample: '23 April 2027' },
+  next_tier: { label: 'The next tier up', sample: 'Pro' },
+  next_discount: { label: 'The next tier’s discount', sample: '15%' },
+  needed: { label: 'What is still needed (orders and spend)', sample: '2 more orders and €140.00 more spent' },
+  lower_tier: { label: 'The tier below', sample: 'Elite' },
+  lower_discount: { label: 'The tier below’s discount', sample: '8%' },
+  old_tier: { label: 'The tier they had before', sample: 'Pro' },
+  membership_url: { label: 'Link to the membership page in the account', sample: 'https://aionix.example/en/account/membership' },
   conversation_date: { label: 'When the conversation started', sample: '30 Sept 2026, 12:53' },
   transcript: {
     label: 'The whole conversation',
@@ -452,6 +467,83 @@ export const TEMPLATES: TemplateDef[] = [
         body: 'Здравствуйте, {{customer_name}}!\n\nВаш заказ {{order_number}} пришёл несколько дней назад. Надеемся, всё подошло.\n\nЕсли что-то не так, ответьте на это письмо, мы всё решим.',
         cta: 'Мой заказ',
       },
+    },
+  },
+
+  /* -------------------------------------------- membership tiers --- */
+  {
+    key: 'tier_upgraded',
+    name: 'Membership: new tier',
+    category: 'lifecycle',
+    required: false,
+    defaultEnabled: true,
+    trigger: 'Tier earned',
+    ctaUrl: 'membership_url',
+    variables: ['customer_name', 'tier_name', 'tier_discount', 'expires_on', 'next_tier', 'next_discount', 'needed', 'lower_tier', 'lower_discount', 'old_tier', 'membership_url'],
+    words: {
+      en: { subject: 'Your {{old_tier}} tier has ended', body: 'Congratulations {{customer_name}}, you are now {{tier_name}}.\n\nFrom now on every price in the shop is {{tier_discount}} lower for you, before any promotion. Just sign in and shop.\n\nYour tier lasts until {{expires_on}} and renews by itself while you keep training with us.', cta: 'My membership' },
+      el: { subject: 'Το επίπεδο {{old_tier}} έληξε', body: 'Συγχαρητήρια {{customer_name}}, είσαι πλέον {{tier_name}}.\n\nΑπό τώρα κάθε τιμή στο κατάστημα είναι {{tier_discount}} χαμηλότερη για σένα, πριν από κάθε προσφορά. Απλώς συνδέσου και ψώνισε.\n\nΤο επίπεδό σου ισχύει έως {{expires_on}} και ανανεώνεται μόνο του όσο συνεχίζεις μαζί μας.', cta: 'Η συνδρομή μου' },
+      ru: { subject: 'Ваш уровень {{old_tier}} закончился', body: 'Поздравляем, {{customer_name}}, теперь вы {{tier_name}}.\n\nС этого момента все цены в магазине для вас на {{tier_discount}} ниже, до любых акций. Просто войдите и делайте покупки.\n\nУровень действует до {{expires_on}} и продлевается сам, пока вы продолжаете с нами.', cta: 'Моё членство' },
+    },
+  },
+  {
+    key: 'tier_near',
+    name: 'Membership: close to the next tier',
+    category: 'lifecycle',
+    required: false,
+    defaultEnabled: true,
+    trigger: 'Close to the next tier',
+    ctaUrl: 'membership_url',
+    variables: ['customer_name', 'tier_name', 'tier_discount', 'expires_on', 'next_tier', 'next_discount', 'needed', 'lower_tier', 'lower_discount', 'old_tier', 'membership_url'],
+    words: {
+      en: { subject: 'You are close to {{next_tier}}', body: 'Hi {{customer_name}},\n\nYou are almost at {{next_tier}}: {{needed}} and every price becomes {{next_discount}} lower for you.', cta: 'My membership' },
+      el: { subject: 'Είσαι κοντά στο {{next_tier}}', body: 'Γεια σου {{customer_name}},\n\nΕίσαι σχεδόν {{next_tier}}: {{needed}} και κάθε τιμή γίνεται {{next_discount}} χαμηλότερη για σένα.', cta: 'Η συνδρομή μου' },
+      ru: { subject: 'Вы почти {{next_tier}}', body: 'Здравствуйте, {{customer_name}}!\n\nВы почти достигли уровня {{next_tier}}: {{needed}}, и все цены станут для вас на {{next_discount}} ниже.', cta: 'Моё членство' },
+    },
+  },
+  {
+    key: 'tier_expiring',
+    name: 'Membership: tier ending soon',
+    category: 'lifecycle',
+    required: false,
+    defaultEnabled: true,
+    trigger: 'Tier ends soon (before stepping down)',
+    ctaUrl: 'membership_url',
+    variables: ['customer_name', 'tier_name', 'tier_discount', 'expires_on', 'next_tier', 'next_discount', 'needed', 'lower_tier', 'lower_discount', 'old_tier', 'membership_url'],
+    words: {
+      en: { subject: 'Your {{tier_name}} tier ends on {{expires_on}}', body: 'Hi {{customer_name}},\n\nYour {{tier_name}} tier, with {{tier_discount}} off every price, ends on {{expires_on}}.\n\nTo keep it: {{needed}} before then. Otherwise you move to {{lower_tier}} ({{lower_discount}} off).', cta: 'My membership' },
+      el: { subject: 'Το επίπεδο {{tier_name}} λήγει στις {{expires_on}}', body: 'Γεια σου {{customer_name}},\n\nΤο επίπεδό σου {{tier_name}}, με {{tier_discount}} έκπτωση σε κάθε τιμή, λήγει στις {{expires_on}}.\n\nΓια να το κρατήσεις: {{needed}} μέχρι τότε. Αλλιώς περνάς στο {{lower_tier}} ({{lower_discount}} έκπτωση).', cta: 'Η συνδρομή μου' },
+      ru: { subject: 'Уровень {{tier_name}} заканчивается {{expires_on}}', body: 'Здравствуйте, {{customer_name}}!\n\nВаш уровень {{tier_name}} со скидкой {{tier_discount}} на все цены заканчивается {{expires_on}}.\n\nЧтобы сохранить его: {{needed}} до этой даты. Иначе вы перейдёте на {{lower_tier}} (скидка {{lower_discount}}).', cta: 'Моё членство' },
+    },
+  },
+  {
+    key: 'tier_last_call',
+    name: 'Membership: tier ends in 2 days',
+    category: 'lifecycle',
+    required: false,
+    defaultEnabled: true,
+    trigger: 'Last reminder, 2 days before the tier ends',
+    ctaUrl: 'membership_url',
+    variables: ['customer_name', 'tier_name', 'tier_discount', 'expires_on', 'next_tier', 'next_discount', 'needed', 'lower_tier', 'lower_discount', 'old_tier', 'membership_url'],
+    words: {
+      en: { subject: 'Last 2 days of your {{tier_name}} tier', body: 'Hi {{customer_name}},\n\nYour {{tier_name}} tier, with {{tier_discount}} off every price, ends on {{expires_on}}.\n\nTo keep it, there is still time: {{needed}} before then. Otherwise you move to {{lower_tier}} ({{lower_discount}} off).', cta: 'Keep my tier' },
+      el: { subject: 'Τελευταίες 2 μέρες για το επίπεδο {{tier_name}}', body: 'Γεια σου {{customer_name}},\n\nΤο επίπεδό σου {{tier_name}}, με {{tier_discount}} έκπτωση σε κάθε τιμή, λήγει στις {{expires_on}}.\n\nΠρολαβαίνεις να το κρατήσεις: {{needed}} μέχρι τότε. Αλλιώς περνάς στο {{lower_tier}} ({{lower_discount}} έκπτωση).', cta: 'Κράτα το επίπεδό μου' },
+      ru: { subject: 'Последние 2 дня уровня {{tier_name}}', body: 'Здравствуйте, {{customer_name}}!\n\nВаш уровень {{tier_name}} со скидкой {{tier_discount}} на все цены заканчивается {{expires_on}}.\n\nЕщё есть время его сохранить: {{needed}} до этой даты. Иначе вы перейдёте на {{lower_tier}} (скидка {{lower_discount}}).', cta: 'Сохранить уровень' },
+    },
+  },
+  {
+    key: 'tier_downgraded',
+    name: 'Membership: moved down a tier',
+    category: 'lifecycle',
+    required: false,
+    defaultEnabled: true,
+    trigger: 'Tier ended, moved down one tier',
+    ctaUrl: 'membership_url',
+    variables: ['customer_name', 'tier_name', 'tier_discount', 'expires_on', 'next_tier', 'next_discount', 'needed', 'lower_tier', 'lower_discount', 'old_tier', 'membership_url'],
+    words: {
+      en: { subject: 'You are now AIONIX {{tier_name}}', body: 'Hi {{customer_name}},\n\nYour {{old_tier}} period has ended, so you are now {{tier_name}}, with {{tier_discount}} off every price.\n\nTo get back to {{old_tier}}: {{needed}}.', cta: 'My membership' },
+      el: { subject: 'Είσαι πλέον AIONIX {{tier_name}}', body: 'Γεια σου {{customer_name}},\n\nΗ περίοδος {{old_tier}} ολοκληρώθηκε, οπότε είσαι πλέον {{tier_name}}, με {{tier_discount}} έκπτωση σε κάθε τιμή.\n\nΓια να επιστρέψεις στο {{old_tier}}: {{needed}}.', cta: 'Η συνδρομή μου' },
+      ru: { subject: 'Теперь вы AIONIX {{tier_name}}', body: 'Здравствуйте, {{customer_name}}!\n\nПериод {{old_tier}} закончился, теперь вы {{tier_name}} со скидкой {{tier_discount}} на все цены.\n\nЧтобы вернуться на {{old_tier}}: {{needed}}.', cta: 'Моё членство' },
     },
   },
 

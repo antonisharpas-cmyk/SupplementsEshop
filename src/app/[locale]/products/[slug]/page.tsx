@@ -6,6 +6,7 @@
  * project is Next.js rather than a client-rendered SPA.
  * ========================================================================== */
 
+import { TierBadge } from '@/components/TierBadge'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -160,6 +161,12 @@ export default async function ProductPage({ params }: Props) {
               currency={product.currency}
               size="lg"
             />
+            {product.memberTier && (
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                <TierBadge tier={product.memberTier} size="xs" />
+                {t('tier.yourPrice', { percent: product.memberPercent })}
+              </p>
+            )}
           </div>
 
           {user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? (

@@ -1,6 +1,7 @@
 /* Members: everyone with an account, newest first, with what they have
    ordered and spent. */
 
+import { TierBadge } from '@/components/TierBadge'
 import Link from 'next/link'
 import { guardAdmin } from '@/lib/admin'
 import { listCustomers } from '@/lib/orders'
@@ -27,7 +28,7 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
       {list.rows.length === 0 ? (
         <Empty>No customers{q ? ` matching “${q}”` : ' yet'}.</Empty>
       ) : (
-        <Table head={['Name', 'Email', 'Phone', 'Joined', 'Last sign in', 'Orders', 'Spent', '']}>
+        <Table head={['Name', 'Tier', 'Email', 'Phone', 'Joined', 'Last sign in', 'Orders', 'Spent', '']}>
           {list.rows.map((c) => (
             <tr key={c.id} className="hover:bg-paper-2">
               <td className="px-4 py-3">
@@ -35,6 +36,7 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
                   {c.firstName} {c.lastName}
                 </Link>
               </td>
+              <td className="px-4 py-3"><TierBadge tier={c.tier} size="xs" /></td>
               <td className="px-4 py-3">{c.email}</td>
               <td className="px-4 py-3 whitespace-nowrap">{c.phone}</td>
               <td className="px-4 py-3 whitespace-nowrap text-muted">{day(c.createdAt)}</td>

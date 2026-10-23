@@ -18,7 +18,7 @@ export async function PATCH(request: Request, context: Ctx) {
   const body = await readJson(request, variantSchema.omit({ onHand: true }))
   if ('response' in body) return body.response
   try {
-    await updateVariant(id, variantId, { ...body.data, sku: body.data.sku || undefined })
+    await updateVariant(id, variantId, { ...body.data, sku: undefined })
     await audit({ actor: guard.user, action: 'variant.update', entity: 'variant', entityId: variantId })
     revalidatePath('/[locale]', 'layout')
     return json({ ok: true })

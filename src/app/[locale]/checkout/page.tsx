@@ -179,6 +179,8 @@ export default async function CheckoutPage({
             totals={{
               listTotalCents: view.totals.listTotalCents,
               promotionDiscountCents: view.totals.promotionDiscountCents,
+              tier: view.totals.tier,
+              tierDiscountCents: view.totals.tierDiscountCents,
               promoCode: view.totals.promoCode?.code ?? null,
               promoCodeDiscountCents: view.totals.promoCodeDiscountCents,
               subtotalAfterDiscounts: afterDiscounts,

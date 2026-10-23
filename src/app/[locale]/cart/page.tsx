@@ -6,6 +6,7 @@
  * POSTs and refreshes.
  * ========================================================================== */
 
+import { TierBadge } from '@/components/TierBadge'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -115,6 +116,15 @@ export default async function CartPage({ params }: { params: Promise<{ locale: s
                 <dt className="text-muted">{t('cart.subtotal')}</dt>
                 <dd>{money(view.totals.listTotalCents)}</dd>
               </div>
+
+              {view.totals.tier && view.totals.tierDiscountCents > 0 && (
+                <div className="flex items-center justify-between text-accent">
+                  <dt className="flex items-center gap-2">
+                    <TierBadge tier={view.totals.tier.key} size="xs" /> −{view.totals.tier.percent}%
+                  </dt>
+                  <dd>−{money(view.totals.tierDiscountCents)}</dd>
+                </div>
+              )}
 
               {view.totals.promotionDiscountCents > 0 && (
                 <div className="flex justify-between text-sale">

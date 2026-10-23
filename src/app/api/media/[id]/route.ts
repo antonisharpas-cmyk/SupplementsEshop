@@ -5,6 +5,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { media } from '@/db/schema'
+import { sql } from 'drizzle-orm'
 import { UUID } from '@/lib/api'
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -13,7 +14,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const [row] = await db
     .select({ bytes: media.bytes, contentType: media.contentType })
     .from(media)
-    .where(eq(media.id, id))
+    /* Receipts and supplier invoices are private: served only through
+       /api/admin/finance/files, to the owner and managers. */
+    .where(sql`${eq(media.id, id)} and not exists (select 1 from attachments a where a.media_id = ${media.id})`)
     .limit(1)
   if (!row) return new Response('Not found', { status: 404 })
   return new Response(new Uint8Array(row.bytes), {

@@ -116,6 +116,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
             </ul>
             <dl className="mt-4 ml-auto max-w-xs space-y-1.5">
               <div className="flex justify-between"><dt className="text-muted">Subtotal</dt><dd>{formatMoney(order.subtotalCents)}</dd></div>
+              {order.tier && order.tierDiscountCents > 0 && <div className="flex justify-between text-accent"><dt>Membership ({order.tier})</dt><dd>−{formatMoney(order.tierDiscountCents)}</dd></div>}
               {order.promotionDiscountCents > 0 && <div className="flex justify-between text-sale"><dt>Promotions</dt><dd>−{formatMoney(order.promotionDiscountCents)}</dd></div>}
               {order.promoCodeDiscountCents > 0 && (
                 <div className="flex justify-between text-sale">

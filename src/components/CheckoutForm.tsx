@@ -9,6 +9,7 @@
  * entered by staff in Admin).
  * ========================================================================== */
 
+import { TierBadge } from '@/components/TierBadge'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { Locale } from '@/config/brand'
@@ -80,6 +81,8 @@ export function CheckoutForm(props: {
   totals: {
     listTotalCents: number
     promotionDiscountCents: number
+    tier?: { key: string; percent: number } | null
+    tierDiscountCents?: number
     promoCode: string | null
     promoCodeDiscountCents: number
     subtotalAfterDiscounts: number
@@ -406,6 +409,14 @@ export function CheckoutForm(props: {
               <dt className="text-muted">{t('cart.subtotal')}</dt>
               <dd>{money(totals.listTotalCents)}</dd>
             </div>
+            {totals.tier && (totals.tierDiscountCents ?? 0) > 0 && (
+              <div className="flex items-center justify-between text-accent">
+                <dt className="flex items-center gap-2">
+                  <TierBadge tier={totals.tier.key} size="xs" /> −{totals.tier.percent}%
+                </dt>
+                <dd>−{money(totals.tierDiscountCents ?? 0)}</dd>
+              </div>
+            )}
             {totals.promotionDiscountCents > 0 && (
               <div className="flex justify-between text-sale">
                 <dt>{t('cart.discount')}</dt>

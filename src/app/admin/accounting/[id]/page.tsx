@@ -34,6 +34,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const money = (c: number) => formatMoney(c, 'en', inv.currency)
   const sign = credit ? -1 : 1
   const original = credit ? related.find((r) => r.id === inv.relatesToId) : null
+  const wholesale = Boolean(inv.wholesaleSaleId)
 
   return (
     <>
@@ -42,8 +43,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           ← Accounting
         </Link>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/admin/orders/${inv.orderId}`} className={btn.secondary}>
-            Order {inv.orderNumber}
+          <Link href={inv.orderId ? `/admin/orders/${inv.orderId}` : `/admin/wholesale/${inv.wholesaleSaleId}`} className={btn.secondary}>
+            {inv.orderId ? 'Order' : 'Wholesale sale'} {inv.orderNumber}
           </Link>
           <PrintButton className={btn.primary}>Print or save as PDF</PrintButton>
         </div>
@@ -76,7 +77,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs font-semibold tracking-[0.14em] text-[#777] uppercase">{credit ? 'Credit note' : 'Invoice / Receipt'}</p>
+            <p className="text-xs font-semibold tracking-[0.14em] text-[#777] uppercase">{credit ? 'Credit note' : wholesale ? 'Invoice' : 'Invoice / Receipt'}</p>
             <p className="mt-1 font-mono text-xl font-semibold text-[#111]">{inv.number}</p>
             <dl className="mt-3 space-y-0.5 text-sm text-[#555]">
               <div>
@@ -84,13 +85,22 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 <dd className="inline text-[#111]">{when(inv.issuedAt)}</dd>
               </div>
               <div>
-                <dt className="inline">Order: </dt>
+                <dt className="inline">{wholesale ? 'Sale' : 'Order'}: </dt>
                 <dd className="inline font-mono text-[#111]">{inv.orderNumber}</dd>
               </div>
-              <div>
-                <dt className="inline">{credit ? 'Refunded by: ' : 'Paid upon issuance with: '}</dt>
-                <dd className="inline text-[#111]">{inv.paymentMethod === 'cod' ? 'Cash' : 'Card'}</dd>
-              </div>
+              {wholesale ? (
+                !credit && (
+                  <div>
+                    <dt className="inline">Payment: </dt>
+                    <dd className="inline text-[#111]">{inv.dueAt ? `due by ${when(inv.dueAt)}` : 'on delivery'}</dd>
+                  </div>
+                )
+              ) : (
+                <div>
+                  <dt className="inline">{credit ? 'Refunded by: ' : 'Paid upon issuance with: '}</dt>
+                  <dd className="inline text-[#111]">{inv.paymentMethod === 'cod' ? 'Cash' : 'Card'}</dd>
+                </div>
+              )}
               {original && (
                 <div>
                   <dt className="inline">Credits invoice: </dt>
@@ -110,6 +120,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 {l}
               </p>
             ))}
+            {inv.customer.vatNumber && <p className="text-[#555]">VAT {inv.customer.vatNumber}</p>}
+            {inv.customer.taxId && <p className="text-[#555]">TIC {inv.customer.taxId}</p>}
             {inv.customer.email && <p className="text-[#555]">{inv.customer.email}</p>}
             {inv.customer.phone && <p className="text-[#555]">{inv.customer.phone}</p>}
           </div>
@@ -120,7 +132,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             <tr className="border-b border-[#ddd] text-left text-xs tracking-[0.1em] text-[#777] uppercase">
               <th className="py-2 pr-3 font-semibold">Description</th>
               <th className="py-2 px-3 text-right font-semibold">Qty</th>
-              <th className="py-2 px-3 text-right font-semibold">Unit</th>
+              <th className="py-2 px-3 text-right font-semibold">{inv.linesNet ? 'Unit before VAT' : 'Unit'}</th>
               <th className="py-2 pl-3 text-right font-semibold">Amount</th>
             </tr>
           </thead>
@@ -149,18 +161,21 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             <span className="tabular-nums">{money(sign * inv.vatCents)}</span>
           </div>
           <div className="flex justify-between border-t-2 border-[#111] pt-2 text-base font-bold text-[#111]">
-            <span>{credit ? 'Total credited' : 'Total paid'}</span>
+            <span>{credit ? 'Total credited' : wholesale ? 'Total' : 'Total paid'}</span>
             <span className="tabular-nums">{money(sign * inv.totalCents)}</span>
           </div>
-          <p className="pt-1 text-right text-xs text-[#888]">Prices include VAT</p>
-          <p className="pt-3 text-right text-xs font-semibold text-[#111]">
-            {credit
-              ? `Refund recorded on ${when(inv.issuedAt)}${original ? `, against invoice ${original.number}` : ''}.`
-              : `Paid in full on ${when(inv.issuedAt)}. This document is your VAT invoice and your receipt.`}
-          </p>
+          <p className="pt-1 text-right text-xs text-[#888]">{inv.linesNet ? 'Prices before VAT' : 'Prices include VAT'}</p>
+          {!wholesale && (
+            <p className="pt-3 text-right text-xs font-semibold text-[#111]">
+              {credit
+                ? `Refund recorded on ${when(inv.issuedAt)}${original ? `, against invoice ${original.number}` : ''}.`
+                : `Paid in full on ${when(inv.issuedAt)}. This document is your VAT invoice and your receipt.`}
+            </p>
+          )}
+          {wholesale && credit && original && <p className="pt-3 text-right text-xs font-semibold text-[#111]">Against invoice {original.number}.</p>}
         </div>
 
-        {inv.note && <p className="mt-10 border-t border-[#eee] pt-5 text-center text-sm text-[#555]">{inv.note}</p>}
+        {inv.note && <p className="mt-10 whitespace-pre-line border-t border-[#eee] pt-5 text-center text-sm text-[#555]">{inv.note}</p>}
       </article>
     </>
   )

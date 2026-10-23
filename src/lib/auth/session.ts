@@ -33,6 +33,8 @@ export type SessionUser = {
   phone: string
   role: UserRole
   emailVerifiedAt: Date | null
+  /* A manager: sees costs, profit and the finance area (SUPER_ADMIN always). */
+  financeAccess: boolean
 }
 
 function toSessionUser(u: User): SessionUser {
@@ -44,6 +46,7 @@ function toSessionUser(u: User): SessionUser {
     phone: u.phone,
     role: u.role,
     emailVerifiedAt: u.emailVerifiedAt,
+    financeAccess: u.financeAccess,
   }
 }
 
