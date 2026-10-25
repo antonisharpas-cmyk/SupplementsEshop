@@ -14,8 +14,11 @@ import { config } from 'dotenv'
    a script run from the Shell tab talks to the database inside the running
    service, exactly as `npm start` does (a DATABASE_URL left in Render's
    settings is ignored then, there too). Set before the files below, so the
-   development address in .env.development can never be picked up there. */
-if (process.env.EMBEDDED_DB_DIR) {
+   development address in .env.development can never be picked up there.
+   A database on this machine already chosen by the caller is kept: the build
+   (scripts/build-server.mjs) and `npm start` pass their own. */
+const onThisMachine = /@(127\.0\.0\.1|localhost)(:\d+)?\//.test(process.env.DATABASE_URL ?? '')
+if (process.env.EMBEDDED_DB_DIR && !onThisMachine) {
   process.env.DATABASE_URL = `postgresql://postgres@127.0.0.1:${process.env.EMBEDDED_DB_PORT ?? 5433}/postgres`
   process.env.DATABASE_SSL = 'disable'
 }
