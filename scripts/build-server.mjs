@@ -11,7 +11,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const entries = ['start', 'prepare-db', 'db-push', 'seed', 'staff']
+const entries = ['start', 'prepare-db', 'db-push', 'seed', 'staff', 'clear-test-data']
 
 /* Next's subpath imports (next/headers …) need their .js file named when
    loaded as plain ES modules outside Next. */

@@ -4,7 +4,9 @@
 
    · Support (ErgonSite) is the super admin. The old starter account
      admin@example.com becomes it, if it is still there.
-   · Each shareholder gets an admin account with the same access.
+   · Each shareholder gets an admin account with the same access, as a
+     manager (costs, profit and the finance area). An account a shareholder
+     already made as a customer becomes their admin account, password kept.
    · Safe to run again: existing accounts keep their password (each person
      changes their own in Admin, My account) unless --reset is given.
 
@@ -66,6 +68,8 @@ async function main() {
         firstName: s.firstName,
         lastName: s.lastName,
         role: s.role,
+        /* Shareholders see costs, profit and the finance area. */
+        financeAccess: s.kind === 'shareholder',
         emailVerifiedAt: new Date(),
         isActive: true,
       })
@@ -77,6 +81,7 @@ async function main() {
       .update(users)
       .set({
         role: s.role,
+        financeAccess: s.kind === 'shareholder' ? true : existing.financeAccess,
         isActive: true,
         emailVerifiedAt: existing.emailVerifiedAt ?? new Date(),
         ...(s.kind === 'support' ? { firstName: s.firstName, lastName: s.lastName } : {}),
