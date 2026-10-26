@@ -12,9 +12,9 @@
 
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { db } from '@/db'
-import { categories, products } from '@/db/schema'
+import { categories, media, products } from '@/db/schema'
 import { AdminError } from '@/lib/admin'
-import { slugify } from '@/lib/admin-products'
+import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, mediaIdFromUrl, sniffImage, slugify } from '@/lib/admin-products'
 import { MAX_CATEGORY_DEPTH } from '@/lib/catalog'
 
 export type L10n = { en: string; el?: string; ru?: string }
@@ -27,6 +27,8 @@ export type AdminCategory = {
   isActive: boolean
   position: number
   depth: number
+  /** The homepage tile picture, if any. */
+  imageUrl: string | null
   products: number
   children: AdminCategory[]
 }
@@ -65,6 +67,7 @@ export async function adminCategoryTree(): Promise<AdminCategory[]> {
             isActive: r.isActive,
             position: r.position,
             depth,
+            imageUrl: r.imageUrl,
             products: n.get(r.id) ?? 0,
             children: build(r.id, depth + 1),
           }))
@@ -164,4 +167,39 @@ export async function deleteCategory(id: string) {
   if (product) throw new AdminError('Products are filed under it. Move them to another category first, or hide it instead.')
   const rows = await db.delete(categories).where(eq(categories.id, id)).returning({ id: categories.id })
   if (!rows.length) throw new AdminError('That category no longer exists.')
+}
+
+/* ------------------------------------------------------ tile pictures -- */
+
+/** The picture on the category's homepage tile (and its page header). It
+ *  replaces the drawn placeholder; the old uploaded picture is removed. */
+export async function setCategoryPhoto(id: string, file: { bytes: Buffer; contentType: string; filename?: string | null }) {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.contentType)) throw new AdminError('Upload a JPG, PNG, WebP, AVIF or GIF picture.')
+  if (file.bytes.length === 0) throw new AdminError('That file is empty.')
+  if (file.bytes.length > MAX_UPLOAD_BYTES) throw new AdminError('That picture is over 6 MB. Save it smaller and try again.')
+  if (!sniffImage(file.bytes)) throw new AdminError('That file is not a picture the shop can show.')
+  const [cat] = await db.select({ imageUrl: categories.imageUrl }).from(categories).where(eq(categories.id, id))
+  if (!cat) throw new AdminError('That category no longer exists.')
+  return db.transaction(async (tx) => {
+    const [stored] = await tx
+      .insert(media)
+      .values({ contentType: file.contentType, bytes: file.bytes, size: file.bytes.length, filename: file.filename?.slice(0, 200) ?? null })
+      .returning({ id: media.id })
+    const url = `/api/media/${stored.id}`
+    await tx.update(categories).set({ imageUrl: url }).where(eq(categories.id, id))
+    const old = cat.imageUrl ? mediaIdFromUrl(cat.imageUrl) : null
+    if (old) await tx.delete(media).where(eq(media.id, old))
+    return url
+  })
+}
+
+/** Back to no picture: the tile shows just the name. */
+export async function removeCategoryPhoto(id: string) {
+  const [cat] = await db.select({ imageUrl: categories.imageUrl }).from(categories).where(eq(categories.id, id))
+  if (!cat) throw new AdminError('That category no longer exists.')
+  await db.transaction(async (tx) => {
+    await tx.update(categories).set({ imageUrl: null }).where(eq(categories.id, id))
+    const old = cat.imageUrl ? mediaIdFromUrl(cat.imageUrl) : null
+    if (old) await tx.delete(media).where(eq(media.id, old))
+  })
 }

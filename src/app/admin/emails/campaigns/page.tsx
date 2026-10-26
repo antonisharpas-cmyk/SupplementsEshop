@@ -11,6 +11,7 @@ import { getSettings } from '@/lib/settings'
 import { CampaignComposer } from '@/components/admin/CampaignComposer'
 import { CampaignCancel } from '@/components/admin/CampaignCancel'
 import { Pill } from '@/components/admin/ui'
+import { Paged } from '@/components/admin/Paged'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Campaigns' }
@@ -55,7 +56,7 @@ export default async function CampaignsPage() {
         {campaigns.length === 0 ? (
           <p className="mt-4 text-sm text-muted">Nothing sent yet.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-[var(--color-line)] text-sm">
+          <Paged as="ul" className="mt-4 divide-y divide-[var(--color-line)] text-sm">
             {campaigns.map((c) => {
               const content = (c.content ?? {}) as { audience?: string; promoCode?: string }
               return (
@@ -92,7 +93,7 @@ export default async function CampaignsPage() {
                 </li>
               )
             })}
-          </ul>
+          </Paged>
         )}
       </section>
     </div>

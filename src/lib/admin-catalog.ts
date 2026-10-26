@@ -106,7 +106,7 @@ export type AdminProductListRow = {
   sizesLow: number
 }
 
-export const PRODUCTS_PER_PAGE = 50
+export const PRODUCTS_PER_PAGE = 15
 
 export async function listAdminProductRows(
   f: ProductFilters,
@@ -286,7 +286,7 @@ export type StockRow = {
   productStatus: ProductStatus
 }
 
-export const STOCK_PER_PAGE = 100
+export const STOCK_PER_PAGE = 15
 
 /* Sizes in the order people read them (XS → XXL), not alphabetically
    (L, M, S, XL, XS). Anything unlisted, "One size", "38", sorts after. */

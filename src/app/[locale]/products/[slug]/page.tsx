@@ -22,7 +22,8 @@ import { isInWishlist } from '@/lib/wishlist'
 import { ProductCard } from '@/components/ProductCard'
 import { RecentlyViewed } from '@/components/RecentlyViewed'
 import { TrackView } from '@/components/TrackView'
-import { Badge, Price, ProductImage, SectionHead } from '@/components/ui'
+import { Badge, Price, SectionHead } from '@/components/ui'
+import { ProductGallery } from '@/components/ProductGallery'
 
 type Props = { params: Promise<{ locale: string; slug: string }> }
 
@@ -125,17 +126,15 @@ export default async function ProductPage({ params }: Props) {
 
       <div className="grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
         {/* ------------------------------------------------------ gallery -- */}
-        <div className="grid gap-2 sm:grid-cols-2">
-          {product.images.map((image, i) => (
-            <ProductImage
-              key={image.url + i}
-              src={image.url}
-              alt={tr(image.alt, locale) || tr(product.name, locale)}
-              priority={i === 0}
-              className={product.images.length === 1 ? 'sm:col-span-2' : ''}
-            />
-          ))}
-        </div>
+        <ProductGallery
+          name={tr(product.name, locale)}
+          photos={product.images.map((image) => ({
+            url: image.url,
+            alt: tr(image.alt, locale) || tr(product.name, locale),
+            variantId: image.variantId,
+          }))}
+          variants={product.variants.map((v) => ({ id: v.id, colorName: v.colorName, colorHex: v.colorHex }))}
+        />
 
         {/* -------------------------------------------------------- panel -- */}
         <div className="lg:sticky lg:top-28 lg:self-start">

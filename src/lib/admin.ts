@@ -361,11 +361,11 @@ export async function listPickerProducts(): Promise<PickerProduct[]> {
   }))
 }
 
-export type AdminProductImage = { id: string; url: string; position: number }
+export type AdminProductImage = { id: string; url: string; position: number; variantId: string | null }
 
 export async function getProductImages(productId: string): Promise<AdminProductImage[]> {
   return db
-    .select({ id: productImages.id, url: productImages.url, position: productImages.position })
+    .select({ id: productImages.id, url: productImages.url, position: productImages.position, variantId: productImages.variantId })
     .from(productImages)
     .where(eq(productImages.productId, productId))
     .orderBy(asc(productImages.position), asc(productImages.createdAt))

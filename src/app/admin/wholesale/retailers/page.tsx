@@ -6,6 +6,7 @@ import { listRetailers, listSales } from '@/lib/wholesale'
 import { formatMoney } from '@/lib/pricing'
 import { Empty, Pill, btn } from '@/components/admin/ui'
 import { RetailerForm } from '@/components/admin/finance/RetailerForm'
+import { Paged } from '@/components/admin/Paged'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Retailers' }
@@ -24,7 +25,8 @@ export default async function RetailersPage() {
       {list.length === 0 ? (
         <Empty>No retailers yet.</Empty>
       ) : (
-        list.map(({ retailer: r, sales, netCents }) => (
+        <Paged className="space-y-6">
+          {list.map(({ retailer: r, sales, netCents }) => (
           <details key={r.id} className="group rounded-2xl border border-line bg-paper">
             <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-4">
               <span>
@@ -53,7 +55,8 @@ export default async function RetailersPage() {
               <RetailerForm initial={r} />
             </div>
           </details>
-        ))
+        ))}
+        </Paged>
       )}
     </div>
   )

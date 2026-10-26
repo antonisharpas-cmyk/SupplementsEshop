@@ -6,6 +6,7 @@ import { VAT_TREATMENTS, type VatTreatment } from '@/lib/finance'
 import { formatMoney } from '@/lib/pricing'
 import { Empty, Pill } from '@/components/admin/ui'
 import { SupplierForm } from '@/components/admin/finance/SupplierForm'
+import { Paged } from '@/components/admin/Paged'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Suppliers' }
@@ -22,7 +23,7 @@ export default async function SuppliersPage() {
       {list.length === 0 ? (
         <Empty>No suppliers yet. Add Olimp and the retailers you buy other brands from.</Empty>
       ) : (
-        <div className="space-y-3">
+        <Paged className="space-y-3">
           {list.map(({ supplier: s, purchases, spentCents, lastDate }) => (
             <details key={s.id} className="group rounded-2xl border border-line bg-paper">
               <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-4">
@@ -45,7 +46,7 @@ export default async function SuppliersPage() {
               </div>
             </details>
           ))}
-        </div>
+        </Paged>
       )}
     </div>
   )

@@ -137,9 +137,13 @@ export default async function AdminProductPage({
           <Section
             id="photos"
             title="Photos"
-            sub="Upload, remove, and drag to reorder. The first is on every card; the second shows when a shopper points at the card."
+            sub="Upload, remove, and drag to reorder. The first is on every card; the second shows when a shopper points at the card. Under each photo choose the flavour it shows: when a shopper picks that flavour, its photos come first."
           >
-            <PhotoOrder productId={product.id} photos={photos.map((p) => ({ id: p.id, url: p.url }))} />
+            <PhotoOrder
+              productId={product.id}
+              photos={photos.map((p) => ({ id: p.id, url: p.url, variantId: p.variantId }))}
+              variants={variants.map((v) => ({ id: v.id, label: [v.flavour?.en, v.size].filter(Boolean).join(', ') }))}
+            />
           </Section>
 
           <Section

@@ -15,11 +15,12 @@ import { useRouter } from 'next/navigation'
 import { DragHandle, Sortable } from './Sortable'
 import { btn } from './ui'
 
-type Photo = { id: string; url: string }
+type Photo = { id: string; url: string; variantId?: string | null }
+type Option = { id: string; label: string }
 
 const ROLE = ['Main photo', 'On hover']
 
-export function PhotoOrder({ productId, photos }: { productId: string; photos: Photo[] }) {
+export function PhotoOrder({ productId, photos, variants = [] }: { productId: string; photos: Photo[]; variants?: Option[] }) {
   const router = useRouter()
   const [order, setOrder] = useState(photos)
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -79,6 +80,31 @@ export function PhotoOrder({ productId, photos }: { productId: string; photos: P
     }
   }
 
+  /* Which flavour a photo shows: the shop then shows it when that flavour
+     is chosen. "Every flavour" keeps it for the whole product. */
+  async function assign(photo: Photo, variantId: string | null) {
+    const previous = order
+    setOrder(order.map((p) => (p.id === photo.id ? { ...p, variantId } : p)))
+    setStatus('saving')
+    setMessage('Saving…')
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/images/${photo.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string }
+      if (!res.ok || !data.ok) throw new Error(data.message ?? 'Could not save that.')
+      setStatus('saved')
+      setMessage('Saved.')
+      router.refresh()
+    } catch (err) {
+      setOrder(previous)
+      setStatus('error')
+      setMessage(err instanceof Error ? err.message : 'Could not save that.')
+    }
+  }
+
   async function remove(photo: Photo) {
     if (!window.confirm('Remove this photo from the product?')) return
     const previous = order
@@ -131,6 +157,21 @@ export function PhotoOrder({ productId, photos }: { productId: string; photos: P
               <figcaption className={`mt-2 text-xs ${index < 2 ? 'font-medium' : 'text-muted'}`}>
                 {ROLE[index] ?? `Photo ${index + 1}`}
               </figcaption>
+              {variants.length > 1 && (
+                <select
+                  aria-label={`Photo ${index + 1} shows`}
+                  value={photo.variantId ?? ''}
+                  onChange={(e) => void assign(photo, e.target.value || null)}
+                  className="mt-1.5 w-full rounded-md border border-line bg-paper-2 px-1.5 py-1 text-[11px] text-ink"
+                >
+                  <option value="">Every flavour</option>
+                  {variants.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </figure>
           )}
         />

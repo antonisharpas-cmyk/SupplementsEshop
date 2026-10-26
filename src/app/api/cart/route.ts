@@ -67,6 +67,10 @@ export async function GET(request: Request) {
 
 /* ------------------------------------------------------------------- POST -- */
 
+const MAX_PER_LINE = 20
+const MAX_PER_BAG = 60
+const HOLD_PER_HOUR = 150
+
 export async function POST(request: Request) {
   let body: unknown
   try {
@@ -97,13 +101,28 @@ export async function POST(request: Request) {
     const { cartId, user } = await resolveCart()
     const { variantId, mode } = parsed.data
     let quantity = parsed.data.quantity
-    if (mode === 'add' && quantity > 0) {
-      const [line] = await db
-        .select({ quantity: cartItems.quantity })
-        .from(cartItems)
-        .where(and(eq(cartItems.cartId, cartId), eq(cartItems.variantId, variantId)))
-        .limit(1)
-      quantity = Math.min(20, (line?.quantity ?? 0) + quantity)
+    const [line] = await db
+      .select({ quantity: cartItems.quantity })
+      .from(cartItems)
+      .where(and(eq(cartItems.cartId, cartId), eq(cartItems.variantId, variantId)))
+      .limit(1)
+    const before = line?.quantity ?? 0
+    if (mode === 'add' && quantity > 0) quantity = Math.min(MAX_PER_LINE, before + quantity)
+
+    /* Holding stock without buying it. A bag holds what is in it for a few
+       minutes, so someone who wanted to empty the shelves for real buyers
+       (a competitor, a script) could keep adding. Two limits stop that
+       without touching a real shopper: one bag holds at most MAX_PER_BAG
+       units, and one address can put at most HOLD_PER_HOUR units into bags
+       in an hour, however many bags it opens. */
+    const more = quantity - before
+    if (more > 0) {
+      if ((await getCartCount(cartId)) + more > MAX_PER_BAG) {
+        return json({ ok: false, error: 'BAG_FULL', message: `One order can hold up to ${MAX_PER_BAG} items. For more, contact us for a wholesale order.` }, 409)
+      }
+      if (!hit(`hold:${clientKey(request)}`, HOLD_PER_HOUR, 3600, Date.now(), more).ok) {
+        return json({ ok: false, error: 'TOO_MANY', message: 'Too many items added in a short time. Please try again later or contact us.' }, 429)
+      }
     }
 
     await addToCart(cartId, variantId, quantity)

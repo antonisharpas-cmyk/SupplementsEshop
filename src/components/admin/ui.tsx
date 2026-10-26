@@ -1,6 +1,7 @@
 /* Small shared pieces for the admin screens. Server-safe: no hooks. */
 
 import Link from 'next/link'
+import { PagedTable } from './Paged'
 import type { ReactNode } from 'react'
 
 export function PageHead({
@@ -57,22 +58,13 @@ export function Stat({
   return href ? <Link href={href}>{body}</Link> : body
 }
 
-export function Table({ head, children, rightFrom }: { head: string[]; children: ReactNode; rightFrom?: number }) {
+/** The admin table. Long tables show 15 rows at a time with page buttons
+ *  (see Paged.tsx); `size` changes that. */
+export function Table({ head, children, rightFrom, size }: { head: string[]; children: ReactNode; rightFrom?: number; size?: number }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
-      <table className="w-full min-w-[46rem] text-sm">
-        <thead>
-          <tr className="border-b border-line">
-            {head.map((h, i) => (
-              <th key={h} className={`label px-4 py-3 text-muted ${rightFrom !== undefined && i >= rightFrom ? 'text-right' : 'text-left'}`}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[var(--color-line)]">{children}</tbody>
-      </table>
-    </div>
+    <PagedTable head={head} rightFrom={rightFrom} size={size}>
+      {children}
+    </PagedTable>
   )
 }
 

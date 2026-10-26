@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react'
 import { btn, input } from '@/components/admin/ui'
 import { euros, fmt, toCents, useApi } from './shared'
+import { ADMIN_PAGE_SIZE, PageButtons } from '@/components/admin/Paged'
 
 type Row = { variantId: string; label: string; sku: string; retailGrossCents: number; netRetailCents: number; avgCostCents: number; fixedCents: number | null; fallbackCents: number; fallbackLabel: string }
 
@@ -14,12 +15,19 @@ export function PriceEditor({ retailerId, rows }: { retailerId: string | null; r
   const [vals, setVals] = useState<Record<string, string>>(Object.fromEntries(rows.map((r) => [r.variantId, r.fixedCents === null ? '' : euros(r.fixedCents)])))
   const [q, setQ] = useState('')
   const shown = useMemo(() => rows.filter((r) => `${r.label} ${r.sku}`.toLowerCase().includes(q.toLowerCase())), [rows, q])
+  const [rawPage, setPage] = useState(1)
+  const pages = Math.max(1, Math.ceil(shown.length / ADMIN_PAGE_SIZE))
+  const page = Math.min(rawPage, pages)
+  const pageRows = shown.slice((page - 1) * ADMIN_PAGE_SIZE, page * ADMIN_PAGE_SIZE)
   const changed = rows.filter((r) => (vals[r.variantId] ?? '') !== (r.fixedCents === null ? '' : euros(r.fixedCents)))
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <input className={`${input} max-w-xs`} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a product" />
+        <input className={`${input} max-w-xs`} value={q} onChange={(e) => {
+            setQ(e.target.value)
+            setPage(1)
+          }} placeholder="Find a product" />
         <button
           type="button"
           className={btn.primary}
@@ -46,7 +54,7 @@ export function PriceEditor({ retailerId, rows }: { retailerId: string | null; r
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-line)]">
-            {shown.map((r) => {
+            {pageRows.map((r) => {
               const typed = vals[r.variantId] ? toCents(vals[r.variantId]) : null
               const price = typed ?? r.fallbackCents
               const margin = price > 0 && r.avgCostCents > 0 ? (price - r.avgCostCents) / price : null
@@ -71,6 +79,7 @@ export function PriceEditor({ retailerId, rows }: { retailerId: string | null; r
           </tbody>
         </table>
       </div>
+      <PageButtons page={page} pages={pages} total={shown.length} size={ADMIN_PAGE_SIZE} onPage={setPage} />
     </div>
   )
 }

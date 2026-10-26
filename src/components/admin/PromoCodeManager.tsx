@@ -8,6 +8,7 @@ import type { AdminPromoCode } from '@/lib/admin-promo-codes'
 import { btn, input } from '@/components/admin/ui'
 import { SearchSelect } from '@/components/admin/SearchSelect'
 import { DateTimeField } from '@/components/admin/DateTimeField'
+import { Paged } from '@/components/admin/Paged'
 
 type Option = { id: string; label: string }
 
@@ -282,11 +283,11 @@ export function PromoCodeManager({ codes, categories }: { codes: AdminPromoCode[
           {codes.length ? 'No code matches.' : 'No promo codes yet.'}
         </p>
       ) : (
-        <ul className="space-y-3">
+        <Paged as="ul" className="space-y-3">
           {shown.map((c) => (
             <Row key={c.id} c={c} categories={categories} />
           ))}
-        </ul>
+        </Paged>
       )}
     </div>
   )

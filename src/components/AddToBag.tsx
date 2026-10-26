@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import type { Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 import { announceBagCount } from '@/lib/bag-events'
+import { announceVariant, flavourKey } from '@/lib/variant-events'
 
 export type VariantOption = {
   id: string
@@ -49,22 +50,24 @@ export function AddToBag({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
 
-  /* Colours, in the order the admin arranged them. */
-  const colours = variants.reduce<{ hex: string | null; name: Record<string, string> | null }[]>(
+  /* Flavours, in the order the admin arranged them. Grouped by name, so one
+     flavour in two sizes is one button with two sizes under it. */
+  const colours = variants.reduce<{ key: string; hex: string | null; name: Record<string, string> | null }[]>(
     (acc, v) => {
-      if (!acc.some((c) => c.hex === v.colorHex)) acc.push({ hex: v.colorHex, name: v.colorName })
+      const key = flavourKey(v)
+      if (!acc.some((c) => c.key === key)) acc.push({ key, hex: v.colorHex, name: v.colorName })
       return acc
     },
     [],
   )
 
-  const [colour, setColour] = useState<string | null>(colours[0]?.hex ?? null)
+  const [colour, setColour] = useState<string | null>(colours[0]?.key ?? null)
   /* With only one size to choose from, it is chosen already. */
-  const onlySize = (hex: string | null) => {
-    const sizes = variants.filter((v) => v.colorHex === hex && v.available > 0)
+  const onlySize = (key: string | null) => {
+    const sizes = variants.filter((v) => flavourKey(v) === key && v.available > 0)
     return sizes.length === 1 ? sizes[0].id : null
   }
-  const [variantId, setVariantId] = useState<string | null>(() => onlySize(colours[0]?.hex ?? null))
+  const [variantId, setVariantId] = useState<string | null>(() => onlySize(colours[0]?.key ?? null))
   const [quantity, setQuantity] = useState(1)
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -73,7 +76,7 @@ export function AddToBag({
      size that just sold out greys out without a reload. */
   const [liveAvailability, setLiveAvailability] = useState<Record<string, number>>({})
 
-  const forColour = variants.filter((v) => v.colorHex === colour)
+  const forColour = variants.filter((v) => flavourKey(v) === colour)
   const selected = forColour.find((v) => v.id === variantId) ?? null
 
   const availabilityOf = (v: VariantOption) =>
@@ -144,17 +147,19 @@ export function AddToBag({
           </legend>
           <div className="flex flex-wrap gap-2">
             {colours.map((c) => {
-              const on = colour === c.hex
+              const on = colour === c.key
               const gone = variants
-                .filter((v) => v.colorHex === c.hex)
+                .filter((v) => flavourKey(v) === c.key)
                 .every((v) => soldOut || availabilityOf(v) <= 0)
               return (
                 <button
-                  key={c.hex ?? 'none'}
+                  key={c.key || 'none'}
                   type="button"
                   onClick={() => {
-                    setColour(c.hex)
-                    setVariantId(onlySize(c.hex))
+                    const next = onlySize(c.key)
+                    setColour(c.key)
+                    setVariantId(next)
+                    announceVariant({ flavour: c.key, variantId: next })
                   }}
                   aria-pressed={on}
                   title={gone ? t('pdp.colourSoldOut', { colour: c.name?.[locale] ?? c.name?.en ?? '' }) : undefined}
@@ -195,6 +200,7 @@ export function AddToBag({
                 disabled={sizeGone}
                 onClick={() => {
                   setVariantId(v.id)
+                  announceVariant({ flavour: flavourKey(v), variantId: v.id })
                   setQuantity(1)
                   setMessage(null)
                 }}

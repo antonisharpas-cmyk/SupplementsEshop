@@ -1,8 +1,12 @@
 /* Search suggestions for the header autocomplete (spec section 6). */
 import { searchSuggestions } from '@/lib/catalog'
 import { isLocale, type Locale } from '@/config/brand'
+import { clientKey, hitAll } from '@/lib/rate-limit'
 
 export async function GET(request: Request) {
+  if (!hitAll([[`search:${clientKey(request)}`, 90, 60]]).ok) {
+    return Response.json({ ok: false, error: 'TOO_MANY' }, { status: 429, headers: { 'Retry-After': '30' } })
+  }
   const url = new URL(request.url)
   const q = (url.searchParams.get('q') ?? '').slice(0, 120)
   const rawLocale = url.searchParams.get('locale') ?? 'en'

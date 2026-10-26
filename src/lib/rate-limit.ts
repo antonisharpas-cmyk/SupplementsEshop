@@ -16,7 +16,7 @@ let lastSweep = Date.now()
 
 export type Limit = { ok: true } | { ok: false; retryAfterSeconds: number }
 
-export function hit(key: string, limit: number, windowSeconds: number, now = Date.now()): Limit {
+export function hit(key: string, limit: number, windowSeconds: number, now = Date.now(), weight = 1): Limit {
   /* Forget expired windows now and then so the map cannot grow forever. */
   if (now - lastSweep > 60_000) {
     for (const [k, w] of windows) if (w.resetAt <= now) windows.delete(k)
@@ -24,11 +24,23 @@ export function hit(key: string, limit: number, windowSeconds: number, now = Dat
   }
   const w = windows.get(key)
   if (!w || w.resetAt <= now) {
-    windows.set(key, { count: 1, resetAt: now + windowSeconds * 1000 })
+    if (weight > limit) return { ok: false, retryAfterSeconds: windowSeconds }
+    windows.set(key, { count: weight, resetAt: now + windowSeconds * 1000 })
     return { ok: true }
   }
-  if (w.count >= limit) return { ok: false, retryAfterSeconds: Math.ceil((w.resetAt - now) / 1000) }
-  w.count += 1
+  if (w.count + weight > limit) return { ok: false, retryAfterSeconds: Math.ceil((w.resetAt - now) / 1000) }
+  w.count += weight
+  return { ok: true }
+}
+
+/** Several limits at once (a short one against bursts and a long one against
+ *  a slow steady script). All must pass; a refused call is not counted in
+ *  the later windows. */
+export function hitAll(checks: [key: string, limit: number, windowSeconds: number][], weight = 1): Limit {
+  for (const [key, limit, seconds] of checks) {
+    const r = hit(key, limit, seconds, Date.now(), weight)
+    if (!r.ok) return r
+  }
   return { ok: true }
 }
 

@@ -10,6 +10,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { DEFAULT_LOCALE, LOCALES, isLocale } from '@/config/brand'
+import { clientKey, hit } from '@/lib/rate-limit'
 
 const LOCALE_COOKIE = 'sf_locale'
 
@@ -62,10 +63,50 @@ function crossSite(request: NextRequest): boolean {
   return request.headers.get('sec-fetch-site') === 'cross-site'
 }
 
+/* Flooding: someone holding down refresh, or a script asking for page after
+   page to slow the shop down for everyone. Each address gets a generous
+   allowance a person never reaches (two pages a second, every second, for a
+   minute); past it the shop answers "slow down" at almost no cost instead of
+   building the page. The link prefetching browsers do in the background has
+   its own, larger allowance. Photos, payment and courier callbacks and the
+   scheduler are not counted here. */
+const NOT_COUNTED = ['/api/media/', '/api/stripe/webhook', '/api/boxnow/webhook', '/api/cron/', '/api/version']
+
+function flooding(request: NextRequest): number | null {
+  const { pathname } = request.nextUrl
+  if (NOT_COUNTED.some((p) => pathname.startsWith(p))) return null
+  const ip = clientKey(request)
+  const prefetch = request.headers.get('next-router-prefetch') === '1' || request.headers.get('purpose') === 'prefetch'
+  const [key, limit] = pathname.startsWith('/api/')
+    ? [`flood:api:${ip}`, 300]
+    : prefetch
+      ? [`flood:prefetch:${ip}`, 600]
+      : [`flood:page:${ip}`, 120]
+  const r = hit(key, limit, 60)
+  return r.ok ? null : r.retryAfterSeconds
+}
+
+function slowDown(retryAfter: number, api: boolean) {
+  const headers = { 'Retry-After': String(retryAfter), 'Cache-Control': 'no-store' }
+  return api
+    ? NextResponse.json({ ok: false, error: 'TOO_MANY', message: 'Too many requests. Please wait a moment.' }, { status: 429, headers })
+    : new NextResponse('Too many requests. Please wait a moment and try again.', { status: 429, headers: { ...headers, 'Content-Type': 'text/plain; charset=utf-8' } })
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  const wait = flooding(request)
+  if (wait !== null) return slowDown(wait, pathname.startsWith('/api/'))
+
   if (pathname.startsWith('/api/')) {
+    /* The shop's own forms send a few kilobytes. A huge body sent to fill
+       the server's memory is refused before it is read. Staff uploads
+       (photos, invoices) go to /api/admin, which has its own limits. */
+    const length = Number(request.headers.get('content-length') ?? 0)
+    if (length > 256 * 1024 && !pathname.startsWith('/api/admin/') && !pathname.startsWith('/api/stripe/') && !pathname.startsWith('/api/boxnow/')) {
+      return NextResponse.json({ ok: false, error: 'TOO_LARGE', message: 'Request too large.' }, { status: 413 })
+    }
     if (crossSite(request)) {
       return NextResponse.json({ ok: false, error: 'FORBIDDEN', message: 'Request refused.' }, { status: 403 })
     }

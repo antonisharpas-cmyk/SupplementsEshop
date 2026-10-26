@@ -11,8 +11,12 @@ import { getCurrentUser, readCartToken } from '@/lib/auth/session'
 import { getProductCardsByIds, getRecentlyViewed } from '@/lib/views'
 import { z } from 'zod'
 import { isLocale, type Locale } from '@/config/brand'
+import { clientKey, hitAll } from '@/lib/rate-limit'
 
 export async function GET(request: Request) {
+  if (!hitAll([[`recent:${clientKey(request)}`, 60, 60]]).ok) {
+    return Response.json({ ok: false, error: 'TOO_MANY' }, { status: 429, headers: { 'Retry-After': '30' } })
+  }
   const url = new URL(request.url)
   const exclude = url.searchParams.get('exclude') ?? undefined
 

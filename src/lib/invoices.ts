@@ -340,7 +340,7 @@ export async function invoiceTotals(f: InvoiceFilter): Promise<InvoiceTotals> {
   return r
 }
 
-export const INVOICES_PER_PAGE = 50
+export const INVOICES_PER_PAGE = 15
 
 export async function listInvoices(f: InvoiceFilter & { page?: number }) {
   const page = Math.max(1, f.page ?? 1)

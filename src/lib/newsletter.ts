@@ -338,7 +338,7 @@ export async function newsletterStats() {
   }
 }
 
-export const SUBSCRIBERS_PER_PAGE = 50
+export const SUBSCRIBERS_PER_PAGE = 15
 
 export async function listSubscribers(opts: { status?: string; q?: string; page?: number }) {
   const where = []

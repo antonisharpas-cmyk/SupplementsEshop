@@ -234,7 +234,7 @@ export async function addProductPhoto(
 }
 
 /** The first bytes of every format we accept, so a renamed .exe is refused. */
-function sniffImage(b: Buffer): boolean {
+export function sniffImage(b: Buffer): boolean {
   if (b.length < 12) return false
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return true // JPEG
   if (b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return true // PNG
@@ -242,6 +242,23 @@ function sniffImage(b: Buffer): boolean {
   if (b.subarray(0, 3).toString('ascii') === 'GIF') return true
   if (b.subarray(4, 8).toString('ascii') === 'ftyp') return true // AVIF / HEIF family
   return false
+}
+
+/** Which flavour and size a photo shows; null for the whole product. */
+export async function setPhotoVariant(productId: string, imageId: string, variantId: string | null) {
+  if (variantId) {
+    const [v] = await db
+      .select({ id: productVariants.id })
+      .from(productVariants)
+      .where(and(eq(productVariants.id, variantId), eq(productVariants.productId, productId)))
+    if (!v) throw new AdminError('That flavour is not part of this product.')
+  }
+  const [row] = await db
+    .update(productImages)
+    .set({ variantId })
+    .where(and(eq(productImages.id, imageId), eq(productImages.productId, productId)))
+    .returning({ id: productImages.id })
+  if (!row) throw new AdminError('That photo is already gone.')
 }
 
 export async function removeProductPhoto(productId: string, imageId: string) {

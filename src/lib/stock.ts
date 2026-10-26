@@ -249,7 +249,7 @@ export async function listMovements(f: { from?: Date; to?: Date; kind?: string; 
   if (f.kind) conds.push(eq(stockMovements.kind, f.kind))
   if (f.variantId) conds.push(eq(stockMovements.variantId, f.variantId))
   const where = conds.length ? and(...conds) : undefined
-  const PER = 50
+  const PER = 15
   const [rows, [{ n }]] = await Promise.all([
     db
       .select({

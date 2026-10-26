@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { btn, input } from '@/components/admin/ui'
 import { useApi } from './shared'
+import { Paged } from '@/components/admin/Paged'
 
 export function CategoryList({ categories }: { categories: { id: string; name: string; isActive: boolean; count: number }[] }) {
   const { busy, msg, call } = useApi()
@@ -19,7 +20,7 @@ export function CategoryList({ categories }: { categories: { id: string; name: s
         </button>
         {msg && <span className={`self-center text-xs ${msg.ok ? 'text-ok' : 'text-sale'}`}>{msg.text}</span>}
       </div>
-      <ul className="divide-y divide-[var(--color-line)] rounded-2xl border border-line bg-paper">
+      <Paged as="ul" className="divide-y divide-[var(--color-line)] rounded-2xl border border-line bg-paper">
         {categories.map((c) => (
           <li key={c.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
             <input className={`${input} max-w-xs !py-2`} value={names[c.id]} onChange={(e) => setNames((n) => ({ ...n, [c.id]: e.target.value }))} />
@@ -33,7 +34,7 @@ export function CategoryList({ categories }: { categories: { id: string; name: s
             {!c.isActive && <span className="text-xs text-muted">off: not offered for new expenses</span>}
           </li>
         ))}
-      </ul>
+      </Paged>
     </div>
   )
 }

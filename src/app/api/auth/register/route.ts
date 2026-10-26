@@ -19,11 +19,17 @@ import { getTranslator } from '@/i18n/messages'
 import { asEmailLocale } from '@/lib/mailer'
 import { sendTemplate } from '@/lib/mailer'
 import { registerRequestSchema } from '@/lib/validation'
+import { clientKey, hitAll } from '@/lib/rate-limit'
 
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 
 export async function POST(request: Request) {
+  /* Every sign-up sends an email: a script inventing addresses would burn the
+     shop's sending reputation. A family on one connection still fits. */
+  if (!hitAll([[`register:${clientKey(request)}`, 5, 15 * 60], [`register-day:${clientKey(request)}`, 20, 24 * 3600]]).ok) {
+    return Response.json({ ok: false, error: 'TOO_MANY', message: 'Too many sign-ups from here. Please try again later.' }, { status: 429 })
+  }
   let raw: unknown
   try {
     raw = await request.json()

@@ -778,9 +778,9 @@ export async function emailActivity(opts: { status?: string; kind?: string; q?: 
       ${opts.kind ? sql`and kind = ${opts.kind}` : sql``}
       ${pat ? sql`and (lower(recipient) like ${pat} or lower(coalesce(subject, '')) like ${pat} or lower(coalesce(name, '')) like ${pat})` : sql``}
     order by sort_at desc
-    limit 50 offset ${(page - 1) * 50}`)
+    limit 15 offset ${(page - 1) * 15}`)
   const total = Number(res.rows[0]?.total ?? 0)
-  return { rows: res.rows, total, page, pages: Math.max(1, Math.ceil(total / 50)) }
+  return { rows: res.rows, total, page, pages: Math.max(1, Math.ceil(total / 15)) }
 }
 
 /** The dashboard's Customer Activity numbers. */

@@ -9,6 +9,7 @@ import type { AdminPromotion } from '@/lib/admin-promotions'
 import { btn, input } from '@/components/admin/ui'
 import { SearchSelect } from '@/components/admin/SearchSelect'
 import { DateTimeField } from '@/components/admin/DateTimeField'
+import { Paged } from '@/components/admin/Paged'
 
 type Option = { id: string; label: string }
 
@@ -307,11 +308,11 @@ export function PromotionManager({ promotions, products, categories }: { promoti
       {promotions.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-line bg-paper px-6 py-12 text-center text-sm text-muted">No promotions yet.</p>
       ) : (
-        <ul className="space-y-3">
+        <Paged as="ul" className="space-y-3">
           {promotions.map((p) => (
             <Row key={p.id} p={p} products={products} categories={categories} />
           ))}
-        </ul>
+        </Paged>
       )}
     </div>
   )

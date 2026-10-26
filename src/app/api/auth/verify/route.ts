@@ -14,11 +14,15 @@ import { readCartToken, setSessionCookie } from '@/lib/auth/session'
 import { mergeGuestCart } from '@/lib/cart'
 import { mergeGuestViews } from '@/lib/views'
 import { verifyOtpSchema } from '@/lib/validation'
+import { clientKey, hitAll } from '@/lib/rate-limit'
 
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 
 export async function POST(request: Request) {
+  if (!hitAll([[`verify:${clientKey(request)}`, 20, 15 * 60]]).ok) {
+    return Response.json({ ok: false, error: 'TOO_MANY', message: 'Too many tries. Wait a few minutes.' }, { status: 429 })
+  }
   let raw: unknown
   try {
     raw = await request.json()

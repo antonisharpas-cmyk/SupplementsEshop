@@ -990,7 +990,7 @@ export type AdminOrderRow = {
 }
 
 export async function listAdminOrders(f: { status?: string; q?: string; page?: number; userId?: string }) {
-  const pageSize = 30
+  const pageSize = 15
   const page = Math.max(1, f.page ?? 1)
   const conds = []
   if (f.status === 'open') conds.push(inArray(orders.status, ['PENDING', 'PAID', 'PROCESSING', 'READY_FOR_PICKUP']))
@@ -1037,7 +1037,7 @@ export async function orderCounts() {
 /* ------------------------------------------------------------ customers -- */
 
 export async function listCustomers(f: { q?: string; page?: number }) {
-  const pageSize = 30
+  const pageSize = 15
   const page = Math.max(1, f.page ?? 1)
   const conds = [eq(users.role, 'CUSTOMER')]
   if (f.q?.trim()) {

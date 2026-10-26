@@ -31,6 +31,8 @@ export type ImportRow = {
   name: string
   nameEl: string
   nameRu: string
+  flavourEl: string
+  flavourRu: string
   flavour: string
   size: string
   category: string
@@ -93,6 +95,8 @@ export const TEMPLATE_COLUMNS: Sheet['columns'] = [
   { header: 'Supplier description', width: 40 },
   { header: 'Cost price', kind: 'money', width: 11 },
   { header: 'Quantity', kind: 'int', width: 10 },
+  { header: 'Flavour in Greek', width: 22 },
+  { header: 'Flavour in Russian', width: 22 },
 ]
 
 async function categoriesSheet(): Promise<Sheet> {
@@ -113,7 +117,7 @@ export async function templateFile(): Promise<Buffer> {
     {
       name: 'Products',
       columns: TEMPLATE_COLUMNS,
-      rows: [['Example: Whey Protein Complex 100%', 'Chocolate', '700 g', 'Protein', 39.9, '5901330000000', '', '', 'Delete this row', null, null]],
+      rows: [['Example: Whey Protein Complex 100%', 'Chocolate', '700 g', 'Protein', 39.9, '5901330000000', '', '', 'Delete this row', null, null, '', '']],
     },
     await categoriesSheet(),
   ])
@@ -238,6 +242,8 @@ export async function invoiceSheet(lines: InvoiceLine[]): Promise<Buffer> {
           l.description,
           l.costCents === null ? null : l.costCents / 100,
           l.quantity,
+          '',
+          '',
         ]
       }),
     },
@@ -296,8 +302,10 @@ export async function checkImport(rows: Rows): Promise<ImportRow[]> {
       ean: ['ean', 'barcode', 'suppliercode', 'code'],
       el: ['nameingreek', 'greek'],
       ru: ['nameinrussian', 'russian'],
+      fel: ['flavouringreek', 'flavoringreek'],
+      fru: ['flavourinrussian', 'flavorinrussian'],
     },
-    { name: 0, flavour: 1, size: 2, category: 3, price: 4, ean: 5, el: 6, ru: 7 },
+    { name: 0, flavour: 1, size: 2, category: 3, price: 4, ean: 5, el: 6, ru: 7, fel: 11, fru: 12 },
   )
   const body = hasHeader ? rows.slice(1) : rows
   const [choices, byCode, all] = await Promise.all([
@@ -326,6 +334,8 @@ export async function checkImport(rows: Rows): Promise<ImportRow[]> {
       name,
       nameEl: cell(cols.el),
       nameRu: cell(cols.ru),
+      flavourEl: cell(cols.fel),
+      flavourRu: cell(cols.fru),
       flavour: cell(cols.flavour).replace(/\s+/g, ' ') || 'Unflavoured',
       size: cell(cols.size).replace(/\s+/g, ' '),
       category: cell(cols.category),
@@ -431,17 +441,30 @@ export async function applyImport(rows: ImportRow[]) {
       for (const r of list) failed.push({ row: r.row, problem: err instanceof Error ? err.message : 'Could not create it' })
       continue
     }
-    const existing = await db.select({ size: productVariants.size, colorHex: productVariants.colorHex }).from(productVariants).where(eq(productVariants.productId, productId))
-    const taken = new Map<string, Set<string>>()
-    for (const v of existing) taken.set(key(v.size), (taken.get(key(v.size)) ?? new Set()).add(v.colorHex ?? ''))
+    /* One colour per flavour across the whole product: two sizes of one
+       flavour share it (the shop groups them as one flavour), two flavours
+       never do. */
+    const existing = await db
+      .select({ colorName: productVariants.colorName, colorHex: productVariants.colorHex })
+      .from(productVariants)
+      .where(eq(productVariants.productId, productId))
+    const hexOf = new Map<string, string>()
+    const used = new Set<string>()
+    for (const v of existing) {
+      if (v.colorHex) used.add(v.colorHex)
+      if (v.colorName?.en && v.colorHex) hexOf.set(key(v.colorName.en), v.colorHex)
+    }
     for (const r of list) {
-      const used = taken.get(key(r.size)) ?? new Set<string>()
-      taken.set(key(r.size), used)
+      let hex = hexOf.get(key(r.flavour))
+      if (!hex) {
+        hex = colourFor(r.flavour, used)
+        hexOf.set(key(r.flavour), hex)
+      }
       try {
         await addVariant(productId, {
           size: r.size,
-          flavour: { en: r.flavour },
-          colorHex: colourFor(r.flavour, used),
+          flavour: { en: r.flavour, el: r.flavourEl || undefined, ru: r.flavourRu || undefined },
+          colorHex: hex,
           supplierCode: r.ean,
           priceCents: r.priceCents !== productPrice ? r.priceCents : null,
           onHand: 0,

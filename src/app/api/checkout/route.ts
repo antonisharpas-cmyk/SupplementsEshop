@@ -11,7 +11,7 @@ import { getOrCreateCart } from '@/lib/cart'
 import { getCurrentUser, readCartToken } from '@/lib/auth/session'
 import { CheckoutError, placeOrder } from '@/lib/orders'
 import { emailSchema, localeSchema, nameSchema, phoneSchema, uuidSchema, cyCountrySchema, cyPostalCodeSchema } from '@/lib/validation'
-import { clientKey, hit } from '@/lib/rate-limit'
+import { clientKey, hitAll } from '@/lib/rate-limit'
 import { fail, json, readJson } from '@/lib/api'
 
 const address = z.object({
@@ -52,7 +52,13 @@ const schema = z.object({
 })
 
 export async function POST(request: Request) {
-  const limited = hit(`checkout:${clientKey(request)}`, 10, 60)
+  /* Card testing: scripts try stolen cards through a shop's checkout, one
+     after another. A real customer places an order or two. */
+  const ip = clientKey(request)
+  const limited = hitAll([
+    [`checkout:${ip}`, 6, 10 * 60],
+    [`checkout-day:${ip}`, 20, 24 * 3600],
+  ])
   if (!limited.ok) return fail(429, 'TOO_MANY', 'Too many tries. Wait a minute and try again.')
 
   const body = await readJson(request, schema)

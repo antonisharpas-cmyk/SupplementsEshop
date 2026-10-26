@@ -6,6 +6,7 @@ import { getSettings } from '@/lib/settings'
 import { formatMoney } from '@/lib/pricing'
 import { RecurringForm } from '@/components/admin/finance/RecurringForm'
 import { thisMonth } from '@/components/admin/finance/MonthNav'
+import { Paged } from '@/components/admin/Paged'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Repeating expenses' }
@@ -21,6 +22,7 @@ export default async function RepeatingPage() {
         <p className="mb-4 text-xs text-muted">Written as an expense every month on its day, from the first month. Months already past are written straight away. To skip a month, open that month’s expense and set its amount to 0.</p>
         <RecurringForm categories={categories} vatRateBp={vat_rate_bp} month={month} />
       </section>
+      <Paged className="space-y-6">
       {list.map(({ recurring: r, category }) => (
         <details key={r.id} className="group rounded-2xl border border-line bg-paper">
           <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-4">
@@ -41,6 +43,7 @@ export default async function RepeatingPage() {
           </div>
         </details>
       ))}
+      </Paged>
     </div>
   )
 }

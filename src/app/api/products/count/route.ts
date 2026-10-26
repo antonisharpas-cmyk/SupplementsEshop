@@ -11,10 +11,14 @@
 
 import { isLocale, type Locale } from '@/config/brand'
 import { countListing, type ListingContext } from '@/lib/listing'
+import { clientKey, hitAll } from '@/lib/rate-limit'
 
 const SLUG = /^[a-z0-9-]{1,80}$/
 
 export async function GET(request: Request) {
+  if (!hitAll([[`count:${clientKey(request)}`, 90, 60]]).ok) {
+    return Response.json({ ok: false, error: 'TOO_MANY' }, { status: 429, headers: { 'Retry-After': '30' } })
+  }
   const url = new URL(request.url)
   const raw = url.searchParams.get('ctx') ?? ''
   const localeRaw = url.searchParams.get('locale') ?? 'en'

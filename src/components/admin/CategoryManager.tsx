@@ -4,7 +4,7 @@
    section inside a group; rename in three languages; move up or down; show
    or hide; delete when empty. */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { AdminCategory } from '@/lib/admin-categories'
 import { btn, input } from '@/components/admin/ui'
@@ -20,6 +20,24 @@ async function call(url: string, method: string, body?: unknown) {
   }).catch(() => null)
   const data = (await res?.json().catch(() => null)) as { ok?: boolean; message?: string } | null
   return res?.ok && data?.ok ? null : (data?.message ?? 'Something went wrong. Try again.')
+}
+
+/** Large pictures are made smaller in the browser first (longest side
+ *  1600 px, WebP keeps a transparent background). */
+async function shrink(file: File): Promise<File> {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 1_500_000) return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/webp', 0.86))
+    return blob && blob.type === 'image/webp' ? new File([blob], file.name.replace(/\.[a-z0-9]+$/i, '.webp'), { type: 'image/webp' }) : file
+  } catch {
+    return file
+  }
 }
 
 const LEVEL = ['Range', 'Group', 'Section']
@@ -76,6 +94,16 @@ function Row({ node, first, last }: { node: AdminCategory; first: boolean; last:
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const upload = (file: File) =>
+    act(async () => {
+      const form = new FormData()
+      form.append('file', await shrink(file))
+      const res = await fetch(`/api/admin/categories/${node.id}/photo`, { method: 'POST', body: form }).catch(() => null)
+      const data = (await res?.json().catch(() => null)) as { ok?: boolean; message?: string } | null
+      return res?.ok && data?.ok ? null : (data?.message ?? 'That picture could not be saved.')
+    })
 
   const act = async (fn: () => Promise<string | null>) => {
     setBusy(true)
@@ -95,6 +123,32 @@ function Row({ node, first, last }: { node: AdminCategory; first: boolean; last:
           node.depth === 1 ? 'border-line bg-paper-2' : 'border-line/70 bg-paper'
         } ${node.isActive ? '' : 'opacity-60'}`}
       >
+        {node.depth > 1 && (
+          <button
+            type="button"
+            title={node.imageUrl ? 'Change the picture' : 'Add a picture'}
+            onClick={() => fileRef.current?.click()}
+            className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-line bg-paper-2 text-[10px] text-muted hover:border-accent"
+          >
+            {node.imageUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={node.imageUrl} alt="" className="h-full w-full object-contain" />
+            ) : (
+              'Picture'
+            )}
+          </button>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            e.target.value = ''
+            if (f) void upload(f)
+          }}
+        />
         <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em] text-muted uppercase">
           {LEVEL[node.depth - 1]}
         </span>
@@ -118,6 +172,21 @@ function Row({ node, first, last }: { node: AdminCategory; first: boolean; last:
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMode(mode === 'edit' ? 'view' : 'edit')}>
             Rename
           </button>
+          {node.depth > 1 && (
+            <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}>
+              {node.imageUrl ? 'Change picture' : 'Add picture'}
+            </button>
+          )}
+          {node.depth > 1 && node.imageUrl && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={busy}
+              onClick={() => window.confirm(`Remove the picture of ${node.name.en}? Its homepage tile will show just the name.`) && act(() => call(`/api/admin/categories/${node.id}/photo`, 'DELETE'))}
+            >
+              Remove picture
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-ghost btn-sm"

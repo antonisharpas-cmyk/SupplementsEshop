@@ -669,7 +669,8 @@ export type ProductDetail = {
        rather than printing the raw slug. */
     parentName: Record<string, string> | null
   }
-  images: { url: string; alt: Record<string, string> | null; width: number | null; height: number | null }[]
+  /** variantId: the flavour and size this photo shows; null for the whole product. */
+  images: { url: string; alt: Record<string, string> | null; width: number | null; height: number | null; variantId: string | null }[]
   variants: {
     id: string
     sku: string
@@ -728,6 +729,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
         alt: productImages.alt,
         width: productImages.width,
         height: productImages.height,
+        variantId: productImages.variantId,
       })
       .from(productImages)
       .where(eq(productImages.productId, row.product.id))
