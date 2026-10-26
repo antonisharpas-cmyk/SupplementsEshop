@@ -108,6 +108,23 @@ describe('import', () => {
     expect(await db.select().from(productVariants).where(eq(productVariants.productId, whey.id))).toHaveLength(4)
   })
 
+  it('a second import fills in Greek and Russian names, English untouched', async () => {
+    await applyImport(await checkImport(sheet([['Pure Whey Isolate 95', 'Chocolate', '600 g', 'Protein', '40', '5901330038525']])))
+    const withText = [
+      ['Product name', 'Flavour', 'Size', 'Category', 'Selling price', 'EAN', 'Name in Greek', 'Name in Russian', 'Supplier description', 'Cost price', 'Quantity', 'Flavour in Greek', 'Flavour in Russian'],
+      ['Pure Whey Isolate 95', 'Chocolate', '600 g', 'Protein', '40', '5901330038525', 'Πρωτεΐνη Isolate 95', 'Изолят 95', '', '', '', 'Σοκολάτα', 'Шоколад'],
+    ]
+    const checked = await checkImport(withText)
+    expect(checked[0]).toMatchObject({ action: 'already there', nameEl: 'Πρωτεΐνη Isolate 95', flavourRu: 'Шоколад' })
+    expect(await applyImport(checked)).toMatchObject({ translated: 2, products: 0, flavours: 0 })
+    const [p] = await db.select().from(products).where(eq(products.slug, 'pure-whey-isolate-95'))
+    expect(p.name).toEqual({ en: 'Pure Whey Isolate 95', el: 'Πρωτεΐνη Isolate 95', ru: 'Изолят 95' })
+    const [v] = await db.select().from(productVariants).where(eq(productVariants.productId, p.id))
+    expect(v.colorName).toEqual({ en: 'Chocolate', el: 'Σοκολάτα', ru: 'Шоколад' })
+    /* Again: nothing left to change. */
+    expect(await applyImport(await checkImport(withText))).toMatchObject({ translated: 0 })
+  })
+
   it('saves the barcode on a flavour that had none', async () => {
     const [cat] = await db.select().from(categories).where(eq(categories.slug, 'protein'))
     const [p] = await db.insert(products).values({ categoryId: cat.id, slug: 'iso', name: { en: 'Isolate' }, priceCents: 4000 }).returning()

@@ -44,6 +44,8 @@ export type ImportRow = {
   productId: string | null
   /** Already there without an EAN: applying saves the EAN on it. */
   saveCode?: boolean
+  /** The flavour this row is, when it is already there. */
+  variantId?: string | null
   problem?: string
   note?: string
 }
@@ -316,8 +318,8 @@ export async function checkImport(rows: Rows): Promise<ImportRow[]> {
       .from(products),
   ])
   const productByName = new Map(all.map((p) => [key(p.name.en ?? ''), p]))
-  const variantsOf = new Map<string, { size: string; flavour: string }[]>()
-  for (const v of byCode.values()) variantsOf.set(v.productId, [...(variantsOf.get(v.productId) ?? []), { size: key(v.size), flavour: key(v.flavour) }])
+  const variantsOf = new Map<string, { id: string; size: string; flavour: string }[]>()
+  for (const v of byCode.values()) variantsOf.set(v.productId, [...(variantsOf.get(v.productId) ?? []), { id: v.id, size: key(v.size), flavour: key(v.flavour) }])
 
   const seenCodes = new Set<string>()
   const seenCombos = new Set<string>()
@@ -352,9 +354,11 @@ export async function checkImport(rows: Rows): Promise<ImportRow[]> {
     if (existingVariant) {
       row.action = 'already there'
       row.productId = existingVariant.productId
+      row.variantId = existingVariant.id
       row.note = `${existingVariant.productName}, ${existingVariant.flavour}, ${existingVariant.size}`
     } else if (existingProduct && variantsOf.get(existingProduct.id)?.some((v) => v.size === key(row.size) && v.flavour === key(row.flavour))) {
       row.action = 'already there'
+      row.variantId = variantsOf.get(existingProduct.id)!.find((v) => v.size === key(row.size) && v.flavour === key(row.flavour))!.id
       row.productId = existingProduct.id
       row.saveCode = Boolean(row.ean)
       row.note = row.ean ? 'This flavour and size exist; the EAN will be saved on it' : 'This flavour and size exist'
@@ -493,7 +497,34 @@ export async function applyImport(rows: ImportRow[]) {
       .returning({ id: productVariants.id })
     codes += res.length
   }
-  return { products: created.length, flavours, codes, skipped: rows.length - good.length, failed }
+  /* Products and flavours that were there already: fill in the Greek and
+     Russian names from the sheet, so running the sheet again brings in
+     translations added after the first import. English is never changed. */
+  let translated = 0
+  const doneProducts = new Set<string>()
+  for (const r of good) {
+    if (r.action !== 'already there' || !r.productId) continue
+    const names = { ...(r.nameEl ? { el: r.nameEl } : {}), ...(r.nameRu ? { ru: r.nameRu } : {}) }
+    if (Object.keys(names).length && !doneProducts.has(r.productId)) {
+      doneProducts.add(r.productId)
+      const res = await db
+        .update(products)
+        .set({ name: sql`${products.name} || ${JSON.stringify(names)}::jsonb` })
+        .where(and(eq(products.id, r.productId), sql`not (${products.name} @> ${JSON.stringify(names)}::jsonb)`))
+        .returning({ id: products.id })
+      translated += res.length
+    }
+    const flav = { ...(r.flavourEl ? { el: r.flavourEl } : {}), ...(r.flavourRu ? { ru: r.flavourRu } : {}) }
+    if (Object.keys(flav).length && r.variantId) {
+      const res = await db
+        .update(productVariants)
+        .set({ colorName: sql`coalesce(${productVariants.colorName}, '{}'::jsonb) || ${JSON.stringify(flav)}::jsonb` })
+        .where(and(eq(productVariants.id, r.variantId), sql`not (coalesce(${productVariants.colorName}, '{}'::jsonb) @> ${JSON.stringify(flav)}::jsonb)`))
+        .returning({ id: productVariants.id })
+      translated += res.length
+    }
+  }
+  return { products: created.length, flavours, codes, translated, skipped: rows.length - good.length, failed }
 }
 
 /* ------------------------------------------------------ photos by code -- */

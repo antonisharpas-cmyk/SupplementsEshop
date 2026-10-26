@@ -46,7 +46,7 @@ export function CompanyDetailsForm({ initial }: { initial: Values }) {
   const field = 'text-sm'
   const lab = 'label mb-1.5 block text-muted'
   return (
-    <form onSubmit={save} className="mt-5 grid gap-4 md:grid-cols-2">
+    <form onSubmit={save} className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
       <label className={field}>
         <span className={lab}>Legal company name</span>
         <input value={v.company_legal_name} onChange={set('company_legal_name')} placeholder="AIONIX Trading Ltd" className={input} maxLength={160} />

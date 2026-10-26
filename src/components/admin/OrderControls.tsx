@@ -73,7 +73,7 @@ export function OrderControls({
       {next.length > 0 && (
         <div className="space-y-3">
           {next.includes('SHIPPED') && (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="text-xs text-muted">
                 Tracking number (optional)
                 <input className={`${input} mt-1`} value={tracking.number} onChange={(e) => setTracking({ ...tracking, number: e.target.value })} />

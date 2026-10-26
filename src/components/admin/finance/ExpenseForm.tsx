@@ -63,7 +63,7 @@ export function ExpenseForm({ categories, vatRateBp, initial, payees = [] }: { c
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
       <label className="block text-xs text-muted">
         Date
         <DateTimeField mode="date" clearable={false} value={date} onChange={(v) => setDate(v)} className="mt-1" />

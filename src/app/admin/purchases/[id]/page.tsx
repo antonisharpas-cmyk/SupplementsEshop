@@ -86,7 +86,7 @@ export default async function PurchasePage({ params, searchParams }: { params: P
       </Table>
 
       {finance && (
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_22rem]">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
           <FileBox type="purchase" id={p.id} files={files} label="Supplier invoice and files" />
           <div className="space-y-2 rounded-2xl border border-line bg-paper p-5 text-sm">
             <Line label="Products" value={money(p.goodsNetCents)} />

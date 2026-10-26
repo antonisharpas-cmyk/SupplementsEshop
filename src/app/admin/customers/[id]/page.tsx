@@ -59,7 +59,7 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
         }
       />
 
-      <div className="mb-8 grid gap-3 sm:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-4">
         {[
           ['Member since', day(c.createdAt)],
           ['Last sign in', day(c.lastLoginAt)],
@@ -175,7 +175,7 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
       {c.addresses.length === 0 ? (
         <p className="text-sm text-muted">No saved addresses.</p>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {c.addresses.map((a) => (
             <li key={a.id} className="border border-line bg-paper p-4 text-sm">
               <p className="text-heading">{a.label || a.recipientName} {a.isDefault && <span className="ml-1 text-xs text-accent">default</span>}</p>

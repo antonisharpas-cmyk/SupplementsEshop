@@ -36,7 +36,7 @@ export default async function WholesalePage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={month ? 'Sold this month (before VAT)' : 'Sold (before VAT)'} value={money(net)} />
         <Stat label="Profit on these sales" value={money(profit)} />
         <Stat label="Still to be paid" value={money(due)} href="/admin/wholesale?show=open" tone={due > 0 ? 'warn' : 'plain'} />

@@ -17,7 +17,7 @@ export default async function EmailSettingsPage() {
       <EmailSettingsForm initial={{ testAddress: s.email_test_address, cooldownHours: s.marketing_cooldown_hours }} />
       <section className="rounded-2xl border border-line bg-paper p-5 text-sm">
         <h2 className="font-medium">Sending</h2>
-        <dl className="mt-3 grid gap-x-6 gap-y-2 text-muted sm:grid-cols-[auto_1fr]">
+        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 text-muted sm:grid-cols-[auto_1fr]">
           <dt>Email service</dt>
           <dd>{emailEnabled ? `Connected: ${emailProviderName}` : 'Not connected, emails are logged, not sent'}</dd>
           <dt>Sent from</dt>

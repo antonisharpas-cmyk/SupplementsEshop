@@ -185,7 +185,7 @@ export function ProductGallery({ photos, variants, name }: { photos: Photo[]; va
 
       {/* full screen */}
       {open && (
-        <div role="dialog" aria-modal="true" aria-label={name} className="fixed inset-0 z-[100] flex flex-col bg-black/95" onClick={close}>
+        <div role="dialog" aria-modal="true" aria-label={name} className="fixed inset-0 z-[100] flex flex-col bg-black" onClick={close}>
           <div className="flex items-center justify-between gap-3 px-4 py-3 text-white" onClick={(e) => e.stopPropagation()}>
             <span className="label text-white/70 tabular-nums">
               {index + 1} / {shown.length}

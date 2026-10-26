@@ -124,7 +124,7 @@ export default async function ProductPage({ params }: Props) {
         <span className="text-ink">{tr(product.name, locale)}</span>
       </nav>
 
-      <div className="grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
         {/* ------------------------------------------------------ gallery -- */}
         <ProductGallery
           name={tr(product.name, locale)}

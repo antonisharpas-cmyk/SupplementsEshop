@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { PagedTable } from './Paged'
+import { pageNumbers } from '@/lib/pages'
 import type { ReactNode } from 'react'
 
 export function PageHead({
@@ -206,22 +207,43 @@ export function Pagination({
   href: (page: number) => string
 }) {
   if (pages <= 1) return null
+  const cls = 'grid h-9 min-w-9 place-items-center rounded-lg border px-2 tabular-nums transition-colors'
   return (
-    <nav aria-label="Pages" className="mt-6 flex items-center justify-between gap-4 text-sm">
+    <nav aria-label="Pages" className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
       <span className="text-muted">
         Page {page} of {pages} · {total} {total === 1 ? noun[0] : noun[1]}
       </span>
-      <span className="flex gap-2">
+      <span className="flex flex-wrap items-center gap-1.5">
         {page > 1 ? (
-          <Link href={href(page - 1)} className={btn.secondary} rel="prev">
-            ← Previous
+          <Link href={href(page - 1)} className={`${cls} border-line hover:border-accent`} rel="prev" aria-label="Previous page">
+            ‹
           </Link>
-        ) : null}
+        ) : (
+          <span className={`${cls} border-line opacity-40`}>‹</span>
+        )}
+        {pageNumbers(page, pages).map((p, i) =>
+          p === null ? (
+            <span key={`gap${i}`} className="px-1 text-muted">
+              …
+            </span>
+          ) : (
+            <Link
+              key={p}
+              href={href(p)}
+              aria-current={p === page ? 'page' : undefined}
+              className={`${cls} ${p === page ? 'border-accent bg-accent font-semibold text-black' : 'border-line hover:border-accent'}`}
+            >
+              {p}
+            </Link>
+          ),
+        )}
         {page < pages ? (
-          <Link href={href(page + 1)} className={btn.secondary} rel="next">
-            Next →
+          <Link href={href(page + 1)} className={`${cls} border-line hover:border-accent`} rel="next" aria-label="Next page">
+            ›
           </Link>
-        ) : null}
+        ) : (
+          <span className={`${cls} border-line opacity-40`}>›</span>
+        )}
       </span>
     </nav>
   )

@@ -251,7 +251,7 @@ export function RegisterForm({ locale }: { locale: Locale }) {
       <form onSubmit={submitDetails} className="space-y-5" noValidate>
         <FormError>{error}</FormError>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field
             label={t('auth.firstName')}
             name="firstName"

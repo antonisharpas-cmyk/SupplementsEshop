@@ -103,7 +103,7 @@ export default async function AdminProductPage({
         </p>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <nav aria-label="Sections" className="hidden lg:block">
           <ul className="sticky top-6 space-y-1 text-sm">
             {SECTIONS.map((s) => (

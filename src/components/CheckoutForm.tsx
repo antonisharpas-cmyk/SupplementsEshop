@@ -228,7 +228,7 @@ export function CheckoutForm(props: {
     `flex cursor-pointer items-start gap-3 border p-4 transition-colors ${on ? 'border-accent bg-paper' : 'border-line bg-paper hover:border-line-strong'}`
 
   return (
-    <form onSubmit={submit} noValidate className="mt-8 grid gap-10 lg:grid-cols-[1fr_24rem]">
+    <form onSubmit={submit} noValidate className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_24rem]">
       <div className="space-y-6">
         {error && (
           <p role="alert" className="border border-sale/40 bg-sale/5 px-4 py-3 text-sm text-sale">
@@ -237,7 +237,7 @@ export function CheckoutForm(props: {
         )}
 
         <Step n={1} title={t('co.contact')}>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input label={t('auth.firstName')} name="firstName" autoComplete="given-name" value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} error={errors.firstName} required />
             <Input label={t('auth.lastName')} name="lastName" autoComplete="family-name" value={contact.lastName} onChange={(e) => setContact({ ...contact, lastName: e.target.value })} error={errors.lastName} required />
             <Input label={t('auth.email')} name="email" type="email" autoComplete="email" value={contact.email} onChange={(e) => setContact({ ...contact, email: e.target.value })} error={errors.email} required />
@@ -315,7 +315,7 @@ export function CheckoutForm(props: {
               )}
 
               {(addressId === 'new' || props.saved.length === 0) && (
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="flex items-center gap-2.5 text-sm sm:col-span-2">
                     <input
                       type="checkbox"

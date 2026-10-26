@@ -40,7 +40,7 @@ export function RetailerForm({ initial }: { initial?: RetailerValues }) {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <label className="block text-xs text-muted">
         Business name (for the invoice)
         <input className={`${input} mt-1`} value={v.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Power Gym Ltd" />

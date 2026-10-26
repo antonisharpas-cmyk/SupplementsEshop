@@ -70,7 +70,7 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
       </section>
 
       {/* -------------------------------------------------- next and keep -- */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-line bg-paper-2 p-6">
           {ct.next ? (
             <>
@@ -109,7 +109,7 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
       {/* --------------------------------------------------------- ladder -- */}
       <section>
         <h2 className="label mb-4 text-muted">{t('tier.ladder')}</h2>
-        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {ct.config.tiers.map((rule, i) => {
             const here = i === currentIdx
             const reached = i < currentIdx

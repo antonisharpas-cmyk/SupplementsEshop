@@ -41,7 +41,7 @@ export const MOVEMENT_KINDS = {
 } as const
 export type MovementKind = keyof typeof MOVEMENT_KINDS
 
-/** The kinds staff record by hand on the Stock movements page. */
+/** The kinds staff record by hand on the Stock history page. */
 export const MANUAL_KINDS = ['SAMPLE', 'GIFT', 'OWN_USE', 'DAMAGED', 'EXPIRED', 'SUPPLIER_EXTRA', 'COUNT'] as const
 export type ManualKind = (typeof MANUAL_KINDS)[number]
 

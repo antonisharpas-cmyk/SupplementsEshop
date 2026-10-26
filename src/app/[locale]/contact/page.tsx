@@ -63,7 +63,7 @@ export default async function ContactPage({ params }: Props) {
         <OpenChatButton label={t('home.startChat')} className="btn btn-dark shrink-0" />
       </section>
 
-      <section className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <div className={card}>
           <h2 className="label">{t('help.emailTitle')}</h2>
           <a href={`mailto:${BRAND.contact.email}`} className="mt-2 block text-sm underline underline-offset-4">
@@ -90,7 +90,7 @@ export default async function ContactPage({ params }: Props) {
         </div>
       </section>
 
-      <section className="mt-12 grid gap-8 md:grid-cols-2">
+      <section className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2">
         <div id="delivery" className={`${card} scroll-mt-28`}>
           <h2 className="label">{t('footer.delivery')}</h2>
           <p className="mt-2 text-sm text-muted">{t('pdp.deliveryBody', { threshold })}</p>

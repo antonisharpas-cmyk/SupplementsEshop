@@ -84,7 +84,7 @@ function AddressForm({
   )
 
   return (
-    <form onSubmit={save} className="grid gap-4 border border-line bg-paper-2 p-5 sm:grid-cols-2">
+    <form onSubmit={save} className="grid grid-cols-1 gap-4 border border-line bg-paper-2 p-5 sm:grid-cols-2">
       {f('label', t('acc.label'))}
       {f('recipientName', t('co.recipient'), { autoComplete: 'name' })}
       {f('phone', t('auth.phone'), { type: 'tel', autoComplete: 'tel' })}
@@ -123,7 +123,7 @@ export function AddressBook({ locale, items, name, phone }: { locale: Locale; it
   return (
     <div className="space-y-4">
       {items.length === 0 && editing !== 'new' && <p className="text-sm text-muted">{t('acc.noAddresses')}</p>}
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {items.map((a) =>
           editing === a.id ? (
             <li key={a.id} className="sm:col-span-2">

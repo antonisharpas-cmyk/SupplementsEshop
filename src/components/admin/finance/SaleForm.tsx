@@ -87,7 +87,7 @@ export function SaleForm({
   const cell = `${input} !px-2.5 !py-2 text-right tabular-nums`
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 rounded-2xl border border-line bg-paper p-5 sm:grid-cols-3">
+      <section className="grid grid-cols-1 gap-4 rounded-2xl border border-line bg-paper p-5 sm:grid-cols-3">
         <label className="block text-xs text-muted">
           Retailer
           <SearchSelect className="mt-1" options={retailers.map((x) => ({ value: x.id, label: x.name, hint: x.paymentTermsDays ? `${x.paymentTermsDays} days` : 'upfront' }))} value={retailerId} onChange={pick} placeholder="Choose the retailer" />
@@ -159,7 +159,7 @@ export function SaleForm({
       )}
 
       {retailerId && (
-        <section className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
           <div className="space-y-4 rounded-2xl border border-line bg-paper p-5">
             <label className="block text-xs text-muted">
               Note on the invoice

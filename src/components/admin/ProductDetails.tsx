@@ -175,7 +175,7 @@ export function DetailsEditor({
 
   return (
     <form onSubmit={save} className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <span className="label text-muted">Category</span>
           <div className="mt-1.5">
@@ -288,7 +288,7 @@ export function NewProductForm({ groups }: { groups: CategoryGroup[] }) {
       <Labelled label="Name in English">
         <input className={input} value={name.en} onChange={(e) => setName({ ...name, en: e.target.value })} required autoFocus />
       </Labelled>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Labelled label="Name in Greek (optional)">
           <input className={input} value={name.el} onChange={(e) => setName({ ...name, el: e.target.value })} />
         </Labelled>
@@ -296,7 +296,7 @@ export function NewProductForm({ groups }: { groups: CategoryGroup[] }) {
           <input className={input} value={name.ru} onChange={(e) => setName({ ...name, ru: e.target.value })} />
         </Labelled>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <span className="label text-muted">Category</span>
           <div className="mt-1.5">
@@ -309,7 +309,7 @@ export function NewProductForm({ groups }: { groups: CategoryGroup[] }) {
       </div>
       <fieldset className="rounded-2xl border border-line bg-paper-2/60 p-4">
         <legend className="label px-1 text-muted">First size and stock</legend>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Labelled label="Pack size">
             <input className={input} placeholder="1kg or 90 caps" value={size} onChange={(e) => setSize(e.target.value)} required />
           </Labelled>

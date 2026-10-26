@@ -14,7 +14,7 @@ export default async function AdminAccountPage() {
     <>
       <PageHead title="My account" sub="Your own sign in details. Nobody else can change your password, and you cannot change anyone else's." />
       <section className="mb-6 max-w-xl rounded-2xl border border-line bg-paper p-6">
-        <dl className="grid gap-3 text-sm sm:grid-cols-[8rem_1fr]">
+        <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-[8rem_1fr]">
           <dt className="text-muted">Name</dt>
           <dd className="text-heading">{`${user.firstName} ${user.lastName}`.trim()}</dd>
           <dt className="text-muted">Email</dt>

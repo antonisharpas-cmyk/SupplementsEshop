@@ -233,7 +233,7 @@ export function TemplateEditor({
   }
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       {/* ------------------------------------------------------------ form */}
       <div className="space-y-6">
         <div>
@@ -392,7 +392,7 @@ export function TemplateEditor({
                 </li>
               ))}
             </ul>
-            <dl className="mt-3 grid gap-x-4 gap-y-1 text-xs text-muted sm:grid-cols-[auto_1fr]">
+            <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-xs text-muted sm:grid-cols-[auto_1fr]">
               {variables.map((v) => (
                 <div key={v.name} className="contents">
                   <dt className="font-mono">{`{{${v.name}}}`}</dt>

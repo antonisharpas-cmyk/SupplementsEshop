@@ -57,7 +57,7 @@ export default async function AdminOverviewPage() {
       <PageHead title={`Good to see you, ${user.firstName}`} sub="Today, stock, and what needs you, in that order." />
 
       <Group title="Today">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="Orders" value={today.orders} href="/admin/orders" />
           <Stat label="Revenue" value={formatMoney(today.revenueCents, 'en')} />
           <Stat label="New customers" value={today.newCustomers} />
@@ -78,7 +78,7 @@ export default async function AdminOverviewPage() {
           </Link>
         }
       >
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="New customers today" value={activity.newCustomers} />
           <Stat
             label="Open conversations"
@@ -94,7 +94,7 @@ export default async function AdminOverviewPage() {
       </Group>
 
       <Group title="Inventory">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
             label="Sizes sold out"
             value={overview.stock.outOfStock}
@@ -117,7 +117,7 @@ export default async function AdminOverviewPage() {
       </Group>
 
       <Group title="Needs attention">
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="border border-line bg-paper">
             <div className="flex items-baseline justify-between border-b border-line px-5 py-3.5">
               <h3 className="font-semibold">Customers waiting</h3>

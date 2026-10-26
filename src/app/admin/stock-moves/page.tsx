@@ -13,7 +13,7 @@ import { MovementForm } from '@/components/admin/finance/MovementForm'
 import { CATALOGUE_TABS, SectionTabs } from '@/components/admin/SectionTabs'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Stock movements' }
+export const metadata = { title: 'Stock history' }
 
 type SP = Record<string, string | string[] | undefined>
 
@@ -38,7 +38,7 @@ export default async function StockMovesPage({ searchParams }: { searchParams: P
     <>
       <SectionTabs label="Catalogue" tabs={CATALOGUE_TABS} />
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Stock movements</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Stock history</h1>
         <p className="mt-1 text-sm text-muted">Everything that changed stock apart from online orders, each with a reason.</p>
       </div>
       <section className="mb-8 rounded-2xl border border-line bg-paper p-5">

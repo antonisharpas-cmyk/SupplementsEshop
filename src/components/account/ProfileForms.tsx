@@ -51,7 +51,7 @@ export function ProfileForm({
   }
 
   return (
-    <form onSubmit={save} className="grid max-w-xl gap-4 sm:grid-cols-2">
+    <form onSubmit={save} className="grid grid-cols-1 max-w-xl gap-4 sm:grid-cols-2">
       <label className="block label text-muted">
         {t('auth.firstName')}
         <input className={inputClass(fields.firstName)} value={f.firstName} onChange={(e) => setF({ ...f, firstName: e.target.value })} autoComplete="given-name" />

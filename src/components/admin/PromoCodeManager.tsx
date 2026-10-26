@@ -108,7 +108,7 @@ function CodeForm({ initial, categories, onDone }: { initial?: AdminPromoCode; c
     >
       <p className="font-display text-base font-semibold text-heading">{initial ? `Change ${initial.code}` : 'New promo code'}</p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Code (what the customer types)">
           <div className="flex gap-2">
             <input
@@ -134,7 +134,7 @@ function CodeForm({ initial, categories, onDone }: { initial?: AdminPromoCode; c
         </Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Field label="Minimum order (€)" hint="Empty for no minimum.">
           <input className={input} inputMode="decimal" value={minOrder} onChange={(e) => setMinOrder(e.target.value)} placeholder="30.00" />
         </Field>
@@ -156,7 +156,7 @@ function CodeForm({ initial, categories, onDone }: { initial?: AdminPromoCode; c
         />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Starts">
           <DateTimeField value={startsAt} onChange={setStartsAt} ariaLabel="Starts" />
         </Field>

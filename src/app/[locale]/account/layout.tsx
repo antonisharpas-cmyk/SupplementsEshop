@@ -52,7 +52,7 @@ export default async function AccountLayout({
 
   return (
     <div className="container-x py-10">
-      <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-12">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-12">
         <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">
           <div className="lg:rounded-2xl lg:border lg:border-line lg:bg-paper-2 lg:p-4">
             <div className="mb-5 flex items-center gap-3 lg:px-1">

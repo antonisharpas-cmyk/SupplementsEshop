@@ -59,7 +59,7 @@ export function RecurringForm({ categories, vatRateBp, initial, month }: { categ
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       <label className="block text-xs text-muted lg:col-span-2">
         Paid to
         <input className={`${input} mt-1`} value={v.payee} onChange={(e) => set({ payee: e.target.value })} placeholder="e.g. Landlord" />

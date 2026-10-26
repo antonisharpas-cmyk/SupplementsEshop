@@ -103,7 +103,7 @@ export function OrderView({
         canReorder={canReorder && order.status !== 'PAYMENT_PENDING'}
       />
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_20rem]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_20rem]">
         <section aria-labelledby="items">
           <h2 id="items" className="label mb-3 text-muted">
             {t('ord.items')}

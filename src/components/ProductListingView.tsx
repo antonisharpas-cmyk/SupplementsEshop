@@ -19,6 +19,7 @@ import { listingHref, type ListingFilters } from '@/lib/listing-filters'
 import { ProductCard } from './ProductCard'
 import { ListingShell, type ListingScope } from './listing/ListingShell'
 import { FilterSidebar, MobileFilters, NoResults, Results, ResultsBar } from './listing/ListingControls'
+import { pageNumbers } from '@/lib/pages'
 
 export function ProductListingView({
   locale,
@@ -93,7 +94,7 @@ export function ProductListingView({
           <MobileFilters />
         </div>
 
-        <div className="grid gap-10 lg:grid-cols-[14.5rem_minmax(0,1fr)] xl:gap-14">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[14.5rem_minmax(0,1fr)] xl:gap-14">
           <FilterSidebar />
 
           <div>
@@ -114,7 +115,7 @@ export function ProductListingView({
                   {listing.totalPages > 1 && (
                     <nav
                       aria-label="Pagination"
-                      className="mt-14 flex items-center justify-between border-t border-line pt-6"
+                      className="mt-14 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6"
                     >
                       {listing.page > 1 ? (
                         <Link href={page(listing.page - 1)} className="label hover:underline" rel="prev">
@@ -123,8 +124,25 @@ export function ProductListingView({
                       ) : (
                         <span className="label text-line-strong">← {t('list.previous')}</span>
                       )}
-                      <span className="text-xs text-muted">
-                        {t('list.page', { page: listing.page, total: listing.totalPages })}
+                      <span className="flex flex-wrap items-center justify-center gap-1.5" aria-label={t('list.page', { page: listing.page, total: listing.totalPages })}>
+                        {pageNumbers(listing.page, listing.totalPages).map((n, i) =>
+                          n === null ? (
+                            <span key={`gap${i}`} className="px-1 text-muted">
+                              …
+                            </span>
+                          ) : (
+                            <Link
+                              key={n}
+                              href={page(n)}
+                              aria-current={n === listing.page ? 'page' : undefined}
+                              className={`grid h-9 min-w-9 place-items-center rounded-lg border px-2 text-sm tabular-nums transition-colors ${
+                                n === listing.page ? 'border-accent bg-accent font-semibold text-black' : 'border-line hover:border-accent'
+                              }`}
+                            >
+                              {n}
+                            </Link>
+                          ),
+                        )}
                       </span>
                       {listing.page < listing.totalPages ? (
                         <Link href={page(listing.page + 1)} className="label hover:underline" rel="next">

@@ -102,7 +102,7 @@ export default async function CartPage({ params }: { params: Promise<{ locale: s
         </div>
       )}
 
-      <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_22rem]">
+      <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_22rem]">
         {/* ---------------------------------------------------------- lines */}
         <CartLines locale={locale} view={view} />
 

@@ -110,10 +110,10 @@ export function ManualOrderForm({ catalogue, shippingCents }: { catalogue: Item[
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <form onSubmit={submit} className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="space-y-6">
         <Section n={1} title="Customer">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="First name">
               <input className={input} value={c.firstName} onChange={(e) => setC({ ...c, firstName: e.target.value })} required autoFocus />
             </Field>
@@ -225,7 +225,7 @@ export function ManualOrderForm({ catalogue, shippingCents }: { catalogue: Item[
             ))}
           </div>
           {kind === 'SHIPPING' && (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Street and number">
                 <input className={input} value={addr.line1} onChange={(e) => setAddr({ ...addr, line1: e.target.value })} required />
               </Field>

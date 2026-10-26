@@ -39,7 +39,7 @@ export default async function SubscribersPage({ searchParams }: { searchParams: 
 
   return (
     <>
-      <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Confirmed subscribers" value={stats.subscribed} />
         <Stat label="New in the last 30 days" value={stats.newLast30Days} />
         <Stat label="Waiting to confirm" value={stats.pending} />

@@ -161,7 +161,7 @@ export function PurchaseForm({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 rounded-2xl border border-line bg-paper p-5 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-4 rounded-2xl border border-line bg-paper p-5 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block text-xs text-muted">
           Supplier
           <SearchSelect className="mt-1" options={suppliers.map((s) => ({ value: s.id, label: s.name, hint: s.country }))} value={supplierId} onChange={pickSupplier} placeholder="Choose the supplier" />
@@ -286,8 +286,8 @@ export function PurchaseForm({
         </button>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <div className="grid content-start gap-4 rounded-2xl border border-line bg-paper p-5 sm:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
+        <div className="grid grid-cols-1 content-start gap-4 rounded-2xl border border-line bg-paper p-5 sm:grid-cols-2">
           <label className="block text-xs text-muted">
             Shipping €
             <input className={`${input} mt-1`} inputMode="decimal" value={shipping} onChange={(e) => setShipping(e.target.value)} placeholder="0,00" />

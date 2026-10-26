@@ -189,7 +189,7 @@ export function SupportInbox({
   const idleLeft = c && c.status === 'OPEN' ? Math.max(0, thread!.idleMinutes * 60_000 - (now - Date.parse(c.lastActivityAt))) : 0
 
   return (
-    <div className="grid h-[calc(100vh-13rem)] min-h-[32rem] border border-line bg-paper md:grid-cols-[20rem_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 h-[calc(100vh-13rem)] min-h-[32rem] border border-line bg-paper md:grid-cols-[20rem_minmax(0,1fr)]">
       {/* ------------------------------------------------------------ list */}
       <aside className={`flex min-h-0 flex-col border-line md:border-r ${selected ? 'hidden md:flex' : 'flex'}`}>
         <div role="tablist" className="flex border-b border-line">

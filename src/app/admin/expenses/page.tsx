@@ -46,7 +46,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       </section>
 
       <MonthNav base="/admin/expenses" params={params} month={month} />
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Expenses (cost)" value={money(total)} />
         <Stat label="VAT to reclaim" value={money(vat)} />
         {[...byCat.entries()]

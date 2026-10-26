@@ -126,7 +126,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
         ))}
       </div>
 
-      <form action="/admin/accounting" className="mb-6 grid gap-3 rounded-2xl border border-line bg-paper p-4 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.6fr)_auto]">
+      <form action="/admin/accounting" className="mb-6 grid grid-cols-1 gap-3 rounded-2xl border border-line bg-paper p-4 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.6fr)_auto]">
         <label className="text-sm">
           <span className="label mb-1.5 block text-muted">From</span>
           <DateTimeField mode="date" name="from" value={filter.from ?? ''} placeholder="Any date" ariaLabel="From" />

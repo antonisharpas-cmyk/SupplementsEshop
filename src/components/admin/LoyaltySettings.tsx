@@ -132,7 +132,7 @@ export function LoyaltySettings({
         </table>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <label className="block text-xs text-muted">
           Orders that keep a tier
           <input className={`${input} mt-1`} inputMode="numeric" value={keepMin} onChange={(e) => setKeepMin(e.target.value.replace(/\D/g, ''))} />

@@ -40,7 +40,7 @@ export function StaffMenu({ locale, name }: { locale: Locale; name: string }) {
         aria-label={`${name}, admin`}
         title={`${name} (admin)`}
         onClick={() => setOpen((o) => !o)}
-        className="relative grid h-10 w-10 place-items-center hover:text-ink-soft"
+        className="relative grid h-9 w-9 place-items-center hover:text-ink-soft sm:h-10 sm:w-10"
       >
         <UserIcon />
         <span className="bg-gold absolute -bottom-0.5 left-1/2 -translate-x-1/2 rounded px-1 text-[8px] font-bold leading-[13px] tracking-wider text-paper">

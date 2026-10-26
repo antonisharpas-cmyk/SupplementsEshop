@@ -98,7 +98,7 @@ export default async function CheckoutPage({
           <h2 id="co-gate" className="text-center text-xl font-semibold text-heading">
             {t('co.gateTitle')}
           </h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col rounded-2xl border border-accent/50 bg-accent/5 p-6">
               <p className="font-display text-lg font-semibold text-heading">
                 {t('co.gateCustomer')}

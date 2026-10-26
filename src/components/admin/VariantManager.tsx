@@ -196,7 +196,7 @@ function Line({ productId, row, basePrice }: { productId: string; row: VariantRo
       {open && (
         <tr>
           <td colSpan={6} className="bg-paper-2 px-3 py-4">
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               <label className="text-xs text-muted">
                 Flavour in Greek
                 <input className={`${input} mt-1`} value={f.el} onChange={(e) => setF({ ...f, el: e.target.value })} />
@@ -290,7 +290,7 @@ function AddFlavour({ productId, sizes }: { productId: string; sizes: string[] }
   return (
     <form onSubmit={add} className="space-y-4 border border-line bg-paper-2 p-5">
       <p className="text-sm font-medium text-heading">New flavour</p>
-      <div className="grid gap-3 sm:grid-cols-[auto_1fr_1fr_1fr]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_1fr_1fr_1fr]">
         <label className="text-xs text-muted">
           Colour
           <input

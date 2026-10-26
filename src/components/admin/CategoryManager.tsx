@@ -45,7 +45,7 @@ const CHILD = ['group', 'section']
 
 function NameFields({ value, onChange, autoFocus }: { value: Names; onChange: (n: Names) => void; autoFocus?: boolean }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
       <input className={input} placeholder="Name in English" value={value.en} onChange={(e) => onChange({ ...value, en: e.target.value })} autoFocus={autoFocus} required />
       <input className={input} placeholder="Greek (optional)" value={value.el} onChange={(e) => onChange({ ...value, el: e.target.value })} />
       <input className={input} placeholder="Russian (optional)" value={value.ru} onChange={(e) => onChange({ ...value, ru: e.target.value })} />

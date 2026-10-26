@@ -48,7 +48,7 @@ export function MovementForm({ variants }: { variants: { variantId: string; labe
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
       <label className="block text-xs text-muted lg:col-span-2">
         Product
         <SearchSelect className="mt-1" options={options} value={variantId} onChange={setVariantId} placeholder="Choose a product" searchPlaceholder="Name or SKU" />

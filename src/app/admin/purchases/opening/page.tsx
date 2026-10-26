@@ -14,7 +14,7 @@ export default async function OpeningPage() {
   const v = await stockValue()
   return (
     <>
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Units in stock" value={v.units} />
         <Stat label="Stock value at cost" value={formatMoney(v.valueCents, 'en')} />
         <Stat label="Products in stock without a cost" value={v.uncosted} tone={v.uncosted > 0 ? 'warn' : 'plain'} />

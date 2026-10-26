@@ -40,7 +40,7 @@ export function OpeningStock() {
 
   return (
     <div className="space-y-6">
-      <ol className="grid gap-4 lg:grid-cols-3">
+      <ol className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <li className="rounded-2xl border border-line bg-paper p-5">
           <p className="label text-accent">Step 1</p>
           <p className="mt-2 text-sm">Download the sheet with every product, its stock now and its cost so far.</p>

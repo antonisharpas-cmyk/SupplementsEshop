@@ -65,7 +65,7 @@ export default async function SalePage({ params }: { params: Promise<{ id: strin
         ))}
       </Table>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
         <SaleActions
           id={id}
           dueCents={s.balance.dueCents}

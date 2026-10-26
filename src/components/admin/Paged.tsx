@@ -13,6 +13,7 @@
  * ========================================================================== */
 
 import { Children, useState, type ReactNode } from 'react'
+import { pageNumbers } from '@/lib/pages'
 
 export const ADMIN_PAGE_SIZE = 15
 
@@ -38,8 +39,6 @@ export function PageButtons({
   onPage: (p: number) => void
 }) {
   if (pages <= 1) return null
-  /* First, last, and two either side of the current page. */
-  const shown = Array.from({ length: pages }, (_, i) => i + 1).filter((p) => p === 1 || p === pages || Math.abs(p - page) <= 2)
   const from = (page - 1) * size + 1
   const to = Math.min(total, page * size)
   const cls = 'grid h-9 min-w-9 place-items-center rounded-lg border px-2 text-sm tabular-nums transition-colors'
@@ -52,10 +51,14 @@ export function PageButtons({
         <button type="button" className={`${cls} border-line hover:border-accent disabled:opacity-40`} disabled={page === 1} onClick={() => onPage(page - 1)} aria-label="Previous page">
           ‹
         </button>
-        {shown.map((p, i) => (
-          <span key={p} className="flex items-center gap-1.5">
-            {i > 0 && shown[i - 1] !== p - 1 && <span className="px-1 text-muted">…</span>}
+        {pageNumbers(page, pages).map((p, i) =>
+          p === null ? (
+            <span key={`gap${i}`} className="px-1 text-muted">
+              …
+            </span>
+          ) : (
             <button
+              key={p}
               type="button"
               aria-current={p === page ? 'page' : undefined}
               onClick={() => onPage(p)}
@@ -63,8 +66,8 @@ export function PageButtons({
             >
               {p}
             </button>
-          </span>
-        ))}
+          ),
+        )}
         <button type="button" className={`${cls} border-line hover:border-accent disabled:opacity-40`} disabled={page === pages} onClick={() => onPage(page + 1)} aria-label="Next page">
           ›
         </button>

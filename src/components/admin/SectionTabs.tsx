@@ -38,11 +38,11 @@ export function SectionTabs({ label, tabs }: { label: string; tabs: SectionTab[]
 }
 
 export const CATALOGUE_TABS: SectionTab[] = [
+  { href: '/admin/categories', label: 'Categories' },
   { href: '/admin/products', label: 'Products' },
   { href: '/admin/products/import', label: 'Import' },
-  { href: '/admin/categories', label: 'Categories' },
   { href: '/admin/stock', label: 'Stock' },
-  { href: '/admin/stock-moves', label: 'Stock movements' },
+  { href: '/admin/stock-moves', label: 'Stock history' },
 ]
 
 export const PROMOTION_TABS: SectionTab[] = [

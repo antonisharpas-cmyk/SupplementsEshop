@@ -38,7 +38,7 @@ export function HeaderBag({ locale, initialCount }: { locale: Locale; initialCou
       href={`/${locale}/cart`}
       aria-label={label(count)}
       title={label(count)}
-      className="relative grid h-10 w-10 place-items-center hover:text-ink-soft"
+      className="relative grid h-9 w-9 place-items-center hover:text-ink-soft sm:h-10 sm:w-10"
     >
       <BagIcon />
       {count > 0 && (

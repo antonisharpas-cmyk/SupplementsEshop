@@ -101,7 +101,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <p className="mt-3 text-xs text-muted">The pack is one ZIP: an Excel file with profit and loss, VAT, every invoice and credit note, purchases, expenses and stock movements, plus every invoice, supplier invoice and receipt as files.</p>
       </section>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={`Sales, ${monthName(cur)}`} value={m(salesNow)} />
         <Stat label="Gross profit" value={`${m(gross)}${salesNow ? ` · ${Math.round((gross / salesNow) * 100)}%` : ''}`} />
         <Stat label="Net profit" value={m(net)} tone={net < 0 ? 'bad' : 'plain'} />
@@ -172,7 +172,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </div>
       </section>
 
-      <section className="mb-8 grid gap-8 xl:grid-cols-2">
+      <section className="mb-8 grid grid-cols-1 gap-8 xl:grid-cols-2">
         <div>
           <h2 className="mb-3 text-lg font-semibold">Margin by product category</h2>
           <div className="overflow-x-auto rounded-2xl border border-line bg-paper">

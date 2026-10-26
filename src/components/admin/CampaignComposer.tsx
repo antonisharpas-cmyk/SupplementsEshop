@@ -291,7 +291,7 @@ export function CampaignComposer({
         )}
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="label mb-2 block text-muted">Button text</span>
           <input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} maxLength={40} className={input} />
@@ -308,7 +308,7 @@ export function CampaignComposer({
       </div>
 
       {kind === 'promotion' && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="label mb-2 block text-muted">Promotion code (optional)</span>
             <input value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} maxLength={40} className={`${input} font-mono`} />
@@ -323,7 +323,7 @@ export function CampaignComposer({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="label mb-2 block text-muted">Send to</span>
           <select value={audience} onChange={(e) => setAudience(e.target.value as Audience)} className={input}>

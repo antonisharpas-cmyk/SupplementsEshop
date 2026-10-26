@@ -73,7 +73,7 @@ export function StatusControl({ productId, status }: { productId: string; status
   return (
     <fieldset>
       <legend className="sr-only">Status</legend>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {STATUSES.map((s) => {
           const on = s.value === current
           return (
@@ -172,7 +172,7 @@ export function PriceEditor({
         </p>
       )}
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="price" className="label block text-muted">
             Price (€)

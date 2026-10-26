@@ -99,7 +99,7 @@ export function SearchBox({
         aria-label={label}
         aria-expanded={open}
         title={label}
-        className={`grid h-10 w-10 place-items-center hover:text-ink-soft ${open ? 'md:hidden' : ''}`}
+        className={`grid h-9 w-9 place-items-center hover:text-ink-soft sm:h-10 sm:w-10 ${open ? 'md:hidden' : ''}`}
       >
         <SearchIcon />
       </button>

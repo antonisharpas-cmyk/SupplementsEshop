@@ -159,7 +159,7 @@ function PromotionForm({
         {scope === 'CATEGORY' && <p className="mt-1.5 text-xs text-muted">Everything inside the category is included too.</p>}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <span className="mb-1.5 block text-xs text-muted">Discount</span>
           <div className="flex gap-2">
@@ -191,7 +191,7 @@ function PromotionForm({
 
       <div>
         <span className="mb-1.5 block text-xs text-muted">Badge on product cards (optional)</span>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <input className={input} placeholder="English, e.g. 15% OFF" value={badge.en} onChange={(e) => setBadge({ ...badge, en: e.target.value })} />
           <input className={input} placeholder="Greek" value={badge.el} onChange={(e) => setBadge({ ...badge, el: e.target.value })} />
           <input className={input} placeholder="Russian" value={badge.ru} onChange={(e) => setBadge({ ...badge, ru: e.target.value })} />

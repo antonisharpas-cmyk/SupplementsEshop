@@ -127,29 +127,31 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           </div>
         </section>
 
-        <table className="mt-8 w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#ddd] text-left text-xs tracking-[0.1em] text-[#777] uppercase">
-              <th className="py-2 pr-3 font-semibold">Description</th>
-              <th className="py-2 px-3 text-right font-semibold">Qty</th>
-              <th className="py-2 px-3 text-right font-semibold">{inv.linesNet ? 'Unit before VAT' : 'Unit'}</th>
-              <th className="py-2 pl-3 text-right font-semibold">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {inv.lines.map((l, n) => (
-              <tr key={n} className="border-b border-[#eee] align-top">
-                <td className="py-3 pr-3">
-                  <p className="text-[#111]">{l.description}</p>
-                  {l.sku && <p className="font-mono text-[11px] text-[#888]">{l.sku}</p>}
-                </td>
-                <td className="py-3 px-3 text-right tabular-nums">{l.quantity}</td>
-                <td className="py-3 px-3 text-right tabular-nums">{money(l.unitCents)}</td>
-                <td className="py-3 pl-3 text-right tabular-nums">{money(l.totalCents)}</td>
+        <div className="mt-8 overflow-x-auto print:overflow-visible">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#ddd] text-left text-xs tracking-[0.1em] text-[#777] uppercase">
+                <th className="py-2 pr-3 font-semibold">Description</th>
+                <th className="py-2 px-3 text-right font-semibold">Qty</th>
+                <th className="py-2 px-3 text-right font-semibold">{inv.linesNet ? 'Unit before VAT' : 'Unit'}</th>
+                <th className="py-2 pl-3 text-right font-semibold">Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {inv.lines.map((l, n) => (
+                <tr key={n} className="border-b border-[#eee] align-top">
+                  <td className="py-3 pr-3">
+                    <p className="text-[#111]">{l.description}</p>
+                    {l.sku && <p className="font-mono text-[11px] text-[#888]">{l.sku}</p>}
+                  </td>
+                  <td className="py-3 px-3 text-right tabular-nums">{l.quantity}</td>
+                  <td className="py-3 px-3 text-right tabular-nums">{money(l.unitCents)}</td>
+                  <td className="py-3 pl-3 text-right tabular-nums">{money(l.totalCents)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <div className="mt-6 ml-auto max-w-xs space-y-1.5 text-sm">
           <div className="flex justify-between text-[#555]">

@@ -92,7 +92,7 @@ export function SmsComposer({ counts, optOut, enabled, senderId }: { counts: Rec
         Goes only to customers who said yes to offers by SMS. Keep it short: one offer, one link.
       </p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <div className="space-y-5">
           <label className="block text-sm">
             <span className="label mb-1.5 block text-muted">Message</span>

@@ -44,12 +44,12 @@ export function Header({
         </div>
       </div>
 
-      <div className="container-x flex h-16 items-center gap-4">
-        <Link href={base} className="flex shrink-0 items-center gap-2.5" aria-label={BRAND.name}>
+      <div className="container-x flex h-16 items-center gap-2 sm:gap-4">
+        <Link href={base} className="flex min-w-0 shrink items-center gap-2 sm:gap-2.5" aria-label={BRAND.name}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={BRAND.logo.mark} alt="" width={46} height={24} className="h-6 w-auto" />
+          <img src={BRAND.logo.mark} alt="" width={46} height={24} className="h-5 w-auto shrink-0 sm:h-6" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={BRAND.logo.wordmark} alt={BRAND.name} width={571} height={71} className="h-4 w-auto sm:h-[18px]" />
+          <img src={BRAND.logo.wordmark} alt={BRAND.name} width={571} height={71} className="h-3.5 w-auto min-w-0 sm:h-[18px]" />
         </Link>
 
         {/* desktop nav */}
@@ -163,7 +163,7 @@ export function Header({
               href={signedIn ? `${base}/account` : `${base}/sign-in`}
               aria-label={signedIn ? t('nav.account') : t('auth.signIn')}
               title={signedIn ? t('nav.account') : t('auth.signIn')}
-              className="relative grid h-10 w-10 place-items-center hover:text-ink-soft"
+              className="relative grid h-9 w-9 place-items-center hover:text-ink-soft sm:h-10 sm:w-10"
             >
               <UserIcon />
               {signedIn && <span aria-hidden className="absolute bottom-2 right-2 h-1.5 w-1.5 rounded-full bg-accent" />}

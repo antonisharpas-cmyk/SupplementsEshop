@@ -74,7 +74,7 @@ export function DocumentsDownload({ from: f0, to: t0, periods }: { from: string;
           </button>
         ))}
       </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-[13rem_13rem_1fr_auto] lg:items-end">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[13rem_13rem_1fr_auto] lg:items-end">
         <label className="block text-xs text-muted">
           From
           <DateTimeField mode="date" clearable={false} value={from} onChange={setFrom} className="mt-1" />
@@ -83,7 +83,7 @@ export function DocumentsDownload({ from: f0, to: t0, periods }: { from: string;
           To
           <DateTimeField mode="date" clearable={false} value={to} min={from} onChange={setTo} className="mt-1" />
         </label>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {(['in', 'out', 'other'] as const).map((g) => (
             <div key={g}>
               <button type="button" className="label mb-1.5 text-muted hover:text-accent" onClick={() => group(g)}>

@@ -39,7 +39,7 @@ function Row({
   children: React.ReactNode
 }) {
   return (
-    <div className="grid gap-2 border-b border-line py-5 sm:grid-cols-[1fr_11rem] sm:items-start sm:gap-6">
+    <div className="grid grid-cols-1 gap-2 border-b border-line py-5 sm:grid-cols-[1fr_11rem] sm:items-start sm:gap-6">
       <div>
         <p className="text-sm font-medium">{label}</p>
         <p className="mt-1 text-xs leading-relaxed text-muted">{hint}</p>

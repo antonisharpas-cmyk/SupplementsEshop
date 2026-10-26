@@ -35,7 +35,7 @@ export default async function CampaignsPage() {
   const sending = campaigns.some((c) => c.status === 'SENDING')
 
   return (
-    <div className="grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
       <section className="border border-line bg-paper p-5 sm:p-6">
         <h2 className="text-lg font-semibold tracking-tight">New mailing</h2>
         <p className="mb-5 mt-1 text-sm text-muted">

@@ -47,7 +47,7 @@ export function TierControls({ id, tier, manual, today, inSixMonths }: { id: str
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_2fr]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_2fr]">
         <label className="block text-xs text-muted">
           Tier
           <select className={`${input} mt-1`} value={choice} onChange={(e) => setChoice(e.target.value)}>

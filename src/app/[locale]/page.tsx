@@ -312,7 +312,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               /* An invitation in the page, never a pop-up or a gate. */
               return (
                 <section key="newsletter" aria-labelledby="newsletter-title" className="bg-silver relative overflow-hidden text-paper">
-                  <div className="container-x grid gap-10 py-16 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:items-center md:py-20">
+                  <div className="container-x grid grid-cols-1 gap-10 py-16 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:items-center md:py-20">
                     <div>
                       <p className="label text-paper/60">{t('news.eyebrow')}</p>
                       <span aria-hidden className="mt-3 block h-1 w-12 rounded-full bg-gold" />
@@ -345,7 +345,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         })}
 
       {/* ----------------------------------------------------- reassurance - */}
-      <section className="container-x grid gap-8 py-14 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="container-x grid grid-cols-1 gap-8 py-14 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
             title: t('footer.delivery'),

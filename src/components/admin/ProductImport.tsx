@@ -19,10 +19,14 @@ type Row = {
   ean: string
   action: 'new product' | 'new flavour' | 'already there'
   saveCode?: boolean
+  nameEl?: string
+  nameRu?: string
+  flavourEl?: string
+  flavourRu?: string
   problem?: string
   note?: string
 }
-type Result = { products: number; flavours: number; codes: number; skipped: number; failed: { row: number; problem: string }[] }
+type Result = { products: number; flavours: number; codes: number; translated?: number; skipped: number; failed: { row: number; problem: string }[] }
 
 const TEMPLATE = '/api/admin/products/import'
 
@@ -94,13 +98,14 @@ export function ProductImport() {
   }
 
   const good = rows?.filter((r) => !r.problem) ?? []
-  const todo = good.filter((r) => r.action !== 'already there' || r.saveCode)
+  const hasText = (r: Row) => Boolean(r.nameEl || r.nameRu || r.flavourEl || r.flavourRu)
+  const todo = good.filter((r) => r.action !== 'already there' || r.saveCode || hasText(r))
   const newProducts = new Set(good.filter((r) => r.action === 'new product').map((r) => r.name.toLowerCase())).size
   const newFlavours = good.filter((r) => r.action !== 'already there').length
 
   return (
     <div className="space-y-6">
-      <ol className="grid gap-4 lg:grid-cols-3">
+      <ol className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <li className="rounded-2xl border border-line bg-paper p-5">
           <p className="label text-accent">Step 1</p>
           <p className="mt-2 text-sm">
@@ -169,7 +174,8 @@ export function ProductImport() {
         <section className="rounded-2xl border border-ok/40 bg-ok/10 p-5 text-sm">
           <p className="font-medium text-ok">
             Done: {result.products} new product{result.products === 1 ? '' : 's'}, {result.flavours} flavour{result.flavours === 1 ? '' : 's'} and sizes
-            {result.codes ? `, ${result.codes} barcodes saved on flavours you had` : ''}.
+            {result.codes ? `, ${result.codes} barcodes saved on flavours you had` : ''}
+            {result.translated ? `, Greek and Russian names filled in on ${result.translated} products and flavours you had` : ''}.
           </p>
           {result.failed.length > 0 && (
             <ul className="mt-2 space-y-1 text-sale">
@@ -195,15 +201,22 @@ export function ProductImport() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm">
               {newProducts} new product{newProducts === 1 ? '' : 's'} and {newFlavours} flavour{newFlavours === 1 ? '' : 's'} and sizes ready.
+              {good.some((r) => r.action === 'already there' && hasText(r)) && ' Products already in the shop get the Greek and Russian names from the sheet (English is not changed).'}
               {rows.length - good.length > 0 && <span className="text-sale"> {rows.length - good.length === 1 ? '1 row has a problem and will be skipped' : `${rows.length - good.length} rows have a problem and will be skipped`}; fix it in the sheet and check again.</span>}
             </p>
             <button
               type="button"
               className={btn.primary}
               disabled={busy || todo.length === 0}
-              onClick={() => window.confirm(`Create ${newProducts} products and ${newFlavours} flavours and sizes? They start hidden.`) && void send(true)}
+              onClick={() =>
+                window.confirm(
+                  newFlavours > 0
+                    ? `Create ${newProducts} products and ${newFlavours} flavours and sizes? They start hidden.`
+                    : 'Fill in the Greek and Russian names of the products already in the shop?',
+                ) && void send(true)
+              }
             >
-              {busy ? 'Creating…' : 'Create them'}
+              {busy ? 'Saving…' : newFlavours > 0 ? 'Create them' : 'Update them'}
             </button>
           </div>
           <div className="mt-4 max-h-[32rem] overflow-auto">
