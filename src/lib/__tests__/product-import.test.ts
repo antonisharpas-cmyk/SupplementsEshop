@@ -125,6 +125,28 @@ describe('import', () => {
     expect(await applyImport(await checkImport(withText))).toMatchObject({ translated: 0 })
   })
 
+  it('texts: a new product gets them, a product already there only gets the empty ones', async () => {
+    const head = ['Product name', 'Flavour', 'Size', 'Category', 'Selling price', 'EAN', 'Short line', 'Short line in Greek', 'Description', 'Description in Greek', 'Description in Russian', 'Nutrition & usage', 'Search title']
+    await applyImport(
+      await checkImport([head, ['Iso Plus Powder', 'Lemon', '700 g', 'Protein', '20', '5901330024221', 'Isotonic drink', 'Ισοτονικό ρόφημα', 'With carnitine.', 'Με καρνιτίνη.', '', 'Two scoops in 500 ml', '']]),
+    )
+    const [p] = await db.select().from(products).where(eq(products.slug, 'iso-plus-powder'))
+    expect(p.summary).toEqual({ en: 'Isotonic drink', el: 'Ισοτονικό ρόφημα' })
+    expect(p.description).toEqual({ en: 'With carnitine.', el: 'Με καρνιτίνη.' })
+    expect(p.sizeGuide).toEqual({ en: 'Two scoops in 500 ml' })
+    /* The owner changes the English short line in the console; a later sheet
+       adds the Russian description and search title but keeps the edit. */
+    await db.update(products).set({ summary: { en: 'Edited in the console', el: 'Ισοτονικό ρόφημα' } }).where(eq(products.id, p.id))
+    const res = await applyImport(
+      await checkImport([head, ['Iso Plus Powder', 'Lemon', '700 g', 'Protein', '20', '5901330024221', 'Isotonic drink', 'Άλλο', 'Other', '', 'С карнитином.', '', 'Iso Plus lemon']]),
+    )
+    expect(res.translated).toBe(1)
+    const [q] = await db.select().from(products).where(eq(products.id, p.id))
+    expect(q.summary).toEqual({ en: 'Edited in the console', el: 'Ισοτονικό ρόφημα' })
+    expect(q.description).toEqual({ en: 'With carnitine.', el: 'Με καρνιτίνη.', ru: 'С карнитином.' })
+    expect(q.seoTitle).toEqual({ en: 'Iso Plus lemon' })
+  })
+
   it('saves the barcode on a flavour that had none', async () => {
     const [cat] = await db.select().from(categories).where(eq(categories.slug, 'protein'))
     const [p] = await db.insert(products).values({ categoryId: cat.id, slug: 'iso', name: { en: 'Isolate' }, priceCents: 4000 }).returning()

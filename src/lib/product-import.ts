@@ -33,6 +33,8 @@ export type ImportRow = {
   nameRu: string
   flavourEl: string
   flavourRu: string
+  /** Short line, description, nutrition & usage, search title and text. */
+  texts?: Texts
   flavour: string
   size: string
   category: string
@@ -85,6 +87,25 @@ function findCategory(raw: string, choices: CategoryChoice[]): { id: string | nu
 
 /* --------------------------------------------------------- the template -- */
 
+/* The product page texts the sheet can carry, each in three languages. All
+   optional: a new product gets what is filled in; a product already in the
+   shop only gets what it does not have yet, so text written in the console
+   is never overwritten by a sheet. */
+export const TEXT_FIELDS = [
+  { key: 'summary', header: 'Short line', norm: 'shortline', width: 30 },
+  { key: 'description', header: 'Description', norm: 'description', width: 50 },
+  { key: 'usage', header: 'Nutrition & usage', norm: 'nutritionusage', width: 50 },
+  { key: 'seoTitle', header: 'Search title', norm: 'searchtitle', width: 30 },
+  { key: 'seoDescription', header: 'Search description', norm: 'searchdescription', width: 40 },
+] as const
+type TextKey = (typeof TEXT_FIELDS)[number]['key']
+type Texts = Partial<Record<TextKey, { en?: string; el?: string; ru?: string }>>
+const LANG_SUFFIX = [
+  ['en', '', ''],
+  ['el', ' in Greek', 'ingreek'],
+  ['ru', ' in Russian', 'inrussian'],
+] as const
+
 export const TEMPLATE_COLUMNS: Sheet['columns'] = [
   { header: 'Product name', width: 38 },
   { header: 'Flavour', width: 22 },
@@ -99,7 +120,9 @@ export const TEMPLATE_COLUMNS: Sheet['columns'] = [
   { header: 'Quantity', kind: 'int', width: 10 },
   { header: 'Flavour in Greek', width: 22 },
   { header: 'Flavour in Russian', width: 22 },
+  ...TEXT_FIELDS.flatMap((f) => LANG_SUFFIX.map(([, label]) => ({ header: `${f.header}${label}`, width: f.width }))),
 ]
+const TEXT_BLANKS = TEXT_FIELDS.flatMap(() => ['', '', ''])
 
 async function categoriesSheet(): Promise<Sheet> {
   const choices = await categoryChoices()
@@ -119,7 +142,7 @@ export async function templateFile(): Promise<Buffer> {
     {
       name: 'Products',
       columns: TEMPLATE_COLUMNS,
-      rows: [['Example: Whey Protein Complex 100%', 'Chocolate', '700 g', 'Protein', 39.9, '5901330000000', '', '', 'Delete this row', null, null, '', '']],
+      rows: [['Example: Whey Protein Complex 100%', 'Chocolate', '700 g', 'Protein', 39.9, '5901330000000', '', '', 'Delete this row', null, null, '', '', ...TEXT_BLANKS]],
     },
     await categoriesSheet(),
   ])
@@ -246,6 +269,7 @@ export async function invoiceSheet(lines: InvoiceLine[]): Promise<Buffer> {
           l.quantity,
           '',
           '',
+          ...TEXT_BLANKS,
         ]
       }),
     },
@@ -290,6 +314,28 @@ async function variantsByCode() {
   return map
 }
 
+function readTexts(cell: (key: string) => string): Texts | undefined {
+  const out: Texts = {}
+  for (const f of TEXT_FIELDS) {
+    for (const [lang] of LANG_SUFFIX) {
+      const v = cell(`${f.key}_${lang}`)
+      if (v) out[f.key] = { ...(out[f.key] ?? {}), [lang]: v }
+    }
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+/** The texts of a product from its rows: the first filled cell wins. */
+function mergeTexts(list: { texts?: Texts }[]): Texts {
+  const out: Texts = {}
+  for (const r of list) {
+    for (const [k, v] of Object.entries(r.texts ?? {}) as [TextKey, Record<string, string>][]) {
+      out[k] = { ...v, ...(out[k] ?? {}) }
+    }
+  }
+  return out
+}
+
 /** Read the filled sheet and say what applying it would do, row by row. */
 export async function checkImport(rows: Rows): Promise<ImportRow[]> {
   if (rows.length === 0) return []
@@ -306,8 +352,10 @@ export async function checkImport(rows: Rows): Promise<ImportRow[]> {
       ru: ['nameinrussian', 'russian'],
       fel: ['flavouringreek', 'flavoringreek'],
       fru: ['flavourinrussian', 'flavorinrussian'],
+      /* English first: "shortline" would also match "shortlineingreek". */
+      ...Object.fromEntries(TEXT_FIELDS.flatMap((f) => LANG_SUFFIX.map(([lang, , suffix]) => [`${f.key}_${lang}`, [`${f.norm}${suffix}`]]))),
     },
-    { name: 0, flavour: 1, size: 2, category: 3, price: 4, ean: 5, el: 6, ru: 7, fel: 11, fru: 12 },
+    { name: 0, flavour: 1, size: 2, category: 3, price: 4, ean: 5, el: 6, ru: 7, fel: 11, fru: 12, ...Object.fromEntries(TEXT_FIELDS.flatMap((f) => LANG_SUFFIX.map(([lang]) => [`${f.key}_${lang}`, -1]))) },
   )
   const body = hasHeader ? rows.slice(1) : rows
   const [choices, byCode, all] = await Promise.all([
@@ -338,6 +386,7 @@ export async function checkImport(rows: Rows): Promise<ImportRow[]> {
       nameRu: cell(cols.ru),
       flavourEl: cell(cols.fel),
       flavourRu: cell(cols.fru),
+      texts: readTexts((k) => cell((cols as Record<string, number>)[k] ?? -1)),
       flavour: cell(cols.flavour).replace(/\s+/g, ' ') || 'Unflavoured',
       size: cell(cols.size).replace(/\s+/g, ' '),
       category: cell(cols.category),
@@ -433,7 +482,18 @@ export async function applyImport(rows: ImportRow[]) {
         const first = list[0]
         const name: L10n = { en: first.name, el: list.find((r) => r.nameEl)?.nameEl, ru: list.find((r) => r.nameRu)?.nameRu }
         productPrice = Math.min(...list.map((r) => r.priceCents!))
-        const p = await createProduct({ name, categoryId: first.categoryId!, priceCents: productPrice })
+        const t = mergeTexts(list)
+        const asL10n = (v?: { en?: string; el?: string; ru?: string }) => (v && (v.en || v.el || v.ru) ? { en: v.en ?? '', el: v.el, ru: v.ru } : undefined)
+        const p = await createProduct({
+          name,
+          categoryId: first.categoryId!,
+          priceCents: productPrice,
+          summary: asL10n(t.summary),
+          description: asL10n(t.description),
+          usage: asL10n(t.usage),
+          seoTitle: asL10n(t.seoTitle),
+          seoDescription: asL10n(t.seoDescription),
+        })
         productId = p.id
         created.push(first.name)
       } else {
@@ -524,6 +584,26 @@ export async function applyImport(rows: ImportRow[]) {
       translated += res.length
     }
   }
+  /* Texts for products already in the shop: only the empty ones. */
+  const column = { summary: 'summary', description: 'description', usage: 'sizeGuide', seoTitle: 'seoTitle', seoDescription: 'seoDescription' } as const
+  const byProduct = new Map<string, ImportRow[]>()
+  for (const r of good) if (r.action !== 'new product' && r.productId && r.texts) byProduct.set(r.productId, [...(byProduct.get(r.productId) ?? []), r])
+  for (const [productId, list] of byProduct) {
+    const t = mergeTexts(list)
+    const [p] = await db.select().from(products).where(eq(products.id, productId))
+    if (!p) continue
+    const changes: Record<string, Record<string, string>> = {}
+    for (const [k, v] of Object.entries(t) as [TextKey, Record<string, string>][]) {
+      const current = (p[column[k]] ?? {}) as Record<string, string>
+      const add = Object.fromEntries(Object.entries(v).filter(([lang, text]) => text && !current[lang]?.trim()))
+      if (Object.keys(add).length) changes[column[k]] = { ...current, ...add }
+    }
+    if (Object.keys(changes).length) {
+      await db.update(products).set(changes).where(eq(products.id, productId))
+      translated++
+    }
+  }
+
   return { products: created.length, flavours, codes, translated, skipped: rows.length - good.length, failed }
 }
 

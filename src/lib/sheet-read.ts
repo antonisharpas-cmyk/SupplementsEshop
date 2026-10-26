@@ -175,6 +175,7 @@ export function pickColumns<K extends string>(
     } else cols[key] = -1
   }
   if (found === 0) return { cols: fallback, hasHeader: false }
-  for (const key of Object.keys(wanted) as K[]) if (cols[key] < 0) cols[key] = fallback[key] ?? -1
+  /* With a header row, a column it does not have is missing, not "the one
+     at its usual position": that would read another column's values. */
   return { cols, hasHeader: true }
 }

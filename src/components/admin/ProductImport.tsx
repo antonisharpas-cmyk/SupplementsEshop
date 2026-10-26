@@ -23,6 +23,7 @@ type Row = {
   nameRu?: string
   flavourEl?: string
   flavourRu?: string
+  texts?: Record<string, Record<string, string>>
   problem?: string
   note?: string
 }
@@ -98,7 +99,7 @@ export function ProductImport() {
   }
 
   const good = rows?.filter((r) => !r.problem) ?? []
-  const hasText = (r: Row) => Boolean(r.nameEl || r.nameRu || r.flavourEl || r.flavourRu)
+  const hasText = (r: Row) => Boolean(r.nameEl || r.nameRu || r.flavourEl || r.flavourRu || r.texts)
   const todo = good.filter((r) => r.action !== 'already there' || r.saveCode || hasText(r))
   const newProducts = new Set(good.filter((r) => r.action === 'new product').map((r) => r.name.toLowerCase())).size
   const newFlavours = good.filter((r) => r.action !== 'already there').length
@@ -175,7 +176,7 @@ export function ProductImport() {
           <p className="font-medium text-ok">
             Done: {result.products} new product{result.products === 1 ? '' : 's'}, {result.flavours} flavour{result.flavours === 1 ? '' : 's'} and sizes
             {result.codes ? `, ${result.codes} barcodes saved on flavours you had` : ''}
-            {result.translated ? `, Greek and Russian names filled in on ${result.translated} products and flavours you had` : ''}.
+            {result.translated ? `, names and texts filled in on ${result.translated} products and flavours you had` : ''}.
           </p>
           {result.failed.length > 0 && (
             <ul className="mt-2 space-y-1 text-sale">
@@ -201,7 +202,7 @@ export function ProductImport() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm">
               {newProducts} new product{newProducts === 1 ? '' : 's'} and {newFlavours} flavour{newFlavours === 1 ? '' : 's'} and sizes ready.
-              {good.some((r) => r.action === 'already there' && hasText(r)) && ' Products already in the shop get the Greek and Russian names from the sheet (English is not changed).'}
+              {good.some((r) => r.action === 'already there' && hasText(r)) && ' Products already in the shop get the Greek and Russian names, and any texts they do not have yet, from the sheet (nothing already written is changed).'}
               {rows.length - good.length > 0 && <span className="text-sale"> {rows.length - good.length === 1 ? '1 row has a problem and will be skipped' : `${rows.length - good.length} rows have a problem and will be skipped`}; fix it in the sheet and check again.</span>}
             </p>
             <button
@@ -212,7 +213,7 @@ export function ProductImport() {
                 window.confirm(
                   newFlavours > 0
                     ? `Create ${newProducts} products and ${newFlavours} flavours and sizes? They start hidden.`
-                    : 'Fill in the Greek and Russian names of the products already in the shop?',
+                    : 'Fill in the Greek and Russian names and the missing texts of the products already in the shop?',
                 ) && void send(true)
               }
             >
