@@ -7,8 +7,6 @@ import { getSettings } from '@/lib/settings'
 import { BRAND } from '@/config/brand'
 import { SupportInbox } from '@/components/admin/SupportInbox'
 import { SupportAutoReply } from '@/components/admin/SupportAutoReply'
-import { SupportAiSettings } from '@/components/admin/SupportAiSettings'
-import { aiConfigured } from '@/lib/support-ai'
 import { PageHead } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
@@ -34,8 +32,6 @@ export default async function AdminSupportPage({
       'support_auto_reply_en',
       'support_auto_reply_el',
       'support_auto_reply_ru',
-      'support_ai_enabled',
-      'support_ai_notes',
     ]),
   ])
 
@@ -51,7 +47,6 @@ export default async function AdminSupportPage({
           </>
         }
       />
-      <SupportAiSettings initial={{ enabled: settings.support_ai_enabled, notes: settings.support_ai_notes }} keySet={aiConfigured()} />
       <SupportAutoReply
         initial={{
           enabled: settings.support_auto_reply_enabled,

@@ -21,7 +21,7 @@ import { db } from '@/db'
 import { inventory, productVariants, products, purchaseLines, purchases, suppliers } from '@/db/schema'
 import { getSettings } from '@/lib/settings'
 import { applyMovement, announceRestocks, variantLabel } from '@/lib/stock'
-import { assertOpen, FinanceError, isVatTreatment, nextNumber, todayCy, vatOn, type VatTreatment } from '@/lib/finance'
+import { assertOpen, checkOpen, closedThrough, FinanceError, isVatTreatment, nextNumber, todayCy, vatOn, type VatTreatment } from '@/lib/finance'
 import { parseNumber, pickColumns, type Rows } from '@/lib/sheet-read'
 
 export type Supplier = typeof suppliers.$inferSelect
@@ -217,13 +217,14 @@ export async function savePurchase(input: PurchaseInput, by: string, id?: string
     updatedAt: new Date(),
   }
 
+  const closed = await closedThrough()
   return db.transaction(async (tx) => {
     let purchaseId = id
     if (id) {
       const [p] = await tx.select().from(purchases).where(eq(purchases.id, id)).for('update')
       if (!p) throw new FinanceError('That purchase no longer exists.')
       if (p.status !== 'DRAFT') throw new FinanceError('Only a draft can be changed. Undo the receipt first.')
-      await assertOpen(p.invoiceDate)
+      checkOpen(p.invoiceDate, closed)
       await tx.update(purchases).set(head).where(eq(purchases.id, id))
       await tx.delete(purchaseLines).where(eq(purchaseLines.purchaseId, id))
     } else {
@@ -251,12 +252,13 @@ export async function getPurchase(id: string) {
 
 /** Goods arrived: add the stock at its landed cost. */
 export async function receivePurchase(id: string, by: string, receivedOn?: string) {
+  const closed = await closedThrough()
   const results = await db.transaction(async (tx) => {
     const [p] = await tx.select().from(purchases).where(eq(purchases.id, id)).for('update')
     if (!p) throw new FinanceError('That purchase no longer exists.')
     if (p.status === 'RECEIVED') throw new FinanceError('This purchase was received already.')
     if (p.status !== 'DRAFT') throw new FinanceError('A cancelled purchase cannot be received.')
-    await assertOpen(p.invoiceDate)
+    checkOpen(p.invoiceDate, closed)
     const lines = await tx.select().from(purchaseLines).where(eq(purchaseLines.purchaseId, id)).orderBy(asc(purchaseLines.position))
     /* Shipping and fees are shared over the lines that are stock; a line
        without a product (a service) simply carries its own price. */
@@ -290,10 +292,11 @@ export async function receivePurchase(id: string, by: string, receivedOn?: strin
 
 /** Back to draft, taking its stock and cost back out. */
 export async function undoReceive(id: string, by: string) {
+  const closed = await closedThrough()
   await db.transaction(async (tx) => {
     const [p] = await tx.select().from(purchases).where(eq(purchases.id, id)).for('update')
     if (!p || p.status !== 'RECEIVED') throw new FinanceError('Only a received purchase can be undone.')
-    await assertOpen(p.invoiceDate)
+    checkOpen(p.invoiceDate, closed)
     const lines = await tx.select().from(purchaseLines).where(eq(purchaseLines.purchaseId, id))
     for (const l of lines) {
       if (!l.variantId) continue

@@ -74,7 +74,14 @@ export async function closedThrough(): Promise<string> {
 
 /** Refuse to add or change anything dated in a month closed for the accountant. */
 export async function assertOpen(day: string) {
-  const closed = await closedThrough()
+  checkOpen(day, await closedThrough())
+}
+
+/** The same check with the closed month read beforehand. Inside a database
+ *  transaction use this: reading the setting there would wait for a second
+ *  connection, which the database on the server's disk does not give while
+ *  a transaction is open, and the action would hang and fail. */
+export function checkOpen(day: string, closed: string) {
   if (closed && monthOf(day) <= closed) {
     throw new FinanceError(`${monthName(monthOf(day))} is closed for the accountant. Reopen it in Reports to change it.`)
   }

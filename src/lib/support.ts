@@ -1,10 +1,9 @@
 /* ============================================================================
  * Customer Service — live conversations between shoppers and staff.
  *
- * What it is on screen: "AIONIX Customer Service". When the AI assistant is
- * on (lib/support-ai.ts) it answers first and is always labelled as an AI
- * assistant; people take over from it. Nothing here pretends a person
- * replied when none did.
+ * What it is on screen: "AIONIX Customer Service". People on the team answer;
+ * the only automatic message is the optional first reply, and nothing here
+ * pretends a person replied when none did.
  *
  * The rules, all enforced in this file:
  *
@@ -37,7 +36,6 @@ import { BRAND } from '@/config/brand'
 import { siteUrl } from '@/lib/email'
 import { asEmailLocale, sendTemplate } from '@/lib/mailer'
 import { getSettings } from '@/lib/settings'
-import { aiAvailable, ASSISTANT_NAME } from '@/lib/support-ai'
 import type { SupportMessageMeta } from '@/db/schema'
 
 export const MESSAGE_MAX = 2000
@@ -175,9 +173,9 @@ export async function customerView(actor: SupportActor, opts: { after?: Date; ma
       email: current.email,
       staffLastReadAt: current.staffLastReadAt?.toISOString() ?? null,
       assistant: {
-        active: current.status === 'OPEN' && current.aiActive && (await aiAvailable()),
-        typing: Boolean(current.aiTypingAt && current.aiTypingAt.getTime() > Date.now() - 90_000),
-        handedOff: Boolean(current.handoffAt),
+        active: false,
+        typing: false,
+        handedOff: false,
       },
     },
     /* staffUserId is deliberately not selected: who replied stays internal. */
@@ -241,9 +239,7 @@ export async function startConversation(
     return conv.id
   })
 
-  /* With the AI assistant on, it answers instead of the canned first reply
-     (the route starts it once the response has gone). */
-  if (!(await aiAvailable())) await autoReply(conversationId, input.locale, now)
+  await autoReply(conversationId, input.locale, now)
   await notifyStaffOnce(conversationId)
   return { conversationId, created: true }
 }
@@ -618,7 +614,7 @@ async function sendTranscriptOnce(conversationId: string) {
       conversation_date: fmt(conv.openedAt, locale),
       /* Sender labels are "You" and the service name — never a staff member. */
       transcript: messages.map((m) => ({
-        from: m.sender === 'CUSTOMER' ? YOU[locale] : m.ai ? `${ASSISTANT_NAME} (AI)` : SERVICE_NAME,
+        from: m.sender === 'CUSTOMER' ? YOU[locale] : SERVICE_NAME,
         at: fmt(m.createdAt, locale),
         text: m.body,
         customer: m.sender === 'CUSTOMER',

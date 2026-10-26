@@ -20,7 +20,7 @@ import { invoices, productVariants, products, retailers, wholesaleLines, wholesa
 import { getSettings } from '@/lib/settings'
 import { applyMovement, announceRestocks, costsOf, variantLabel } from '@/lib/stock'
 import { addDays, assertOpen, FinanceError, nextNumber, todayCy, vatOn } from '@/lib/finance'
-import { insertWholesaleCreditNote, insertWholesaleInvoice } from '@/lib/invoices'
+import { insertWholesaleCreditNote, insertWholesaleInvoice, sellerParty } from '@/lib/invoices'
 
 export type Retailer = typeof retailers.$inferSelect
 export type WholesaleSale = typeof wholesaleSales.$inferSelect
@@ -205,6 +205,7 @@ export async function createSale(input: SaleInput, by: string) {
   const dueDate = addDays(input.saleDate, r.paymentTermsDays)
   const issuedAt = input.saleDate === todayCy() ? new Date() : new Date(`${input.saleDate}T12:00:00Z`)
 
+  const seller = await sellerParty()
   const { saleId, results } = await db.transaction(async (tx) => {
     const number = await nextNumber(tx, 'wholesale_sales', 'WS', input.saleDate)
     const costs = await costsOf(lines.map((l) => l.variantId), tx)
@@ -260,6 +261,7 @@ export async function createSale(input: SaleInput, by: string) {
     const terms = r.paymentTermsDays > 0 ? `Payment due within ${r.paymentTermsDays} days, by ${dueDate}.` : null
     const zero = r.vatTreatment === 'EU_ZERO' ? 'Intra community supply, VAT 0%. Reverse charge: VAT to be accounted for by the customer (Article 138, Directive 2006/112/EC).' : null
     await insertWholesaleInvoice(tx, {
+      seller,
       saleId: sale.id,
       saleNumber: number,
       issuedAt,

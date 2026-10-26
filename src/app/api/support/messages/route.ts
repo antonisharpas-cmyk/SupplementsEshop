@@ -2,8 +2,6 @@
    conversation. Anyone else's id is "not found". */
 
 import { z } from 'zod'
-import { after } from 'next/server'
-import { runAssistant } from '@/lib/support-ai'
 import { postCustomerMessage } from '@/lib/support'
 import { currentActor, json, supportErrorResponse } from '@/lib/support-http'
 import { clientKey, hit } from '@/lib/rate-limit'
@@ -21,7 +19,6 @@ export async function POST(request: Request) {
   try {
     const actor = await currentActor()
     const message = await postCustomerMessage(actor, parsed.data.conversationId, parsed.data.message)
-    after(() => runAssistant(parsed.data.conversationId))
     return json({ ok: true, message })
   } catch (err) {
     return supportErrorResponse(err, 'api/support/messages')

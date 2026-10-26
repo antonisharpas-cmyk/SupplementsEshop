@@ -48,7 +48,7 @@ async function nextNumber(tx: Tx, kind: 'INVOICE' | 'CREDIT_NOTE', at: Date) {
   return `${prefix}${String((r?.n ?? 0) + 1).padStart(6, '0')}`
 }
 
-async function sellerParty(): Promise<{ party: InvoiceParty; footer: string }> {
+export async function sellerParty(): Promise<{ party: InvoiceParty; footer: string }> {
   const s = await getSettings([
     'company_legal_name',
     'company_vat_number',
@@ -409,9 +409,12 @@ export async function insertWholesaleInvoice(
     vatRateBp: number
     paymentMethod: string
     note?: string | null
+    /** The shop's details, read before the transaction (see checkOpen in
+     *  lib/finance.ts for why nothing is read from outside it here). */
+    seller?: { party: InvoiceParty; footer: string }
   },
 ): Promise<Invoice> {
-  const { party: seller, footer } = await sellerParty()
+  const { party: seller, footer } = args.seller ?? (await sellerParty())
   const [inv] = await tx
     .insert(invoices)
     .values({

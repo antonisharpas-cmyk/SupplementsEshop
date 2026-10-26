@@ -108,6 +108,20 @@ describe('arithmetic', () => {
 })
 
 describe('purchases', () => {
+  it('receives with the settings not read yet (nothing is read outside the transaction)', async () => {
+    const s = await olimp()
+    const p = await savePurchase(
+      { supplierId: s.id, invoiceDate: today, vatTreatment: 'EU_REVERSE', shippingCents: 0, otherFeesCents: 0, lines: [{ variantId: tub, quantity: 5, unitNetCents: 1000 }] },
+      staff,
+    )
+    invalidateSettingsCache()
+    await receivePurchase(p, staff)
+    expect(await onHand(tub)).toBe(5)
+    invalidateSettingsCache()
+    await undoReceive(p, staff)
+    expect(await onHand(tub)).toBe(0)
+  }, 15_000)
+
   it('receives stock at its landed cost and averages month to month', async () => {
     const s = await olimp()
     const p1 = await savePurchase(

@@ -5,9 +5,8 @@
  *
  * A button in the corner opens a panel (a full-height sheet on a phone).
  * Opening it creates nothing: a conversation starts only when the customer
- * sends a first message. When the AI assistant is on it answers first,
- * always labelled as AI, with product cards and one-tap replies; "Talk to a
- * person" hands the chat to the team at any time.
+ * sends a first message, and the team answers it from Admin, Customer
+ * service.
  *
  * Updates arrive by light polling — every 4 seconds while the panel is open
  * and the tab visible, every 30 seconds while it is closed (for the "new
@@ -22,15 +21,12 @@ import Link from 'next/link'
 import type { Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 
-type Card = { slug: string; name: string; price: string; image: string | null; inStock: boolean }
 type Message = {
   id: string
   sender: 'CUSTOMER' | 'STAFF'
   body: string
   createdAt: string
   automated?: boolean
-  ai?: boolean
-  meta?: { products?: Card[]; suggestions?: string[] } | null
 }
 type Conversation = {
   id: string
@@ -39,14 +35,12 @@ type Conversation = {
   closedAt: string | null
   email: string | null
   staffLastReadAt: string | null
-  assistant?: { active: boolean; typing: boolean; handedOff: boolean }
 }
 type View = {
   conversation: Conversation | null
   messages: Message[]
   idleMinutes: number
   me: { name: string; email: string } | null
-  ai?: boolean
 }
 
 const ACTIVE_FLAG = 'sf_support_active'
@@ -88,20 +82,6 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldError, setFieldError] = useState<{ name?: string; email?: string }>({})
-  /* Sent a message the assistant will answer: show it typing until it does. */
-  const [awaitingAi, setAwaitingAi] = useState<string | null>(null)
-
-  /* The assistant is writing: the server says so, or we just sent it a
-     message and its answer has not arrived yet (for up to a minute). */
-  const lastFromShop = view?.messages.filter((m) => m.sender === 'STAFF').at(-1)?.createdAt
-  const thinking = Boolean(
-    view?.conversation?.status === 'OPEN' &&
-      (view.conversation.assistant?.typing ||
-        (awaitingAi &&
-          view.conversation.assistant?.active !== false &&
-          (!lastFromShop || lastFromShop < awaitingAi) &&
-          Date.now() - Date.parse(awaitingAi) < 60_000)),
-  )
 
   const lastSeen = useRef<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -128,7 +108,7 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
         setView((prev) => {
           const sameConversation = prev?.conversation?.id && prev.conversation.id === data.conversation?.id
           const messages = sameConversation && after ? mergeMessages(prev.messages, data.messages) : data.messages
-          return { conversation: data.conversation, messages, idleMinutes: data.idleMinutes, me: data.me, ai: data.ai }
+          return { conversation: data.conversation, messages, idleMinutes: data.idleMinutes, me: data.me }
         })
         writeFlag(Boolean(data.conversation && data.conversation.status === 'OPEN'))
         /* The automatic first reply is not "a new reply" worth a dot. */
@@ -153,10 +133,9 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
     const tick = () => {
       if (document.visibilityState === 'visible') void refresh({ markRead: open })
     }
-    /* Faster while the assistant is writing, so its answer shows promptly. */
-    const timer = setInterval(tick, open ? (thinking ? 1500 : 4000) : 30000)
+    const timer = setInterval(tick, open ? 4000 : 30000)
     return () => clearInterval(timer)
-  }, [open, view?.conversation?.status, refresh, thinking])
+  }, [open, view?.conversation?.status, refresh])
 
   /* Opening marks everything read and reloads the whole thread. */
   const show = useCallback(
@@ -250,7 +229,6 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
       if (!quick) setText('')
       setFresh(false)
       writeFlag(true)
-      if (starting ? view?.ai : conversation?.assistant?.active) setAwaitingAi(new Date().toISOString())
       await refresh({ full: starting, markRead: true })
     } catch {
       setError(t('support.sendFailed'))
@@ -266,13 +244,8 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
   const messages = conversation ? (view?.messages ?? []) : []
   const lastCustomer = messages.filter((m) => m.sender === 'CUSTOMER').at(-1)
   const seen = Boolean(lastCustomer && conversation?.staffLastReadAt && conversation.staffLastReadAt >= lastCustomer.createdAt)
-  const aiOn = Boolean(conversation?.assistant?.active)
   /* Still waiting for a person: nothing from the team yet but the automatic reply. */
-  const waiting = Boolean(
-    conversation && !closed && !aiOn && messages.length > 0 && messages.every((m) => m.sender === 'CUSTOMER' || m.automated || m.ai),
-  )
-  const lastMessage = messages.at(-1)
-  const lastAiId = lastMessage?.ai ? lastMessage.id : null
+  const waiting = Boolean(conversation && !closed && messages.length > 0 && messages.every((m) => m.sender === 'CUSTOMER' || m.automated))
   const signInHref = `/${locale}/sign-in`
 
   return (
@@ -312,88 +285,28 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
             {!conversation ? (
               <div>
                 <p className="text-lg font-semibold tracking-tight">{t('support.intro')}</p>
-                <p className="mt-1.5 text-sm text-ink-soft">{view?.ai ? t('support.aiIntroBody') : t('support.introBody')}</p>
+                <p className="mt-1.5 text-sm text-ink-soft">{t('support.introBody')}</p>
               </div>
             ) : (
               <ol className="space-y-4">
                 {messages.map((m) => (
                   <li key={m.id} className={`flex flex-col ${m.sender === 'CUSTOMER' ? 'items-end' : 'items-start'}`}>
                     <span className="mb-1 flex items-center gap-1.5 text-[11px] text-muted">
-                      {m.ai && <AiBadge label={t('support.aiBadge')} />}
-                      {m.sender === 'CUSTOMER' ? t('support.you') : m.ai ? t('support.assistant') : title} · {time(m.createdAt)}
+                      {m.sender === 'CUSTOMER' ? t('support.you') : title} · {time(m.createdAt)}
                     </span>
                     <p
                       className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                        m.sender === 'CUSTOMER'
-                          ? 'rounded-br-md bg-accent text-paper'
-                          : m.ai
-                            ? 'rounded-bl-md border border-accent/30 bg-paper-2 text-ink'
-                            : 'rounded-bl-md bg-paper-2 text-ink'
+                        m.sender === 'CUSTOMER' ? 'rounded-br-md bg-accent text-paper' : 'rounded-bl-md bg-paper-2 text-ink'
                       }`}
                     >
                       {m.body}
                     </p>
-                    {m.meta?.products && m.meta.products.length > 0 && (
-                      <ul className="mt-2 grid w-full max-w-[92%] gap-2">
-                        {m.meta.products.map((p) => (
-                          <li key={p.slug}>
-                            <Link
-                              href={`/${locale}/products/${p.slug}`}
-                              className="flex items-center gap-3 rounded-xl border border-line bg-paper p-2 pr-3 transition-colors hover:border-accent"
-                            >
-                              <span className="h-14 w-12 shrink-0 overflow-hidden rounded-lg bg-paper-2">
-                                {p.image && (
-                                  /* eslint-disable-next-line @next/next/no-img-element */
-                                  <img src={p.image} alt="" className="h-full w-full object-cover" />
-                                )}
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-sm font-medium text-heading">{p.name}</span>
-                                <span className="block text-xs text-muted">
-                                  {p.price}
-                                  {!p.inStock && <span className="ml-2 text-sale">{t('card.soldOut')}</span>}
-                                </span>
-                              </span>
-                              <span className="text-xs font-semibold text-accent">{t('support.view')}</span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {m.id === lastAiId && aiOn && m.meta?.suggestions && m.meta.suggestions.length > 0 && (
-                      <div className="mt-2 flex max-w-[92%] flex-wrap gap-1.5">
-                        {m.meta.suggestions.map((sug) => (
-                          <button
-                            key={sug}
-                            type="button"
-                            disabled={sending}
-                            onClick={() => void submit(undefined, sug)}
-                            className="rounded-full border border-accent/50 bg-accent/10 px-3 py-1.5 text-xs font-medium text-heading transition-colors hover:border-accent hover:bg-accent/20"
-                          >
-                            {sug}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                     {m.id === lastCustomer?.id && seen && <span className="mt-1 text-[11px] text-muted">{t('support.seen')}</span>}
                   </li>
                 ))}
               </ol>
             )}
-            {thinking && !closed && (
-              <div className="mt-4 flex items-center gap-2 text-[11px] text-muted" role="status">
-                <AiBadge label={t('support.aiBadge')} />
-                <span>
-                  {t('support.assistant')} {t('support.typing')}
-                </span>
-                <span className="flex gap-1" aria-hidden>
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent" style={{ animationDelay: `${i * 150}ms` }} />
-                  ))}
-                </span>
-              </div>
-            )}
-            {waiting && <p className="mt-4 text-xs text-muted">{conversation?.assistant?.handedOff ? t('support.handedOff') : t('support.waiting')}</p>}
+            {waiting && <p className="mt-4 text-xs text-muted">{t('support.waiting')}</p>}
             {closed && (
               <div role="status" className="mt-6 border border-line bg-paper-2 px-4 py-4 text-sm">
                 <p className="font-medium">{t('support.closedTitle')}</p>
@@ -441,27 +354,6 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
 
           {!closed && (conversation || (view && (view.me || guest))) && (
             <form onSubmit={submit} className="border-t border-line px-4 py-4" noValidate>
-              {aiOn && (
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-[11px] leading-snug text-muted">{t('support.humanNote')}</p>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!conversation) return
-                      await fetch('/api/support/human', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ conversationId: conversation.id }),
-                      }).catch(() => null)
-                      setAwaitingAi(null)
-                      await refresh({ full: true, markRead: true })
-                    }}
-                    className="shrink-0 rounded-full border border-line px-3 py-1.5 text-[11px] font-semibold text-ink transition-colors hover:border-accent hover:text-accent"
-                  >
-                    {t('support.human')}
-                  </button>
-                </div>
-              )}
               {!conversation && view && !view.me && (
                 <div className="mb-3">
                   <div className="grid grid-cols-2 gap-2">
@@ -577,10 +469,6 @@ export function SupportWidget({ locale, brand }: { locale: Locale; brand: string
       )}
     </>
   )
-}
-
-function AiBadge({ label }: { label: string }) {
-  return <span className="bg-gold rounded px-1 py-px text-[9px] font-bold tracking-wider text-paper">{label}</span>
 }
 
 function mergeMessages(a: Message[], b: Message[]): Message[] {
