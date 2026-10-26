@@ -18,9 +18,9 @@
  * far as the invoice allows (name, size, flavour guessed from the line).
  * ========================================================================== */
 
-import { and, eq, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { db } from '@/db'
-import { categories, productImages, productVariants, products } from '@/db/schema'
+import { categories, media, productImages, productVariants, products } from '@/db/schema'
 import { addVariant, createProduct, type L10n } from '@/lib/admin-products'
 import { parseNumber, pickColumns, type Rows } from '@/lib/sheet-read'
 import { toXlsx, type Sheet } from '@/lib/spreadsheet'
@@ -619,7 +619,7 @@ export function codeFromFilename(filename: string): string {
     .trim()
 }
 
-export type PhotoMatch = { filename: string; code: string; productId: string | null; variantId: string | null; label: string | null; photos: number }
+export type PhotoMatch = { filename: string; code: string; productId: string | null; variantId: string | null; label: string | null; photos: number; /** A photo with this file name is there already: uploading replaces it. */ replaces: boolean }
 
 /** Which flavour each photo goes to, before anything is uploaded. */
 export async function matchPhotos(filenames: string[]): Promise<PhotoMatch[]> {
@@ -633,6 +633,17 @@ export async function matchPhotos(filenames: string[]): Promise<PhotoMatch[]> {
         .groupBy(productImages.variantId)
     ).map((r) => [r.variantId!, r.n]),
   )
+  /* Photos already uploaded under the same file name: a new upload with that
+     name replaces them (a sharper version, a new pack), in the same place. */
+  const sameName = new Set(
+    (
+      await db
+        .select({ filename: media.filename })
+        .from(productImages)
+        .innerJoin(media, sql`${productImages.url} = '/api/media/' || ${media.id}::text`)
+        .where(inArray(media.filename, filenames.length ? filenames : ['']))
+    ).map((r) => r.filename ?? ''),
+  )
   return filenames.map((filename) => {
     const c = codeFromFilename(filename)
     const v = byCode.get(code(c))
@@ -643,6 +654,7 @@ export async function matchPhotos(filenames: string[]): Promise<PhotoMatch[]> {
       variantId: v?.id ?? null,
       label: v ? `${v.productName}, ${v.flavour}, ${v.size}` : null,
       photos: v ? (counts.get(v.id) ?? 0) : 0,
+      replaces: Boolean(v) && sameName.has(filename),
     }
   })
 }

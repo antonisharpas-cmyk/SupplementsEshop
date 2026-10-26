@@ -6,7 +6,8 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
 import { db, pool } from '@/db'
-import { categories, inventory, productVariants, products } from '@/db/schema'
+import { categories, inventory, productImages, productVariants, products } from '@/db/schema'
+import { addProductPhoto, replaceProductPhoto } from '../admin-products'
 import { applyImport, checkImport, codeFromFilename, invoiceSheet, matchPhotos, readInvoiceText, splitDescription } from '../product-import'
 import { importLines } from '../purchases'
 import { readTable, type Rows } from '../sheet-read'
@@ -169,6 +170,20 @@ describe('import', () => {
     const lines = await importLines(filled)
     expect(lines.filter((l) => !l.problem)).toHaveLength(4)
     expect(lines.find((l) => l.sku === '5901330052484')).toMatchObject({ quantity: 5, unitNetCents: 3010 })
+
+    /* A photo uploaded, then a sharper one with the same name replaces it. */
+    const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex')
+    const [m1] = await matchPhotos(['5901330052491.png'])
+    expect(m1.replaces).toBe(false)
+    await addProductPhoto(m1.productId!, { bytes: Buffer.concat([png, Buffer.alloc(20)]), contentType: 'image/png', filename: '5901330052491.png' }, undefined, m1.variantId!)
+    const [m2] = await matchPhotos(['5901330052491.png'])
+    expect(m2.replaces).toBe(true)
+    const before = await db.select().from(productImages).where(eq(productImages.productId, m1.productId!))
+    const r = await replaceProductPhoto(m1.productId!, { bytes: Buffer.concat([png, Buffer.alloc(40)]), contentType: 'image/png', filename: '5901330052491.png' })
+    const after = await db.select().from(productImages).where(eq(productImages.productId, m1.productId!))
+    expect(r?.id).toBe(before[0].id)
+    expect(after).toHaveLength(1)
+    expect(after[0].url).not.toBe(before[0].url)
 
     const photos = await matchPhotos(['5901330052491.jpg', '5901330052491_2.jpg', '123.jpg'])
     expect(photos[0].label).toBe('Whey Protein Complex 100%, Chocolate, 700 g')

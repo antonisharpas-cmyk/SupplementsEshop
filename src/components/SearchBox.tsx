@@ -90,9 +90,10 @@ export function SearchBox({
     }).format(c / 100)
 
   return (
-    <div ref={boxRef} className="relative">
-      {/* On a phone the icon stays put and the field drops below the header;
-          on a wide screen the field takes the icon's place. */}
+    <div ref={boxRef} className="md:relative">
+      {/* On a phone the icon stays put and the field drops below the header,
+          the full width of the screen; on a wide screen the field takes the
+          icon's place. */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -108,7 +109,7 @@ export function SearchBox({
         <form
           action={`/${locale}/search`}
           method="get"
-          className="absolute right-0 top-full z-50 mt-3 flex w-[min(92vw,26rem)] items-center gap-2 rounded-2xl border border-line bg-paper p-2 shadow-xl md:static md:mt-0 md:w-auto md:border-0 md:p-0 md:shadow-none"
+          className="absolute inset-x-3 top-full z-50 mt-2 flex items-center gap-2 rounded-2xl border border-line bg-paper p-2 shadow-xl md:static md:mt-0 md:w-auto md:border-0 md:p-0 md:shadow-none"
           onSubmit={(e) => {
             e.preventDefault()
             if (term.trim()) router.push(`/${locale}/search?q=${encodeURIComponent(term.trim())}`)
@@ -131,7 +132,7 @@ export function SearchBox({
       )}
 
       {open && term.trim().length >= 2 && (
-        <div className="absolute top-full right-0 z-50 mt-[4.25rem] w-[min(92vw,26rem)] md:mt-1 overflow-hidden rounded-2xl border border-line bg-paper shadow-xl">
+        <div className="absolute inset-x-3 top-full z-50 mt-[4.25rem] overflow-hidden md:inset-x-auto md:right-0 md:mt-1 md:w-[26rem] rounded-2xl border border-line bg-paper shadow-xl">
           {loading && items.length === 0 && (
             <p className="px-4 py-3 text-sm text-muted">…</p>
           )}

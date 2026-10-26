@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { AdminError, requireAdminApi } from '@/lib/admin'
 import { fail, json, readJson } from '@/lib/api'
-import { addProductPhoto } from '@/lib/admin-products'
+import { addProductPhoto, replaceProductPhoto } from '@/lib/admin-products'
 import { matchPhotos } from '@/lib/product-import'
 
 const schema = z.object({ names: z.array(z.string().max(300)).min(1).max(500) })
@@ -29,9 +29,16 @@ export async function PUT(request: Request) {
     const [m] = await matchPhotos([name || (f as File).name])
     if (!m.productId || !m.variantId) return fail(422, 'INVALID_INPUT', `No product has the code ${m.code}.`)
     const file = f as File
+    const bytes = Buffer.from(await file.arrayBuffer())
+    /* Same file name as a photo already there: replace it in place. */
+    const replaced = m.replaces ? await replaceProductPhoto(m.productId, { bytes, contentType: file.type, filename: name || file.name }) : null
+    if (replaced) {
+      revalidatePath('/[locale]', 'layout')
+      return json({ ok: true, id: replaced.id, label: m.label, replaced: true })
+    }
     const image = await addProductPhoto(
       m.productId,
-      { bytes: Buffer.from(await file.arrayBuffer()), contentType: file.type, filename: name || file.name },
+      { bytes, contentType: file.type, filename: name || file.name },
       m.label ? { en: m.label } : undefined,
       m.variantId,
     )

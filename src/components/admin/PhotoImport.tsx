@@ -7,7 +7,7 @@
 import { useRef, useState } from 'react'
 import { btn } from '@/components/admin/ui'
 
-type Match = { filename: string; code: string; productId: string | null; variantId: string | null; label: string | null; photos: number }
+type Match = { filename: string; code: string; productId: string | null; variantId: string | null; label: string | null; photos: number; replaces?: boolean }
 type Item = Match & { file: File; state: 'ready' | 'skip' | 'sending' | 'done' | 'failed'; error?: string }
 
 /** Large photos are made smaller in the browser (longest side 2000 px) so
@@ -60,7 +60,7 @@ export function PhotoImport() {
     }
   }
 
-  const goes = (it: Item) => it.variantId && it.state !== 'done' && !(skipHave && it.photos > 0)
+  const goes = (it: Item) => it.variantId && it.state !== 'done' && (it.replaces || !(skipHave && it.photos > 0))
   const toSend = items.filter(goes)
 
   async function upload() {
@@ -112,7 +112,7 @@ export function PhotoImport() {
         className={`rounded-2xl border-2 border-dashed p-6 text-sm ${drag ? 'border-accent bg-accent/5' : 'border-line bg-paper'}`}
       >
         <p>
-          Name each photo with the barcode (EAN) of its flavour, for example <span className="font-mono">5901330098765.jpg</span>. A second photo of the same flavour:{' '}
+          Name each photo with the barcode (EAN) of its flavour, for example <span className="font-mono">5901330098765.jpg</span>. Uploading a file with the same name again replaces that photo. A second photo of the same flavour:{' '}
           <span className="font-mono">5901330098765_2.jpg</span>. The product&apos;s SKU works too.
         </p>
         <p className="mt-1 text-muted">Do this after step 1, so the products exist. Drop all the photos here, or choose them.</p>
@@ -174,6 +174,8 @@ export function PhotoImport() {
                         <span className="text-muted">Uploading…</span>
                       ) : it.state === 'failed' ? (
                         <span className="text-sale">{it.error}</span>
+                      ) : it.variantId && it.replaces ? (
+                        <span className="text-accent">Replaces the photo with this name</span>
                       ) : it.variantId && skipHave && it.photos > 0 ? (
                         <span className="text-muted">Has a photo already, skipped</span>
                       ) : it.variantId ? (

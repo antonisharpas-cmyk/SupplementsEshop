@@ -244,6 +244,31 @@ export function sniffImage(b: Buffer): boolean {
   return false
 }
 
+/** Swap the picture of a photo uploaded earlier under the same file name for
+ *  a new one, keeping its place, flavour and text. Returns null when there is
+ *  no such photo. A new address, so browsers do not keep showing the old one. */
+export async function replaceProductPhoto(productId: string, file: { bytes: Buffer; contentType: string; filename: string }) {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.contentType)) throw new AdminError('Upload a JPG, PNG, WebP, AVIF or GIF photo.')
+  if (file.bytes.length > MAX_UPLOAD_BYTES) throw new AdminError('That photo is over 6 MB. Save it smaller and try again.')
+  if (!sniffImage(file.bytes)) throw new AdminError('That file is not a picture the shop can show.')
+  const [old] = await db
+    .select({ imageId: productImages.id, mediaId: media.id })
+    .from(productImages)
+    .innerJoin(media, sql`${productImages.url} = '/api/media/' || ${media.id}::text`)
+    .where(and(eq(productImages.productId, productId), eq(media.filename, file.filename)))
+    .limit(1)
+  if (!old) return null
+  return db.transaction(async (tx) => {
+    const [stored] = await tx
+      .insert(media)
+      .values({ contentType: file.contentType, bytes: file.bytes, size: file.bytes.length, filename: file.filename.slice(0, 200) })
+      .returning({ id: media.id })
+    await tx.update(productImages).set({ url: `/api/media/${stored.id}` }).where(eq(productImages.id, old.imageId))
+    await tx.delete(media).where(eq(media.id, old.mediaId))
+    return { id: old.imageId }
+  })
+}
+
 /** Which flavour and size a photo shows; null for the whole product. */
 export async function setPhotoVariant(productId: string, imageId: string, variantId: string | null) {
   if (variantId) {
