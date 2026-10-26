@@ -452,7 +452,7 @@ export async function importLines(rows: Rows): Promise<ImportedLine[]> {
   const { cols, hasHeader } = pickColumns(
     rows[0],
     {
-      sku: ['sku', 'code', 'κωδ', 'артикул', 'product code', 'item'],
+      sku: ['sku', 'ean', 'barcode', 'code', 'κωδ', 'артикул', 'productcode', 'item'],
       qty: ['qty', 'quantity', 'ποσ', 'кол', 'units', 'pcs'],
       price: ['price', 'unit price', 'unitprice', 'cost', 'τιμ', 'цена', 'net'],
       free: ['free', 'bonus', 'δωρε', 'бесплат', 'foc'],

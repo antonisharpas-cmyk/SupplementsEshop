@@ -45,9 +45,14 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             : `${total} product${total === 1 ? '' : 's'} · click a row to edit it`
         }
         action={
-          <Link href="/admin/products/new" className={btn.primary}>
-            Add product
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/products/import" className={btn.secondary}>
+              Import from a sheet
+            </Link>
+            <Link href="/admin/products/new" className={btn.primary}>
+              Add product
+            </Link>
+          </div>
         }
       />
       <SectionTabs label="Catalogue" tabs={CATALOGUE_TABS} />

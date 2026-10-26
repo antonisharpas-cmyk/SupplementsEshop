@@ -69,29 +69,54 @@ export function Header({
               </Link>
 
               {root.children.length > 0 && (
-                <div className="invisible absolute top-full left-0 min-w-60 overflow-hidden rounded-2xl border border-line bg-paper opacity-0 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.8)] transition-opacity group-hover:visible group-hover:opacity-100 focus-within:visible focus-within:opacity-100 group-data-[closed]:invisible! group-data-[closed]:opacity-0!">
+                <div className="invisible absolute top-full left-0 min-w-60 rounded-2xl border border-line bg-paper opacity-0 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.8)] transition-opacity group-hover:visible group-hover:opacity-100 focus-within:visible focus-within:opacity-100 group-data-[closed]:invisible! group-data-[closed]:opacity-0!">
                   <ul className="py-2">
                     {root.children.map((child) => (
-                      <li key={child.id}>
-                        <Link
-                          href={`${base}/${root.slug}/${child.slug}`}
-                          className="block px-4 py-2 text-sm hover:bg-paper-2 hover:text-accent"
-                        >
-                          {tr(child.name, locale)}
-                        </Link>
+                      <li key={child.id} className="group/sub relative">
+                        <div className="flex items-center hover:bg-paper-2 group-hover/sub:bg-paper-2">
+                          <Link
+                            href={`${base}/${root.slug}/${child.slug}`}
+                            className="block flex-1 px-4 py-2 text-sm hover:text-accent"
+                          >
+                            {tr(child.name, locale)}
+                          </Link>
+                          {child.children.length > 0 && (
+                            /* Opens the sections inside this category: on
+                               hover with a mouse, on tap or Tab otherwise. */
+                            <button
+                              type="button"
+                              aria-label={tr(child.name, locale)}
+                              aria-haspopup="true"
+                              className="mr-2 grid h-7 w-7 place-items-center rounded-lg text-muted transition-colors hover:text-accent group-hover/sub:text-accent"
+                            >
+                              <svg aria-hidden viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor">
+                                <path d="M7.3 5.3a1 1 0 0 1 1.4 0l4 4a1 1 0 0 1 0 1.4l-4 4a1 1 0 0 1-1.4-1.4l3.3-3.3-3.3-3.3a1 1 0 0 1 0-1.4z" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                         {child.children.length > 0 && (
-                          <ul className="mb-1 ml-4 border-l border-line">
-                            {child.children.map((leaf) => (
-                              <li key={leaf.id}>
-                                <Link
-                                  href={`${base}/${root.slug}/${child.slug}/${leaf.slug}`}
-                                  className="block px-3 py-1.5 text-[13px] text-muted hover:bg-paper-2 hover:text-accent"
-                                >
-                                  {tr(leaf.name, locale)}
+                          /* pl-2 instead of a margin, so the mouse never
+                             leaves the menu on its way across. */
+                          <div className="invisible absolute top-[-0.5rem] left-full z-10 pl-2 opacity-0 transition-opacity group-hover/sub:visible group-hover/sub:opacity-100 group-focus-within/sub:visible group-focus-within/sub:opacity-100">
+                            <ul className="min-w-52 rounded-2xl border border-line bg-paper py-2 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.8)]">
+                              {child.children.map((leaf) => (
+                                <li key={leaf.id}>
+                                  <Link
+                                    href={`${base}/${root.slug}/${child.slug}/${leaf.slug}`}
+                                    className="block px-4 py-2 text-sm hover:bg-paper-2 hover:text-accent"
+                                  >
+                                    {tr(leaf.name, locale)}
+                                  </Link>
+                                </li>
+                              ))}
+                              <li className="mt-1 border-t border-line pt-1">
+                                <Link href={`${base}/${root.slug}/${child.slug}`} className="block px-4 py-2 label hover:bg-paper-2">
+                                  {t('nav.allIn', { category: tr(child.name, locale) })}
                                 </Link>
                               </li>
-                            ))}
-                          </ul>
+                            </ul>
+                          </div>
                         )}
                       </li>
                     ))}

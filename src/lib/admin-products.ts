@@ -193,6 +193,7 @@ export async function addProductPhoto(
   productId: string,
   file: { bytes: Buffer; contentType: string; filename?: string | null },
   alt?: L10n,
+  variantId?: string,
 ) {
   if (!ALLOWED_IMAGE_TYPES.includes(file.contentType)) {
     throw new AdminError('Upload a JPG, PNG, WebP, AVIF or GIF photo.')
@@ -222,6 +223,7 @@ export async function addProductPhoto(
       .insert(productImages)
       .values({
         productId,
+        variantId: variantId ?? null,
         url: `/api/media/${stored.id}`,
         alt: clean(alt) ?? exists.name,
         position: next,
