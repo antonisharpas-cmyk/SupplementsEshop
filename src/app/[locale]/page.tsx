@@ -233,32 +233,24 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       <Link
                         key={child.id}
                         href={`${base}/${root.slug}/${child.slug}`}
-                        className="group relative flex aspect-4/5 flex-col justify-end overflow-hidden border border-line bg-paper-2 p-4 transition-colors hover:border-accent"
+                        className="group flex aspect-4/5 flex-col overflow-hidden border border-line bg-paper-2 p-4 transition-colors hover:border-accent"
                       >
-                        {child.imageUrl && (
-                          <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {/* The picture is shown whole (contain, not cover), so a
+                            wide box or a bar is never cut, and the name sits
+                            under it instead of on top of it. */}
+                        <div className="relative min-h-0 flex-1">
+                          {child.imageUrl && (
+                            /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               src={child.imageUrl}
                               alt=""
                               loading="lazy"
-                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              className="absolute inset-0 h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                          </>
-                        )}
-                        <span
-                          className={`label relative ${child.imageUrl ? 'text-white/70' : 'text-muted'}`}
-                        >
-                          {tr(root.name, locale)}
-                        </span>
-                        <span
-                          className={`relative mt-1 text-lg font-semibold tracking-tight ${
-                            child.imageUrl ? 'text-white' : ''
-                          }`}
-                        >
-                          {tr(child.name, locale)}
-                        </span>
+                          )}
+                        </div>
+                        <span className="label mt-3 text-muted">{tr(root.name, locale)}</span>
+                        <span className="mt-1 text-base font-semibold leading-tight tracking-tight sm:text-lg">{tr(child.name, locale)}</span>
                       </Link>
                     ))}
                   </div>
