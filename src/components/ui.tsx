@@ -110,7 +110,9 @@ export function ProductImage({
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
-          className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.03]"
+          /* contain, not cover: a pack photo is shown whole, never cut at
+             the sides, whatever its shape. */
+          className="h-full w-full object-contain p-3 transition-transform duration-500 hover:scale-[1.03]"
         />
       ) : (
         <div className="grid h-full place-items-center text-muted label">No image</div>

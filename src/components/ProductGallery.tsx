@@ -78,6 +78,10 @@ export function ProductGallery({ photos, variants, name }: { photos: Photo[]; va
   const [open, setOpen] = useState(false)
   const [zoom, setZoom] = useState(1)
   const [origin, setOrigin] = useState('50% 50%')
+  /* The real size of each photo, once loaded. The large photo is never shown
+     more than 1.25 times its real size: a small photo (a 480 px supplier
+     image) stretched to fill the box goes soft and the small print blurs. */
+  const [natural, setNatural] = useState<Record<string, { w: number; h: number }>>({})
   const swipeFrom = useRef<number | null>(null)
   /* A swipe is not also a click. */
   const swiped = useRef(false)
@@ -133,7 +137,7 @@ export function ProductGallery({ photos, variants, name }: { photos: Photo[]; va
             else setOpen(true)
           }}
           aria-label={`${name}: open the photo full screen`}
-          className="block h-full w-full cursor-zoom-in"
+          className="grid h-full w-full cursor-zoom-in place-items-center"
           onPointerDown={(e) => (swipeFrom.current = e.clientX)}
           onPointerUp={(e) => {
             const from = swipeFrom.current
@@ -145,7 +149,17 @@ export function ProductGallery({ photos, variants, name }: { photos: Photo[]; va
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={current.url} alt={current.alt} className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.03]" draggable={false} />
+          <img
+            src={current.url}
+            alt={current.alt}
+            className="h-full w-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.03]"
+            style={natural[current.url] ? { maxWidth: natural[current.url].w * 1.25 + 32, maxHeight: natural[current.url].h * 1.25 + 32 } : undefined}
+            onLoad={(e) => {
+              const { naturalWidth: w, naturalHeight: h } = e.currentTarget
+              if (w && h && !natural[current.url]) setNatural((n) => ({ ...n, [current.url]: { w, h } }))
+            }}
+            draggable={false}
+          />
         </button>
         {many && (
           <>

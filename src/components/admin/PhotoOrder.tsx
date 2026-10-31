@@ -14,6 +14,7 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DragHandle, Sortable } from './Sortable'
 import { btn } from './ui'
+import { shrinkPhoto } from '@/lib/shrink-photo'
 
 type Photo = { id: string; url: string; variantId?: string | null }
 type Option = { id: string; label: string }
@@ -61,23 +62,32 @@ export function PhotoOrder({ productId, photos, variants = [] }: { productId: st
     const list = Array.from(files ?? [])
     if (!list.length) return
     setStatus('saving')
-    setMessage(`Uploading ${list.length} photo${list.length === 1 ? '' : 's'}…`)
-    const form = new FormData()
-    for (const f of list) form.append('file', f)
-    try {
-      const res = await fetch(`/api/admin/products/${productId}/images`, { method: 'POST', body: form })
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; added?: Photo[] }
-      if (data.added?.length) setOrder((o) => [...o, ...data.added!])
-      if (!res.ok || !data.ok) throw new Error(data.message ?? 'Could not upload that.')
-      setStatus('saved')
-      setMessage(`Added ${data.added?.length ?? 0} photo${data.added?.length === 1 ? '' : 's'}.`)
-      router.refresh()
-    } catch (err) {
-      setStatus('error')
-      setMessage(err instanceof Error ? err.message : 'Could not upload that.')
-    } finally {
-      if (input.current) input.current.value = ''
+    /* One photo per request. Several large photos in one request went over
+       the server's 10 MB request limit and the upload failed; one at a time,
+       each made smaller first, always fits, and one bad file does not stop
+       the others. */
+    let added = 0
+    const failed: string[] = []
+    for (const [i, original] of list.entries()) {
+      setMessage(`Uploading photo ${i + 1} of ${list.length}…`)
+      try {
+        const form = new FormData()
+        form.append('file', await shrinkPhoto(original))
+        const res = await fetch(`/api/admin/products/${productId}/images`, { method: 'POST', body: form })
+        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; added?: Photo[] }
+        if (data.added?.length) setOrder((o) => [...o, ...data.added!])
+        if (!res.ok || !data.ok) throw new Error(data.message ?? 'Not saved')
+        added++
+      } catch (err) {
+        failed.push(`${original.name}: ${err instanceof Error && err.message !== 'Failed to fetch' ? err.message : 'could not reach the server'}`)
+      }
     }
+    if (input.current) input.current.value = ''
+    setStatus(failed.length ? 'error' : 'saved')
+    setMessage(
+      `Added ${added} photo${added === 1 ? '' : 's'}.` + (failed.length ? ` Not saved, try these again: ${failed.join('; ')}` : ''),
+    )
+    if (added) router.refresh()
   }
 
   /* Which flavour a photo shows: the shop then shows it when that flavour
@@ -196,7 +206,7 @@ export function PhotoOrder({ productId, photos, variants = [] }: { productId: st
           Upload photos
         </button>
         <p className="text-sm text-muted">
-          Or drop them here. JPG, PNG or WebP, up to 6 MB each. Portrait 3:4 looks best (e.g. 1200 × 1600).
+          Or drop them here. JPG, PNG or WebP. Large photos are made smaller for you. Portrait 3:4 looks best (e.g. 1200 × 1600).
         </p>
         <input
           ref={input}
