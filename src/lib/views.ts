@@ -20,7 +20,7 @@
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
 import { db } from '@/db'
 import { productImages, productViews, products } from '@/db/schema'
-import { loadActivePromotions, resolvePrices } from './pricing'
+import { loadActivePromotions } from './pricing'
 import { tField } from '@/i18n/field'
 import type { Locale } from '@/config/brand'
 
@@ -201,18 +201,10 @@ async function buildCards(
   const firstImage = new Map<string, string>()
   for (const img of images) if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
 
-  /* Price at product level: this strip shows a "from" price, not a variant. */
-  const prices = await resolvePrices(
-    kept.map((k) => ({
-      productId: k.id,
-      categoryId: k.categoryId,
-      variantId: k.id,
-      listCents: k.priceCents,
-      saleCents: k.salePriceCents,
-    })),
-    promos,
-    { tierPercent: (await (await import('./loyalty')).viewerTier()).percent },
-  )
+  /* The cheapest size in stock, the same price the product's card shows. */
+  const { headlinePrices } = await import('./catalog')
+  const headlines = await headlinePrices(kept, (await (await import('./loyalty')).viewerTier()).percent, promos)
+  const prices = new Map([...headlines].map(([id, h]) => [id, h.price]))
 
   return kept.map((k) => {
     const price = prices.get(k.id)

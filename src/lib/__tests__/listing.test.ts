@@ -247,3 +247,38 @@ describe('the SQL price and the card price are the same number', () => {
     }
   })
 })
+
+describe('sizes with their own prices', () => {
+  it('the card, the price filter and the sort all use the cheapest size', async () => {
+    const [cat] = await db.select({ id: categories.id }).from(categories).where(sql`slug = 'tops'`)
+    const [p] = await db
+      .insert(products)
+      .values({ slug: 'tub-two-sizes', name: { en: 'Tub two sizes' }, categoryId: cat.id, priceCents: 999, isActive: true })
+      .returning({ id: products.id })
+    const vs = await db
+      .insert(productVariants)
+      .values([
+        { productId: p.id, sku: 'TUB-900', size: '900 g', priceCentsOverride: 3799 },
+        { productId: p.id, sku: 'TUB-1800', size: '1800 g', priceCentsOverride: 9999 },
+      ])
+      .returning({ id: productVariants.id })
+    await db.insert(inventory).values(vs.map((v) => ({ variantId: v.id, onHand: 5, reserved: 0 })))
+    try {
+      const { listing } = await loadListing(new URLSearchParams(''), ALL, 'en')
+      const card = listing.items.find((i) => i.name.en === 'Tub two sizes')!
+      expect(card.finalCents).toBe(3799)
+      expect(card.priceFrom).toBe(true)
+      /* Not €9.99 (the product's own price, which no size sells at). */
+      expect(await names('maxPrice=20')).not.toContain('Tub two sizes')
+      expect(await names('minPrice=30&maxPrice=40')).toContain('Tub two sizes')
+
+      /* With the cheaper size sold out, the card moves to the size you can buy. */
+      await db.update(inventory).set({ onHand: 0 }).where(sql`${inventory.variantId} = ${vs[0].id}::uuid`)
+      const again = (await loadListing(new URLSearchParams(''), ALL, 'en')).listing.items.find((i) => i.name.en === 'Tub two sizes')!
+      expect(again.finalCents).toBe(9999)
+      expect(again.priceFrom).toBe(false)
+    } finally {
+      await db.delete(products).where(sql`${products.id} = ${p.id}::uuid`)
+    }
+  })
+})

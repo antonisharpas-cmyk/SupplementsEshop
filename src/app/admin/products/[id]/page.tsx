@@ -142,7 +142,7 @@ export default async function AdminProductPage({
             <PhotoOrder
               productId={product.id}
               photos={photos.map((p) => ({ id: p.id, url: p.url, variantId: p.variantId }))}
-              variants={variants.map((v) => ({ id: v.id, label: [v.flavour?.en, v.size].filter(Boolean).join(', ') }))}
+              variants={variants.map((v) => ({ id: v.id, label: [v.flavour?.en, v.size].filter(Boolean).join(', '), flavour: v.flavour?.en?.trim() ?? '' }))}
             />
           </Section>
 

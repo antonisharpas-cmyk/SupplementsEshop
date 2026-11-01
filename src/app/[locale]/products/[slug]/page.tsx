@@ -16,13 +16,14 @@ import { getProductBySlug, getRelatedProducts, t as tr } from '@/lib/catalog'
 import { formatMoney } from '@/lib/pricing'
 import { getSetting } from '@/lib/settings'
 import { AddToBag } from '@/components/AddToBag'
+import { PdpPrice } from '@/components/PdpPrice'
 import { WishlistButton } from '@/components/WishlistButton'
 import { getCurrentUser } from '@/lib/auth/session'
 import { isInWishlist } from '@/lib/wishlist'
 import { ProductCard } from '@/components/ProductCard'
 import { RecentlyViewed } from '@/components/RecentlyViewed'
 import { TrackView } from '@/components/TrackView'
-import { Badge, Price, SectionHead } from '@/components/ui'
+import { Badge, SectionHead } from '@/components/ui'
 import { ProductGallery } from '@/components/ProductGallery'
 
 type Props = { params: Promise<{ locale: string; slug: string }> }
@@ -153,12 +154,11 @@ export default async function ProductPage({ params }: Props) {
           )}
 
           <div className="mt-4">
-            <Price
-              listCents={product.listCents}
-              finalCents={product.finalCents}
+            <PdpPrice
+              variants={product.variants}
+              fallback={{ listCents: product.listCents, finalCents: product.finalCents }}
               locale={locale}
               currency={product.currency}
-              size="lg"
             />
             {product.memberTier && (
               <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">

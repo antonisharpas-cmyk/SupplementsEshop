@@ -20,6 +20,7 @@ import {
   type Category,
 } from '@/db/schema'
 import {
+  cheapestListSql,
   effectivePriceSql,
   loadActivePromotions,
   resolvePrices,
@@ -140,6 +141,8 @@ export type ProductCard = {
   listCents: number
   finalCents: number
   discountPercent: number
+  /** The sizes cost different amounts: the price is the cheapest, "From". */
+  priceFrom?: boolean
   isOnSale: boolean
   /** The signed in member's tier, when it lowered this price. */
   memberTier?: string | null
@@ -287,7 +290,7 @@ async function buildListing(query: ProductQuery): Promise<Built | null> {
 
   /* --- on sale: a sale price or a live promotion — exactly the products
      whose card shows a reduced price --- */
-  if (query.onSale) product.sale = sql`${price} < ${products.priceCents}`
+  if (query.onSale) product.sale = sql`${price} < ${cheapestListSql()}`
 
   /* --- the variant-level groups --- */
   if (query.sizes?.length) {
@@ -531,6 +534,69 @@ async function loadFacets(b: Built, locale: string): Promise<ProductListing['fac
   }
 }
 
+/** The price a product is shown at outside its own page: its cheapest size
+ *  with stock (or the cheapest size when none has stock), each size with its
+ *  own price override, sale and promotions. A product with no sizes falls
+ *  back to its own price. */
+async function cheapestPrices(
+  rows: { id: string; categoryId: string; priceCents: number; salePriceCents: number | null }[],
+  variants: { id: string; productId: string; priceOverride: number | null; saleOverride: number | null; available: number }[],
+  promos: Awaited<ReturnType<typeof loadActivePromotions>> | undefined,
+  tierPercent: number,
+): Promise<Map<string, { price: EffectivePrice; from: boolean }>> {
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const inputs = [
+    ...variants
+      .filter((v) => byId.has(v.productId))
+      .map((v) => {
+        const r = byId.get(v.productId)!
+        return {
+          productId: r.id,
+          categoryId: r.categoryId,
+          variantId: v.id,
+          listCents: v.priceOverride ?? r.priceCents,
+          saleCents: v.saleOverride ?? r.salePriceCents,
+        }
+      }),
+    ...rows.map((r) => ({ productId: r.id, categoryId: r.categoryId, variantId: r.id, listCents: r.priceCents, saleCents: r.salePriceCents })),
+  ]
+  const prices = await resolvePrices(inputs, promos, { tierPercent })
+  const out = new Map<string, { price: EffectivePrice; from: boolean }>()
+  for (const r of rows) {
+    const own = variants.filter((v) => v.productId === r.id)
+    const pool = own.some((v) => v.available > 0) ? own.filter((v) => v.available > 0) : own
+    const priced = pool.map((v) => prices.get(v.id)).filter((p): p is EffectivePrice => Boolean(p))
+    if (priced.length === 0) {
+      out.set(r.id, { price: prices.get(r.id)!, from: false })
+      continue
+    }
+    const best = priced.reduce((b, p) => (p.finalCents < b.finalCents ? p : b))
+    out.set(r.id, { price: best, from: new Set(priced.map((p) => p.finalCents)).size > 1 })
+  }
+  return out
+}
+
+/** cheapestPrices for products whose sizes are not loaded yet. */
+export async function headlinePrices(
+  rows: { id: string; categoryId: string; priceCents: number; salePriceCents: number | null }[],
+  tierPercent: number,
+  promos?: Awaited<ReturnType<typeof loadActivePromotions>>,
+) {
+  if (rows.length === 0) return new Map<string, { price: EffectivePrice; from: boolean }>()
+  const variants = await db
+    .select({
+      id: productVariants.id,
+      productId: productVariants.productId,
+      priceOverride: productVariants.priceCentsOverride,
+      saleOverride: productVariants.salePriceCentsOverride,
+      available: sql<number>`coalesce(${inventory.onHand} - ${inventory.reserved}, 0)`.mapWith(Number),
+    })
+    .from(productVariants)
+    .leftJoin(inventory, eq(inventory.variantId, productVariants.id))
+    .where(and(inArray(productVariants.productId, rows.map((r) => r.id)), eq(productVariants.isActive, true)))
+  return cheapestPrices(rows, variants, promos, tierPercent)
+}
+
 /** Attach images, variants, stock and effective prices to a page of products.
  *  Three queries regardless of how many products — not one per product. */
 async function hydrateCards(
@@ -572,6 +638,8 @@ async function hydrateCards(
         productId: productVariants.productId,
         size: productVariants.size,
         position: productVariants.position,
+        priceOverride: productVariants.priceCentsOverride,
+        saleOverride: productVariants.salePriceCentsOverride,
         available: sql<number>`coalesce(${inventory.onHand} - ${inventory.reserved}, 0)`.mapWith(
           Number,
         ),
@@ -584,35 +652,17 @@ async function hydrateCards(
     loadActivePromotions(),
   ])
 
-  /* Price each product once, using its first variant as the representative —
-     a card shows one price, and variant overrides are shown on the product
-     page where the size is actually chosen. */
-  const priceInputs = rows.map((r) => ({
-    productId: r.id,
-    categoryId: r.categoryId,
-    variantId: r.id, // keyed by product for the card
-    listCents: r.priceCents,
-    saleCents: r.salePriceCents,
-  }))
+  /* Each size is priced on its own (a 1800 g tub costs more than a 900 g
+     one), and the card shows the cheapest size in stock, the same price the
+     product page opens with. `priceFrom` marks a product whose sizes cost
+     different amounts, so the card can say "From". */
   const { viewerTier } = await import('./loyalty')
   const member = await viewerTier()
-  const prices = await resolvePrices(priceInputs, promos, { tierPercent: member.percent })
+  const headlines = await cheapestPrices(rows, variants, promos, member.percent)
   const availabilityById = new Map(availability.map((a) => [a.id, a.availability]))
 
   return rows.map((row) => {
-    const price: EffectivePrice =
-      prices.get(row.id) ??
-      ({
-        variantId: row.id,
-        listCents: row.priceCents,
-        finalCents: row.priceCents,
-        discountCents: 0,
-        discountPercent: 0,
-        tierDiscountCents: 0,
-        source: 'none',
-        promotionId: null,
-        promotionSnapshot: null,
-      } satisfies EffectivePrice)
+    const { price, from } = headlines.get(row.id)!
 
     const productVariantsForRow = variants.filter((v) => v.productId === row.id)
     const inStock = productVariantsForRow.some((v) => v.available > 0)
@@ -630,6 +680,7 @@ async function hydrateCards(
       listCents: price.listCents,
       finalCents: price.finalCents,
       discountPercent: price.discountPercent,
+      priceFrom: from,
       /* A sale or promotion; the member's own tier price is not "on sale". */
       isOnSale: price.discountCents - price.tierDiscountCents > 0,
       memberTier: price.tierDiscountCents > 0 ? member.tier : null,
@@ -910,22 +961,12 @@ export async function searchSuggestions(
   for (const i of images) if (!firstImage.has(i.productId)) firstImage.set(i.productId, i.url)
 
   const { viewerTier } = await import('./loyalty')
-  const prices = await resolvePrices(
-    rows.map((r) => ({
-      productId: r.id,
-      categoryId: r.categoryId,
-      variantId: r.id,
-      listCents: r.priceCents,
-      saleCents: r.salePriceCents,
-    })),
-    undefined,
-    { tierPercent: (await viewerTier()).percent },
-  )
+  const prices = await headlinePrices(rows, (await viewerTier()).percent)
 
   return rows.map((r) => ({
     slug: r.slug,
     name: tField(r.name, locale),
-    finalCents: prices.get(r.id)?.finalCents ?? r.priceCents,
+    finalCents: prices.get(r.id)?.price.finalCents ?? r.priceCents,
     imageUrl: firstImage.get(r.id) ?? null,
   }))
 }

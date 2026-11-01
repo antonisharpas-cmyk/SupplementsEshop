@@ -17,7 +17,7 @@ import { btn } from './ui'
 import { shrinkPhoto } from '@/lib/shrink-photo'
 
 type Photo = { id: string; url: string; variantId?: string | null }
-type Option = { id: string; label: string }
+type Option = { id: string; label: string; flavour?: string }
 
 const ROLE = ['Main photo', 'On hover']
 
@@ -135,8 +135,23 @@ export function PhotoOrder({ productId, photos, variants = [] }: { productId: st
     }
   }
 
+  /* A flavour with no photo of its own shows the photos for "Every flavour";
+     when there are none of those either, it shows another flavour's photo
+     (a chocolate tub for vanilla). Name those flavours so it gets fixed. */
+  const flavourOf = new Map(variants.map((v) => [v.id, (v.flavour ?? '').toLowerCase()]))
+  const general = order.some((p) => !p.variantId || !flavourOf.has(p.variantId))
+  const withPhoto = new Set(order.map((p) => (p.variantId ? flavourOf.get(p.variantId) : undefined)).filter(Boolean))
+  const missing = general || withPhoto.size === 0
+    ? []
+    : [...new Map(variants.filter((v) => v.flavour && !withPhoto.has(v.flavour.toLowerCase())).map((v) => [v.flavour!.toLowerCase(), v.flavour!])).values()]
+
   return (
     <div>
+      {missing.length > 0 && (
+        <p className="mb-4 max-w-3xl rounded-lg border border-sale/40 bg-sale/10 px-4 py-3 text-sm">
+          No photo yet for {missing.join(', ')}. Until one is added, the shop shows another flavour&apos;s photo when a customer picks it. Upload its photo and choose the flavour under it, or set one photo to Every flavour.
+        </p>
+      )}
       {order.length > 0 && (
         <Sortable
           items={order}

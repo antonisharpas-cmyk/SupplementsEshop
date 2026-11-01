@@ -57,7 +57,10 @@ export function ProductCard({
               </Link>
             </h3>
             <div className="mt-1.5">
-              <Price listCents={product.listCents} finalCents={product.finalCents} locale={locale} size="sm" />
+              <span className="flex items-baseline gap-1.5">
+                {product.priceFrom && <span className="text-xs text-muted">{t('card.from')}</span>}
+                <Price listCents={product.listCents} finalCents={product.finalCents} locale={locale} size="sm" />
+              </span>
             </div>
           </div>
           <CardHeart productId={product.id} />

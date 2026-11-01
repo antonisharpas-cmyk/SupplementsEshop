@@ -159,6 +159,8 @@ export function AddToBag({
                     const next = onlySize(c.key)
                     setColour(c.key)
                     setVariantId(next)
+                    setQuantity(1)
+                    setMessage(null)
                     announceVariant({ flavour: c.key, variantId: next })
                   }}
                   aria-pressed={on}

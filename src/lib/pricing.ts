@@ -186,11 +186,27 @@ export async function promotionScope(at = new Date()): Promise<{
  * Without it a €69 hoodie shown at €55.20 by a promotion would be missing
  * from "up to €60", and "price: low to high" would put it in the wrong place.
  */
+/** The lowest list price of a product's sizes (each size's own price, or the
+ *  product's), before any sale or promotion. */
+export function cheapestListSql() {
+  return sql`coalesce((select min(coalesce(v.price_cents_override, ${products.priceCents})) from product_variants v where v.product_id = ${products.id} and v.is_active), ${products.priceCents})`
+}
+
 export async function effectivePriceSql(at = new Date(), tierPercent = 0) {
-  const list = sql`${products.priceCents}`
+  /* Sizes can have their own price and sale (a 1800 g tub costs more than
+     a 900 g one), so a product is filtered and sorted by its cheapest size,
+     the price its card shows. Without sizes, the product's own price. A
+     promotion lowers every size by the same rule, so the cheapest list price
+     gives the cheapest promotion price too. */
+  const vList = sql`coalesce(v.price_cents_override, ${products.priceCents})`
+  const vSale = sql`coalesce(v.sale_price_cents_override, ${products.salePriceCents})`
+  const list = cheapestListSql()
   const candidates = [
-    sql`case when ${products.salePriceCents} is not null and ${products.salePriceCents} < ${list}
-             then ${products.salePriceCents} else ${list} end`,
+    sql`coalesce(
+          (select min(case when ${vSale} is not null and ${vSale} < ${vList} then ${vSale} else ${vList} end)
+             from product_variants v where v.product_id = ${products.id} and v.is_active),
+          case when ${products.salePriceCents} is not null and ${products.salePriceCents} < ${products.priceCents}
+               then ${products.salePriceCents} else ${products.priceCents} end)`,
   ]
   const active = await loadActivePromotions(at)
   if (active.length) {

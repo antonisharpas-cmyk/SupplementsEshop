@@ -171,6 +171,7 @@ export const messages = {
 
     /* --- product card --- */
     'card.soldOut': 'Sold out',
+    'card.from': 'From',
     'card.saleBadge': '−{percent}%',
     'card.addToWishlist': 'Save for later',
     'card.quickAdd': 'Quick add',
@@ -646,6 +647,7 @@ export const messages = {
     'list.next': 'Επόμενη',
 
     'card.soldOut': 'Εξαντλήθηκε',
+    'card.from': 'Από',
     'card.saleBadge': '−{percent}%',
     'card.addToWishlist': 'Αποθήκευση',
     'card.quickAdd': 'Γρήγορη προσθήκη',
@@ -1116,6 +1118,7 @@ export const messages = {
     'list.next': 'Вперёд',
 
     'card.soldOut': 'Распродано',
+    'card.from': 'От',
     'card.saleBadge': '−{percent}%',
     'card.addToWishlist': 'В избранное',
     'card.quickAdd': 'Быстрое добавление',
