@@ -75,9 +75,15 @@ async function main() {
     db = await startEmbedded(EMBEDDED_DIR, DB_PORT)
     console.log(`  ready (${Math.round(process.memoryUsage().rss / 1048576)} MB)`)
     env.DATABASE_URL = `postgresql://postgres@127.0.0.1:${DB_PORT}/postgres`
-    /* Inside the service: no TLS, and a few connections (queries queue in the engine). */
+    /* Inside the service: no TLS, and ONE connection. The embedded engine
+       runs one query at a time and queues every protocol message from every
+       connection in one line, so with two or more connections the steps of
+       two queries could mix ("bind message supplies 3 parameters, but
+       prepared statement requires 1") when several pages load at once.
+       One connection costs no speed: the engine was serving one at a time
+       anyway. */
     env.DATABASE_SSL = 'disable'
-    env.DATABASE_POOL_MAX = env.EMBEDDED_DB_POOL_MAX ?? '3'
+    env.DATABASE_POOL_MAX = '1'
   }
 
   /* Not spawnSync: this process also serves the database, so it must stay free. */

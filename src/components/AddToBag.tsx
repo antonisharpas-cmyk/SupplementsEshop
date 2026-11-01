@@ -82,6 +82,10 @@ export function AddToBag({
   const availabilityOf = (v: VariantOption) =>
     liveAvailability[v.id] !== undefined ? liveAvailability[v.id] : v.available
 
+  /* Never more than the shelf has: after adding 5 the page refreshes with
+     fewer left, and the quantity (and the price shown for it) follows. */
+  const qty = selected ? Math.max(1, Math.min(quantity, availabilityOf(selected), 20)) : quantity
+
   async function add() {
     if (!selected) {
       setMessage({ tone: 'error', text: t('pdp.sizeRequired') })
@@ -94,7 +98,7 @@ export function AddToBag({
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variantId: selected.id, quantity, mode: 'add' }),
+        body: JSON.stringify({ variantId: selected.id, quantity: qty, mode: 'add' }),
       })
       const data = (await res.json()) as {
         ok?: boolean
@@ -115,6 +119,7 @@ export function AddToBag({
       }
 
       setMessage({ tone: 'ok', text: t('pdp.added') })
+      setQuantity(1)
       /* The header badge moves now; the refresh brings the rest along. */
       announceBagCount(data.cartCount)
       startTransition(() => router.refresh())
@@ -235,21 +240,20 @@ export function AddToBag({
           })}
         </div>
 
-        {/* stock nudge for the chosen size */}
+        {/* stock nudge for the chosen size. The SKU is for the shop, not the
+            customer, so it is not shown here. */}
         {selected && (
-          <p className="mt-3 text-xs">
+          <p className="mt-3">
             {availabilityOf(selected) <= 0 ? (
-              <span className="text-sale">{t('pdp.soldOut')}</span>
+              <span className="text-sm font-semibold uppercase tracking-wide text-sale">{t('pdp.soldOut')}</span>
             ) : selected.isLowStock || availabilityOf(selected) <= 3 ? (
-              <span className="text-sale">
+              <span className="inline-flex items-center gap-2 text-base font-bold uppercase tracking-wide text-sale">
+                <span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-sale" />
                 {t('pdp.lowStock', { n: availabilityOf(selected) })}
               </span>
             ) : (
-              <span className="text-ok">{t('pdp.inStock')}</span>
+              <span className="text-xs text-ok">{t('pdp.inStock')}</span>
             )}
-            <span className="ml-3 text-muted">
-              {t('pdp.sku')} {selected.sku}
-            </span>
           </p>
         )}
       </fieldset>
@@ -261,17 +265,17 @@ export function AddToBag({
           <div className="flex items-center overflow-hidden rounded-full border border-line">
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              onClick={() => setQuantity(Math.max(1, qty - 1))}
               className="h-11 w-11 text-lg hover:bg-paper-2"
               aria-label="−"
             >
               −
             </button>
-            <span className="w-10 text-center text-sm font-medium">{quantity}</span>
+            <span className="w-10 text-center text-sm font-medium">{qty}</span>
             <button
               type="button"
               onClick={() =>
-                setQuantity((q) => Math.min(Math.min(20, availabilityOf(selected)), q + 1))
+                setQuantity(Math.min(Math.min(20, availabilityOf(selected)), qty + 1))
               }
               className="h-11 w-11 text-lg hover:bg-paper-2"
               aria-label="+"
@@ -286,10 +290,10 @@ export function AddToBag({
       {selected && pricesDiffer && (
         <p className="mt-6 flex items-baseline gap-2 text-xl">
           <span className={selected.finalCents < selected.listCents ? 'font-semibold text-sale' : 'font-semibold text-heading'}>
-            {money(selected.finalCents * quantity)}
+            {money(selected.finalCents * qty)}
           </span>
           {selected.finalCents < selected.listCents && (
-            <span className="text-sm text-muted line-through">{money(selected.listCents * quantity)}</span>
+            <span className="text-sm text-muted line-through">{money(selected.listCents * qty)}</span>
           )}
         </p>
       )}
