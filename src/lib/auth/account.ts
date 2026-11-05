@@ -178,6 +178,10 @@ export async function completeRegistration(
     console.error('[account] welcome email not queued', err)
   }
 
+  /* "New customer account" to the shop's inbox. */
+  const { notifyStaffNewAccount } = await import('@/lib/automations')
+  await notifyStaffNewAccount(userId, { email: pending.marketingConsent === true, sms: pending.smsConsent === true })
+
   return {
     user: {
       id: row.id,

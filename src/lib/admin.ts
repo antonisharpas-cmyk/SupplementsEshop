@@ -144,6 +144,9 @@ export async function getOverview(lowStockThreshold: number): Promise<AdminOverv
       ),
     })
     .from(inventory)
+    /* Only sizes the Stock screen lists, so the overview number is what its
+       link opens. */
+    .innerJoin(productVariants, and(eq(productVariants.id, inventory.variantId), eq(productVariants.isActive, true)))
 
   const [customerCount] = await db
     .select({ n: count() })

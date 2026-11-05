@@ -26,6 +26,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const to = typeof sp.to === 'string' && isMonth(sp.to) ? sp.to : now
   const span = [3, 6, 12].includes(Number(sp.span)) ? Number(sp.span) : 12
   const months = lastMonths(to, span)
+  /* "Later" moves forward by the same span as "Earlier" goes back, never past this month. */
+  const [ty, tm] = to.split('-').map(Number)
+  const ahead = new Date(Date.UTC(ty, tm - 1 + span, 15))
+  const aheadMonth = `${ahead.getUTCFullYear()}-${String(ahead.getUTCMonth() + 1).padStart(2, '0')}`
+  const later = aheadMonth < now ? aheadMonth : now
   const [pl, vat, margins, spend, values, closed, live] = await Promise.all([
     profitAndLoss(months),
     vatSummary(months),
@@ -128,7 +133,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           ←
         </Link>
         {to !== now && (
-          <Link href={`/admin/reports?span=${span}&to=${lastMonths(to, 0)[0] ?? now}`} className={pill(false)}>
+          <Link href={`/admin/reports?span=${span}&to=${later}`} className={pill(false)}>
             Later →
           </Link>
         )}

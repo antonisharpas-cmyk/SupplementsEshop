@@ -1485,9 +1485,8 @@ export const emailJobs = pgTable(
 )
 
 /* -------------------------------------------------------- stock alerts -- */
-/* "Notify me when it's back" requests — the storage and the trigger are in
-   place (lib/automations.ts, backInStock); the button customers press is not
-   built yet, so nothing writes here until it is. */
+/* "Notify me when it's back" requests, made on the product page
+   (lib/stock-alerts.ts); lib/automations.ts sends the email on restock. */
 export const stockAlerts = pgTable(
   'stock_alerts',
   {

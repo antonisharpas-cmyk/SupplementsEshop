@@ -59,12 +59,15 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   const status = one(sp.status) ?? ''
   const kind = one(sp.kind) ?? ''
   const q = one(sp.q) ?? ''
-  const list = await emailActivity({ status: status || undefined, kind: kind || undefined, q, page: Number(one(sp.page)) || 1 })
+  /* "Emails sent today" on the overview opens this list with today=1. */
+  const today = one(sp.today) === '1'
+  const list = await emailActivity({ status: status || undefined, kind: kind || undefined, q, today, page: Number(one(sp.page)) || 1 })
 
   return (
     <>
       <form className="mb-4 flex flex-wrap items-end gap-2">
         {status && <input type="hidden" name="status" value={status} />}
+        {today && <input type="hidden" name="today" value="1" />}
         <label>
           <span className="sr-only">Email</span>
           <select name="kind" defaultValue={kind} className="border border-line bg-paper px-3 py-2.5 text-sm">
@@ -76,6 +79,8 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
             ))}
             <option value="newsletter_new_arrivals">Mailing: new arrivals</option>
             <option value="newsletter_promotion">Mailing: promotion</option>
+            <option value="newsletter_test_new_arrivals">Test mailing: new arrivals</option>
+            <option value="newsletter_test_promotion">Test mailing: promotion</option>
           </select>
         </label>
         <input
@@ -101,10 +106,18 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
             {s.label}
           </Link>
         ))}
+        {today && (
+          <Link
+            href={withParams('/admin/emails/activity', sp, { today: null, page: null })}
+            className="border border-ink px-3.5 py-2 text-sm hover:bg-paper-2"
+          >
+            Sent today only ✕
+          </Link>
+        )}
       </div>
 
       {list.rows.length === 0 ? (
-        <Empty>{status || kind || q ? 'Nothing matches.' : 'No emails yet.'}</Empty>
+        <Empty>{status || kind || q || today ? 'Nothing matches.' : 'No emails yet.'}</Empty>
       ) : (
         <div className="overflow-x-auto border border-line bg-paper">
           <table className="w-full min-w-[60rem] text-sm">

@@ -51,8 +51,9 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
 
   const P = periods()
   /* No dates in the address means "this month"; all=1 means no dates at all. */
-  const allTime = get('all') === '1'
   const filter = filterFrom(get)
+  /* Dates typed into the form win over a remembered "All time". */
+  const allTime = get('all') === '1' && !filter.from && !filter.to
   if (!allTime && !filter.from && !filter.to) {
     filter.from = P[0].from
     filter.to = P[0].to
@@ -127,6 +128,8 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       </div>
 
       <form action="/admin/accounting" className="mb-6 grid grid-cols-1 gap-3 rounded-2xl border border-line bg-paper p-4 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.6fr)_auto]">
+        {/* Keep "All time" when filtering by type, payment or search. */}
+        {allTime && <input type="hidden" name="all" value="1" />}
         <label className="text-sm">
           <span className="label mb-1.5 block text-muted">From</span>
           <DateTimeField mode="date" name="from" value={filter.from ?? ''} placeholder="Any date" ariaLabel="From" />
@@ -149,6 +152,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
             <option value="">All</option>
             <option value="card">Card</option>
             <option value="cod">Cash</option>
+            <option value="other">Bank or credit (retailers)</option>
           </select>
         </label>
         <label className="text-sm">
@@ -178,6 +182,11 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
               <span className="flex justify-between gap-2">
                 <span className="text-muted">Cash</span> {money(totals.cash)}
               </span>
+              {totals.other !== 0 && (
+                <span className="flex justify-between gap-2">
+                  <span className="text-muted">Bank or credit</span> {money(totals.other)}
+                </span>
+              )}
             </span>
           }
         />

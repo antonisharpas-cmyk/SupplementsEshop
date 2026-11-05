@@ -264,7 +264,8 @@ export type InvoiceFilter = {
   from?: string // YYYY-MM-DD, Cyprus time, inclusive
   to?: string // YYYY-MM-DD, Cyprus time, inclusive
   kind?: 'INVOICE' | 'CREDIT_NOTE'
-  method?: 'card' | 'cod'
+  /* 'other' is everything that is not card or cash: retailer invoices paid by bank or on credit. */
+  method?: 'card' | 'cod' | 'other'
   q?: string
 }
 
@@ -295,7 +296,8 @@ function where(f: InvoiceFilter) {
   if (from) conds.push(gte(invoices.issuedAt, from))
   if (to) conds.push(lt(invoices.issuedAt, to))
   if (f.kind) conds.push(eq(invoices.kind, f.kind))
-  if (f.method) conds.push(eq(invoices.paymentMethod, f.method))
+  if (f.method === 'other') conds.push(sql`${invoices.paymentMethod} not in ('card', 'cod')`)
+  else if (f.method) conds.push(eq(invoices.paymentMethod, f.method))
   const q = f.q?.trim()
   if (q) {
     const like = `%${q}%`
@@ -319,6 +321,7 @@ export type InvoiceTotals = {
   gross: number
   card: number
   cash: number
+  other: number
 }
 
 const signed = (col: typeof invoices.totalCents | typeof invoices.netCents | typeof invoices.vatCents) =>
@@ -334,6 +337,7 @@ export async function invoiceTotals(f: InvoiceFilter): Promise<InvoiceTotals> {
       gross: signed(invoices.totalCents),
       card: sql<number>`coalesce(sum(case when ${invoices.kind} = 'CREDIT_NOTE' then -${invoices.totalCents} else ${invoices.totalCents} end) filter (where ${invoices.paymentMethod} = 'card'), 0)::int`,
       cash: sql<number>`coalesce(sum(case when ${invoices.kind} = 'CREDIT_NOTE' then -${invoices.totalCents} else ${invoices.totalCents} end) filter (where ${invoices.paymentMethod} = 'cod'), 0)::int`,
+      other: sql<number>`coalesce(sum(case when ${invoices.kind} = 'CREDIT_NOTE' then -${invoices.totalCents} else ${invoices.totalCents} end) filter (where ${invoices.paymentMethod} not in ('card', 'cod')), 0)::int`,
     })
     .from(invoices)
     .where(where(f))

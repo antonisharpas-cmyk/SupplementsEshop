@@ -989,11 +989,15 @@ export type AdminOrderRow = {
   itemCount: number
 }
 
-export async function listAdminOrders(f: { status?: string; q?: string; page?: number; userId?: string }) {
+export async function listAdminOrders(f: { status?: string; statuses?: string[]; q?: string; page?: number; userId?: string }) {
   const pageSize = 15
   const page = Math.max(1, f.page ?? 1)
   const conds = []
-  if (f.status === 'open') conds.push(inArray(orders.status, ['PENDING', 'PAID', 'PROCESSING', 'READY_FOR_PICKUP']))
+  /* A tab that groups several statuses (Cancelled is cancelled and refunded)
+     lists exactly the orders its count shows. */
+  const many = (f.statuses ?? []).filter((x) => /^[A-Z_]+$/.test(x))
+  if (many.length) conds.push(sql`${orders.status}::text in (${sql.join(many.map((x) => sql`${x}`), sql`, `)})`)
+  else if (f.status === 'open') conds.push(inArray(orders.status, ['PENDING', 'PAID', 'PROCESSING', 'READY_FOR_PICKUP']))
   else if (f.status && /^[A-Z_]+$/.test(f.status)) conds.push(sql`${orders.status} = ${f.status}`)
   if (f.userId) conds.push(eq(orders.userId, f.userId))
   if (f.q?.trim()) {
@@ -1042,7 +1046,8 @@ export async function listCustomers(f: { q?: string; page?: number }) {
   const conds = [eq(users.role, 'CUSTOMER')]
   if (f.q?.trim()) {
     const q = `%${f.q.trim()}%`
-    conds.push(or(ilike(users.email, q), ilike(users.firstName, q), ilike(users.lastName, q), ilike(users.phone, q))!)
+    /* A full name ("Maria Georgiou") matches too, not only each part alone. */
+    conds.push(or(ilike(users.email, q), ilike(users.firstName, q), ilike(users.lastName, q), ilike(users.phone, q), sql`(${users.firstName} || ' ' || ${users.lastName}) ilike ${q}`)!)
   }
   const where = and(...conds)
   const [rows, [{ total }]] = await Promise.all([

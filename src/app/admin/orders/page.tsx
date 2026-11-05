@@ -36,7 +36,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   const q = typeof sp.q === 'string' ? sp.q : ''
   const page = Number(sp.page) || 1
   const [list, counts] = await Promise.all([
-    listAdminOrders({ status: view === 'all' ? undefined : view, q, page }),
+    listAdminOrders({ status: view === 'all' ? undefined : view, statuses: VIEWS.find((v) => v.key === view)?.statuses, q, page }),
     orderCounts(),
   ])
   const count = (v: (typeof VIEWS)[number]) =>

@@ -50,6 +50,8 @@ export default async function StockMovesPage({ searchParams }: { searchParams: P
         <MonthNav base="/admin/stock-moves" params={params} month={month} />
         <form action="/admin/stock-moves" className="mb-5 flex gap-2">
           {month && <input type="hidden" name="month" value={month} />}
+          {/* Keep "All months" when picking a kind, not jump back to this month. */}
+          {all && <input type="hidden" name="all" value="1" />}
           <select name="kind" defaultValue={kind ?? ''} className={`${input} max-w-[16rem]`}>
             <option value="">Every kind</option>
             {Object.entries(MOVEMENT_KINDS).map(([k, v]) => (

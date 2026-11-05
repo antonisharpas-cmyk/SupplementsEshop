@@ -16,6 +16,7 @@ import {
   type StockView,
 } from '@/lib/admin-catalog'
 import { getSettings } from '@/lib/settings'
+import { waitingForStock } from '@/lib/stock-alerts'
 import { FilterBar } from '@/components/admin/FilterBar'
 import { StockEditor } from '@/components/admin/StockEditor'
 import { Empty, PageHead, Pagination, withParams } from '@/components/admin/ui'
@@ -58,6 +59,9 @@ export default async function AdminStockPage({ searchParams }: { searchParams: P
       : Promise.resolve(null),
   ])
 
+  /* Sold out sizes customers asked to be told about: what to reorder first. */
+  const waiting = await waitingForStock()
+
   /* A product with no size yet has nothing to count. Say so here, rather
      than leaving it missing from the list. */
   const noSizes = await db
@@ -95,6 +99,35 @@ export default async function AdminStockPage({ searchParams }: { searchParams: P
             ))}
           </ul>
         </div>
+      )}
+
+      {waiting.length > 0 && (
+        <details className="mb-6 rounded-2xl border border-line bg-paper px-5 py-4 text-sm" open>
+          <summary className="cursor-pointer font-medium text-heading">
+            Customers waiting for stock: {waiting.reduce((n, w) => n + w.waiting, 0)} requests on {waiting.length} sold out size
+            {waiting.length === 1 ? '' : 's'}
+          </summary>
+          <p className="mt-1 text-xs text-muted">
+            They pressed Notify me. Each gets one email automatically the moment that flavour and size is back in stock.
+          </p>
+          <ul className="mt-3 divide-y divide-[var(--color-line)]">
+            {waiting.map((w) => (
+              <li key={w.variantId} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <Link href={`/admin/products/${w.productId}`} className="hover:underline">
+                  {w.product.en ?? Object.values(w.product)[0]}
+                  <span className="text-muted">
+                    {' '}
+                    {[w.flavour?.en, w.size].filter(Boolean).join(', ')}
+                  </span>
+                </Link>
+                <span className="flex items-center gap-3 tabular-nums">
+                  {w.available > 0 && <span className="text-xs text-ok">Back in stock, emails going out</span>}
+                  <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">{w.waiting} waiting</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
 
       <div role="tablist" aria-label="Quick views" className="mb-5 flex flex-wrap gap-2">

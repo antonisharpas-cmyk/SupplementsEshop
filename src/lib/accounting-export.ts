@@ -114,7 +114,7 @@ export function filterFrom(get: (k: string) => string | undefined): InvoiceFilte
     from: day(get('from')),
     to: day(get('to')),
     kind: kind === 'INVOICE' || kind === 'CREDIT_NOTE' ? kind : undefined,
-    method: m === 'card' || m === 'cod' ? m : undefined,
+    method: m === 'card' || m === 'cod' || m === 'other' ? m : undefined,
     q: get('q')?.slice(0, 100) || undefined,
   }
 }

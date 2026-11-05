@@ -421,6 +421,24 @@ describe('back in stock', () => {
     const [alert] = await db.select().from(stockAlerts)
     expect(alert.notifiedAt).not.toBeNull()
   })
+  it('Notify me: refused while in stock, one request per email and size, emailed on restock', async () => {
+    const { requestStockAlert } = await import('../stock-alerts')
+    await setOnHand(variantId, 4)
+    await expect(requestStockAlert({ variantId, email: 'max@example.com', locale: 'en' })).rejects.toMatchObject({ code: 'IN_STOCK' })
+    await setOnHand(variantId, 0)
+    await requestStockAlert({ variantId, email: 'Max@Example.com', locale: 'ru' })
+    await requestStockAlert({ variantId, email: 'max@example.com', locale: 'ru' })
+    expect(await db.select().from(stockAlerts)).toHaveLength(1)
+    await setOnHand(variantId, 2)
+    await processDueJobs(later(0.01))
+    const [mail] = await logs('back_in_stock')
+    expect(mail.subject).toMatch(/Снова в наличии/)
+    /* Asking again after it was sent starts a fresh request. */
+    await setOnHand(variantId, 0)
+    await requestStockAlert({ variantId, email: 'max@example.com', locale: 'en' })
+    const [again] = await db.select().from(stockAlerts)
+    expect(again.notifiedAt).toBeNull()
+  })
 })
 
 describe('the admin controls', () => {
@@ -460,8 +478,10 @@ describe('the admin controls', () => {
     expect(bag.status).toBe('scheduled')
     expect(bag.detail).toMatch(/1 item in the bag/)
     const welcome = all.rows.find((r) => r.kind === 'welcome')!
-    expect(welcome.status).toBe('sent')
+    /* No email service in tests: the job went to the log only, so it shows as Logged. */
+    expect(welcome.status).toBe('logged')
     expect(welcome.recipient).toBe(EMAIL)
+    expect((await emailActivity({ status: 'logged' })).rows.some((r) => r.kind === 'welcome')).toBe(true)
     expect((await emailActivity({ status: 'scheduled' })).rows.every((r) => r.status === 'scheduled')).toBe(true)
 
     const numbers = await customerActivity()
@@ -477,5 +497,19 @@ describe('the admin controls', () => {
     expect(a.sent + b.sent).toBe(1)
     expect(await logs('welcome')).toHaveLength(1)
     expect(await db.select().from(emailJobs).where(and(eq(emailJobs.automation, 'welcome'), eq(emailJobs.status, 'SENT')))).toHaveLength(1)
+  })
+})
+
+describe('emails to the shop', () => {
+  it('a new account tells the shop who signed up and which offers they agreed to', async () => {
+    const { notifyStaffNewAccount } = await import('../automations')
+    await setSetting('support_email', 'info@shop.example')
+    invalidateSettingsCache()
+    await notifyStaffNewAccount(userId, { email: true })
+    const [mail] = await logs('account_new_staff')
+    expect(mail.toEmail).toBe('info@shop.example')
+    expect(mail.subject).toBe('New customer account: Maria P')
+    expect(mail.body).toContain('+35799111222')
+    expect(mail.body).toContain('Offers: Email')
   })
 })

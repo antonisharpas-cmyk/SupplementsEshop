@@ -60,6 +60,7 @@ export default async function AdminSupportPage({
         initialStatus={status}
         initialRows={list.rows}
         initialCounts={counts}
+        initialPages={list.pages}
         initialThread={thread}
         serviceName={SERVICE_NAME}
       />

@@ -39,10 +39,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await guardAdmin()
   /* The one live number in the nav: conversations waiting for a reply. */
   const support = await inboxCounts().catch(() => ({ open: 0, unread: 0 }))
-  /* And orders waiting for someone: new cash orders and paid card orders. */
+  /* And orders waiting for someone: the same statuses as the Orders page's
+     "To do" tab, which is where the badge leads, so the two numbers agree. */
   const { orderCounts } = await import('@/lib/orders')
   const oc = await orderCounts().catch(() => ({}) as Record<string, number>)
-  const toDo = (oc.PENDING ?? 0) + (oc.PAID ?? 0)
+  const toDo = (oc.PENDING ?? 0) + (oc.PAID ?? 0) + (oc.PROCESSING ?? 0) + (oc.READY_FOR_PICKUP ?? 0)
 
   const groups = [
     {

@@ -537,6 +537,32 @@ export async function notifyStaffNewOrder(orderId: string, when: 'placed' | 'pai
   }
 }
 
+/** "New customer account" to the shop's own inbox (Settings, support email).
+ *  Never fails the registration. */
+export async function notifyStaffNewAccount(userId: string, consent: { email?: boolean; sms?: boolean } = {}) {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+    if (!user) return
+    const { support_email } = await getSettings(['support_email'])
+    const offers = [consent.email ? 'Email' : null, consent.sms ? 'SMS' : null].filter(Boolean).join(' and ')
+    await sendTemplate('account_new_staff', {
+      to: support_email || BRAND.contact.email,
+      locale: 'en',
+      replyTo: user.email,
+      relatedId: userId,
+      vars: {
+        customer_name: `${user.firstName} ${user.lastName}`.trim(),
+        customer_email: user.email,
+        customer_phone: user.phone,
+        marketing: offers || 'None',
+        admin_url: siteUrl(`/admin/customers/${userId}`),
+      },
+    })
+  } catch (err) {
+    console.error('[automations] staff new account email failed', err)
+  }
+}
+
 /** An order's status moved: the matching email, if there is one. The
  *  tracking number goes in only when the courier gave a real one. */
 export async function orderStatusChanged(orderId: string, status: string, extra: { trackingNumber?: string; trackingUrl?: string } = {}) {
@@ -633,7 +659,7 @@ async function prepareOrder(job: Job, now: Date): Promise<Prepared> {
 /* ------------------------------------------------------- back in stock -- */
 
 /** A variant's available stock went from none to some: tell everyone who
- *  asked to be told. (No one can ask yet — the button is not built.) */
+ *  asked to be told (Notify me on the product page). */
 export async function stockReplenished(variantId: string) {
   const alerts = await db
     .select()
@@ -755,14 +781,19 @@ export type ActivityRow = {
 
 /** Email Activity: every automation job (scheduled, sent, skipped …) and
  *  every other email sent (codes, transcripts, campaigns), newest first. */
-export async function emailActivity(opts: { status?: string; kind?: string; q?: string; page?: number }) {
+export async function emailActivity(opts: { status?: string; kind?: string; q?: string; today?: boolean; page?: number }) {
   const page = Math.max(1, Math.floor(opts.page ?? 1))
   const q = opts.q?.trim().toLowerCase().slice(0, 120)
   const pat = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null
   const res = await db.execute<ActivityRow & { total: number }>(sql`
     with rows as (
       select j.id, 'job' as source, j.automation as kind, j.email as recipient, j.recipient_name as name,
-             j.subject, lower(j.status::text) as status, j.triggered_at as "triggeredAt", j.scheduled_at as "scheduledAt",
+             j.subject,
+             /* A job "sent" with no email service only went to the log: show it
+                as Logged, so the Logged pill finds it and Sent means sent. */
+             case when j.status = 'SENT' and exists (select 1 from email_log el where el.id = j.email_log_id and el.status = 'logged')
+                  then 'logged' else lower(j.status::text) end as status,
+             j.triggered_at as "triggeredAt", j.scheduled_at as "scheduledAt",
              case when j.status = 'SENT' then j.processed_at end as "sentAt",
              concat_ws(', ', j.reason, j.outcome) as detail, coalesce(j.processed_at, j.scheduled_at) as sort_at
       from email_jobs j
@@ -776,6 +807,7 @@ export async function emailActivity(opts: { status?: string; kind?: string; q?: 
     where true
       ${opts.status ? sql`and status = ${opts.status}` : sql``}
       ${opts.kind ? sql`and kind = ${opts.kind}` : sql``}
+      ${opts.today ? sql`and "sentAt" >= (date_trunc('day', now() at time zone 'Europe/Nicosia') at time zone 'Europe/Nicosia')` : sql``}
       ${pat ? sql`and (lower(recipient) like ${pat} or lower(coalesce(subject, '')) like ${pat} or lower(coalesce(name, '')) like ${pat})` : sql``}
     order by sort_at desc
     limit 15 offset ${(page - 1) * 15}`)
@@ -794,7 +826,7 @@ export async function customerActivity() {
       (select count(distinct c.id)::int from carts c join cart_items ci on ci.cart_id = c.id
          where c.user_id is not null and c.updated_at < now() - interval '1 hour') as abandoned_bags,
       (select count(*)::int from email_jobs where status = 'SCHEDULED') as scheduled,
-      (select count(*)::int from email_log where created_at >= ${day} and status <> 'failed') as sent_today`)
+      (select count(*)::int from email_log where created_at >= ${day} and status = 'sent') as sent_today`)
   const r = res.rows[0] ?? {}
   return {
     newCustomers: Number(r.new_customers ?? 0),

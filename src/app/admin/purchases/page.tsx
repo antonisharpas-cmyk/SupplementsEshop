@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { canSeeFinance, guardAdmin } from '@/lib/admin'
 import { listPurchases, listSuppliers } from '@/lib/purchases'
 import { monthRange } from '@/lib/finance'
-import { Empty, Pill, Stat, Table, btn, input, withParams } from '@/components/admin/ui'
+import { Empty, Pagination, Pill, Stat, Table, btn, input, withParams } from '@/components/admin/ui'
 import { MonthNav, thisMonth } from '@/components/admin/finance/MonthNav'
 import { formatMoney } from '@/lib/pricing'
 
@@ -24,7 +24,7 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
   const status = get('status')
   const supplierId = get('supplier')
   const unpaid = get('unpaid') === '1'
-  const [{ rows, totals }, suppliers] = await Promise.all([
+  const [{ rows, totals, total, page, pages }, suppliers] = await Promise.all([
     listPurchases({ from: range?.from, to: range?.toExclusive, status, supplierId, unpaid, q: get('q'), page: Number(get('page')) || 1 }),
     listSuppliers(),
   ])
@@ -118,6 +118,8 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
           ))}
         </Table>
       )}
+      {/* Fifty a page: the rest were out of reach without these links. */}
+      <Pagination page={page} pages={pages} total={total} noun={['purchase', 'purchases']} href={(p) => withParams('/admin/purchases', params, { page: p })} />
     </>
   )
 }

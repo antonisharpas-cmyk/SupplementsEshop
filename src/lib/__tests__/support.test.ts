@@ -65,11 +65,27 @@ describe('starting', () => {
 
     const staffMail = sent.filter((m) => m.kind === 'support_new')
     expect(staffMail).toHaveLength(1)
-    expect(staffMail[0].subject).toBe('New customer support conversation')
+    expect(staffMail[0].subject).toBe('Customer service: message from Maria')
     expect(staffMail[0].text).toContain('Maria')
     expect(staffMail[0].text).toContain('maria@example.com')
     expect(staffMail[0].text).toContain('Hello')
     expect(staffMail[0].text).toContain(`/admin/support?c=${conversationId}`)
+  })
+
+  it('emails staff again for a later message, at most every 10 minutes, unless they have the chat open', async () => {
+    const { conversationId } = await s.startConversation(guestA, { ...G, message: 'Hello' })
+    const staff = () => sent.filter((m) => m.kind === 'support_new')
+    await s.postCustomerMessage(guestA, conversationId, 'Right after') /* within 10 minutes: no email */
+    expect(staff()).toHaveLength(1)
+    const old = new Date(Date.now() - 11 * 60_000)
+    await db.update(supportConversations).set({ notifiedAt: old }).where(eq(supportConversations.id, conversationId))
+    await s.postCustomerMessage(guestA, conversationId, 'Any news on my order?')
+    expect(staff()).toHaveLength(2)
+    expect(staff()[1].text).toContain('Any news on my order?')
+    /* Staff have it open right now: no email even after 10 minutes. */
+    await db.update(supportConversations).set({ notifiedAt: old, staffLastReadAt: new Date() }).where(eq(supportConversations.id, conversationId))
+    await s.postCustomerMessage(guestA, conversationId, 'Thanks')
+    expect(staff()).toHaveLength(2)
   })
 
   it('escapes customer text in the staff email', async () => {

@@ -60,6 +60,8 @@ export default async function WholesalePage({ searchParams }: { searchParams: Pr
       <form className="mb-5 flex gap-2" action="/admin/wholesale">
         {month && <input type="hidden" name="month" value={month} />}
         {show && <input type="hidden" name="show" value={show} />}
+        {/* Keep "All months" when picking a retailer. */}
+        {get('all') === '1' && <input type="hidden" name="all" value="1" />}
         <select name="retailer" defaultValue={retailerId ?? ''} className={`${input} max-w-xs`}>
           <option value="">Every retailer</option>
           {retailers.map((r) => (

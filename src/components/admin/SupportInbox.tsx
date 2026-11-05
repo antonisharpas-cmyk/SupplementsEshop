@@ -63,11 +63,13 @@ export function SupportInbox({
   initialStatus,
   initialRows,
   initialCounts,
+  initialPages = 1,
   initialThread,
   serviceName,
 }: {
   initialStatus: Tab
   initialRows: InboxRow[]
+  initialPages?: number
   initialCounts: { open: number; unread: number }
   initialThread: Thread | null
   serviceName: string
@@ -77,6 +79,9 @@ export function SupportInbox({
   const [status, setStatus] = useState(initialStatus)
   const [rows, setRows] = useState(initialRows)
   const [counts, setCounts] = useState(initialCounts)
+  /* The list comes 50 at a time: how many pages are on screen, and how many there are. */
+  const [shown, setShown] = useState(1)
+  const [pages, setPages] = useState(initialPages)
   const [thread, setThread] = useState<Thread | null>(initialThread)
   const [selected, setSelected] = useState<string | null>(initialThread?.conversation.id ?? null)
   const [reply, setReply] = useState('')
@@ -88,13 +93,22 @@ export function SupportInbox({
   const listEnd = useRef<HTMLDivElement>(null)
   const replyRef = useRef<HTMLTextAreaElement>(null)
 
-  const loadList = useCallback(async (which: Tab) => {
+  const loadList = useCallback(async (which: Tab, upTo = 1) => {
     try {
-      const res = await fetch(`/api/admin/support?status=${which}`, { cache: 'no-store' })
-      if (!res.ok) return
-      const data = (await res.json()) as { rows: InboxRow[]; counts: { open: number; unread: number } }
-      setRows(data.rows)
-      setCounts(data.counts)
+      /* Every page already on screen is refreshed, so polling never drops older rows. */
+      const all = await Promise.all(
+        Array.from({ length: upTo }, (_, i) => fetch(`/api/admin/support?status=${which}&page=${i + 1}`, { cache: 'no-store' })),
+      )
+      if (all.some((res) => !res.ok)) return
+      const data = (await Promise.all(all.map((res) => res.json()))) as {
+        rows: InboxRow[]
+        pages: number
+        counts: { open: number; unread: number }
+      }[]
+      const seen = new Set<string>()
+      setRows(data.flatMap((d) => d.rows).filter((r) => !seen.has(r.id) && Boolean(seen.add(r.id))))
+      setPages(data[0].pages)
+      setCounts(data[data.length - 1].counts)
     } catch {
       /* next tick */
     }
@@ -114,7 +128,7 @@ export function SupportInbox({
   /* Polling, paused while the tab is hidden. */
   useEffect(() => {
     const listTimer = setInterval(() => {
-      if (document.visibilityState === 'visible') void loadList(status)
+      if (document.visibilityState === 'visible') void loadList(status, shown)
     }, 10_000)
     const threadTimer = setInterval(() => {
       if (selected && document.visibilityState === 'visible') void loadThread(selected)
@@ -124,7 +138,7 @@ export function SupportInbox({
       clearInterval(listTimer)
       clearInterval(threadTimer)
     }
-  }, [status, selected, loadList, loadThread])
+  }, [status, shown, selected, loadList, loadThread])
 
   useEffect(() => {
     listEnd.current?.scrollIntoView({ block: 'end' })
@@ -136,14 +150,20 @@ export function SupportInbox({
     setReply('')
     if (id) {
       setThread((t) => (t?.conversation.id === id ? t : null))
-      void loadThread(id).then(() => loadList(status))
+      void loadThread(id).then(() => loadList(status, shown))
     }
     router.replace(id ? `${pathname}?c=${id}${status !== 'OPEN' ? `&status=${status}` : ''}` : pathname, { scroll: false })
   }
 
   function switchTab(next: Tab) {
     setStatus(next)
+    setShown(1)
     void loadList(next)
+  }
+
+  function showOlder() {
+    setShown(shown + 1)
+    void loadList(status, shown + 1)
   }
 
   async function send(e?: React.FormEvent) {
@@ -164,7 +184,7 @@ export function SupportInbox({
         return
       }
       setReply('')
-      await Promise.all([loadThread(selected), loadList(status)])
+      await Promise.all([loadThread(selected), loadList(status, shown)])
       replyRef.current?.focus()
     } catch {
       setError('Could not reach the server.')
@@ -178,7 +198,7 @@ export function SupportInbox({
     setClosing(true)
     try {
       await fetch(`/api/admin/support/${selected}/close`, { method: 'POST' })
-      await Promise.all([loadThread(selected), loadList(status)])
+      await Promise.all([loadThread(selected), loadList(status, shown)])
     } finally {
       setClosing(false)
       setConfirmClose(false)
@@ -257,6 +277,13 @@ export function SupportInbox({
               </button>
             </li>
           ))}
+          {shown < pages && (
+            <li className="px-4 py-3 text-center">
+              <button type="button" onClick={showOlder} className="text-sm text-muted underline hover:text-ink">
+                Show older conversations
+              </button>
+            </li>
+          )}
         </ul>
       </aside>
 

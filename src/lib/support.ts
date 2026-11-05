@@ -302,7 +302,10 @@ export async function postCustomerMessage(actor: SupportActor, conversationId: s
     await closeConversation(conv.id, { reason: 'INACTIVITY' })
     throw new SupportError('This conversation has ended.', 'CLOSED')
   }
-  return appendMessage(conv.id, 'CUSTOMER', body, null)
+  const saved = await appendMessage(conv.id, 'CUSTOMER', body, null)
+  /* Tell the shop there is something to answer. Never fails the message. */
+  await notifyStaffOnce(conv.id, body).catch((err) => console.error('[support] staff email failed', err))
+  return saved
 }
 
 async function appendMessage(conversationId: string, sender: 'CUSTOMER' | 'STAFF', body: string, staffUserId: string | null) {
@@ -422,12 +425,16 @@ export async function listInbox(opts: { status: 'OPEN' | 'CLOSED' | 'ALL'; q?: s
 
 /** For the admin nav badge and the overview. */
 export async function inboxCounts(): Promise<{ open: number; unread: number }> {
+  /* Chats quiet for longer than the idle time are closed the moment the
+     inbox lists them, so they are not counted as open here either. */
+  const minutes = await idleMinutes()
   const res = await db.execute<{ open: number; unread: number }>(sql`
     select count(*)::int as open,
            count(*) filter (where exists (
              select 1 from support_messages m where m.conversation_id = c.id and m.sender = 'CUSTOMER'
                and m.created_at > coalesce(c.staff_last_read_at, 'epoch'::timestamptz)))::int as unread
-    from support_conversations c where c.status = 'OPEN'`)
+    from support_conversations c
+    where c.status = 'OPEN' and c.last_activity_at >= ${new Date(Date.now() - minutes * 60_000)}`)
   return { open: Number(res.rows[0]?.open ?? 0), unread: Number(res.rows[0]?.unread ?? 0) }
 }
 
@@ -549,20 +556,34 @@ const fmt = (d: Date, locale = 'en') =>
     timeZone: 'Europe/Nicosia',
   })
 
-async function notifyStaffOnce(conversationId: string) {
-  /* The WHERE makes this once-only even if two requests reach here. */
+/** Staff are emailed at a chat's first message, then again for new customer
+ *  messages at most once every 10 minutes, so they know to reply in the admin
+ *  without a long chat flooding the inbox. The WHERE makes it race safe. */
+const RENOTIFY_MS = 10 * 60_000
+
+async function notifyStaffOnce(conversationId: string, message?: string) {
+  const now = new Date()
   const [conv] = await db
     .update(supportConversations)
-    .set({ notifiedAt: new Date() })
-    .where(and(eq(supportConversations.id, conversationId), isNull(supportConversations.notifiedAt)))
+    .set({ notifiedAt: now })
+    .where(
+      and(
+        eq(supportConversations.id, conversationId),
+        or(isNull(supportConversations.notifiedAt), lt(supportConversations.notifiedAt, new Date(now.getTime() - RENOTIFY_MS))),
+        /* Someone has the chat open in the admin right now: no email needed. */
+        or(isNull(supportConversations.staffLastReadAt), lt(supportConversations.staffLastReadAt, new Date(now.getTime() - 2 * 60_000))),
+      ),
+    )
     .returning()
   if (!conv) return
-  const [first] = await db
-    .select({ body: supportMessages.body })
-    .from(supportMessages)
-    .where(and(eq(supportMessages.conversationId, conversationId), eq(supportMessages.sender, 'CUSTOMER')))
-    .orderBy(asc(supportMessages.createdAt))
-    .limit(1)
+  const [first] = message
+    ? [{ body: message }]
+    : await db
+        .select({ body: supportMessages.body })
+        .from(supportMessages)
+        .where(and(eq(supportMessages.conversationId, conversationId), eq(supportMessages.sender, 'CUSTOMER')))
+        .orderBy(asc(supportMessages.createdAt))
+        .limit(1)
 
   const settings = await getSettings(['support_email'])
   await sendTemplate('support_new', {

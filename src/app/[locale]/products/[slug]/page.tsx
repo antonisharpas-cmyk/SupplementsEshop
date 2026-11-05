@@ -193,6 +193,7 @@ export default async function ProductPage({ params }: Props) {
                 variants={product.variants}
                 reservationMinutes={Math.round(ttlSeconds / 60)}
                 soldOut={product.soldOut}
+                signedInEmail={user?.email ?? null}
               />
               <div className="mt-4">
                 <WishlistButton locale={locale} productId={product.id} initial={saved} signedIn={Boolean(user)} />

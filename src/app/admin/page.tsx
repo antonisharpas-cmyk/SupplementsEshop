@@ -58,7 +58,9 @@ export default async function AdminOverviewPage() {
 
       <Group title="Today">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Orders" value={today.orders} href="/admin/orders" />
+          {/* Opens every order, newest first, so today's are at the top (the
+              To do tab would leave out today's delivered or cancelled ones). */}
+          <Stat label="Orders" value={today.orders} href="/admin/orders?view=all" />
           <Stat label="Revenue" value={formatMoney(today.revenueCents, 'en')} />
           <Stat label="New customers" value={today.newCustomers} />
           <Stat
@@ -82,14 +84,16 @@ export default async function AdminOverviewPage() {
           <Stat label="New customers today" value={activity.newCustomers} />
           <Stat
             label="Open conversations"
-            value={activity.openConversations}
+            /* Same number as the inbox's Open tab, which leaves out chats
+               already past the idle time. */
+            value={support.open}
             tone={support.unread > 0 ? 'warn' : 'plain'}
             href="/admin/support"
           />
-          <Stat label="Newsletter subscribers" value={activity.subscribers} href="/admin/emails/subscribers" />
+          <Stat label="Newsletter subscribers" value={activity.subscribers} href="/admin/emails/subscribers?status=SUBSCRIBED" />
           <Stat label="Abandoned bags" value={activity.abandonedBags} href="/admin/emails/activity?kind=abandoned_bag" />
           <Stat label="Emails scheduled" value={activity.scheduled} href="/admin/emails/activity?status=scheduled" />
-          <Stat label="Emails sent today" value={activity.sentToday} href="/admin/emails/activity?status=sent" />
+          <Stat label="Emails sent today" value={activity.sentToday} href="/admin/emails/activity?status=sent&today=1" />
         </div>
       </Group>
 

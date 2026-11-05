@@ -64,6 +64,7 @@ export type TemplateKey =
   | 'order_cancelled'
   | 'support_new'
   | 'order_new_staff'
+  | 'account_new_staff'
   | 'support_transcript'
 
 /* --------------------------------------------------------- variables --- */
@@ -147,6 +148,7 @@ export const VARIABLES: Record<string, VarDef> = {
   payment_method: { label: 'How the order is paid (staff emails)', sample: 'Card, paid' },
   delivery: { label: 'Delivery or collection, with the address (staff emails)', sample: 'Delivery to 12 Ermou Street, 6021 Larnaca' },
   customer_phone: { label: 'Customer’s phone (staff emails)', sample: '+357 99123456' },
+  marketing: { label: 'Which offers they agreed to (staff emails)', sample: 'Email and SMS' },
 }
 
 /* --------------------------------------------------------- templates --- */
@@ -433,7 +435,7 @@ export const TEMPLATES: TemplateDef[] = [
     trigger: 'A product someone asked about is available again',
     ctaUrl: 'product_url',
     variables: ['customer_name', 'product', 'product_name', 'product_url'],
-    note: 'Ready for “Notify me when available”; nothing sends until that button exists on product pages.',
+    note: 'Sent once to each customer who pressed Notify me on a sold out flavour and size, when it is back in stock.',
     words: {
       en: { subject: 'It’s back: {{product_name}}', body: 'Good news, the product you asked about is available again.\n\n{{product}}', cta: 'Shop now' },
       el: { subject: 'Επέστρεψε: {{product_name}}', body: 'Καλά νέα, το προϊόν που ζήτησες είναι ξανά διαθέσιμο.\n\n{{product}}', cta: 'Αγόρασε τώρα' },
@@ -450,22 +452,22 @@ export const TEMPLATES: TemplateDef[] = [
     timing: { minutes: 7200, min: 4320, max: 10080, label: 'after delivery' },
     ctaUrl: 'order_url',
     variables: ['customer_name', 'order_number', 'order_url'],
-    note: 'Off until reviews exist on the site; the button links to the order meanwhile.',
+    note: 'The button opens the customer’s order until the Google review link is added.',
     words: {
       en: {
         subject: 'How did you like your AIONIX order?',
-        body: 'Hi {{customer_name}},\n\nYour order {{order_number}} arrived a few days ago. We hope everything fits and feels right.\n\nIf anything isn’t, reply to this email and we’ll sort it out.',
-        cta: 'View my order',
+        body: 'Hi {{customer_name}},\n\nYour order {{order_number}} arrived a few days ago. We hope you are enjoying everything.\n\nIf anything isn’t, reply to this email and we’ll sort it out.',
+        cta: 'Leave a review',
       },
       el: {
         subject: 'Σου άρεσε η παραγγελία σου από το AIONIX;',
-        body: 'Γεια σου {{customer_name}},\n\nΗ παραγγελία σου {{order_number}} έφτασε πριν από λίγες μέρες. Ελπίζουμε να σου κάθονται όλα τέλεια.\n\nΑν κάτι δεν είναι σωστό, απάντησε σε αυτό το email και θα το τακτοποιήσουμε.',
-        cta: 'Η παραγγελία μου',
+        body: 'Γεια σου {{customer_name}},\n\nΗ παραγγελία σου {{order_number}} έφτασε πριν από λίγες μέρες. Ελπίζουμε να σου αρέσουν όλα.\n\nΑν κάτι δεν είναι σωστό, απάντησε σε αυτό το email και θα το τακτοποιήσουμε.',
+        cta: 'Άφησε μια κριτική',
       },
       ru: {
         subject: 'Как вам заказ AIONIX?',
-        body: 'Здравствуйте, {{customer_name}}!\n\nВаш заказ {{order_number}} пришёл несколько дней назад. Надеемся, всё подошло.\n\nЕсли что-то не так, ответьте на это письмо, мы всё решим.',
-        cta: 'Мой заказ',
+        body: 'Здравствуйте, {{customer_name}}!\n\nВаш заказ {{order_number}} пришёл несколько дней назад. Надеемся, вам всё понравилось.\n\nЕсли что-то не так, ответьте на это письмо, мы всё решим.',
+        cta: 'Оставить отзыв',
       },
     },
   },
@@ -481,9 +483,9 @@ export const TEMPLATES: TemplateDef[] = [
     ctaUrl: 'membership_url',
     variables: ['customer_name', 'tier_name', 'tier_discount', 'expires_on', 'next_tier', 'next_discount', 'needed', 'lower_tier', 'lower_discount', 'old_tier', 'membership_url'],
     words: {
-      en: { subject: 'Your {{old_tier}} tier has ended', body: 'Congratulations {{customer_name}}, you are now {{tier_name}}.\n\nFrom now on every price in the shop is {{tier_discount}} lower for you, before any promotion. Just sign in and shop.\n\nYour tier lasts until {{expires_on}} and renews by itself while you keep training with us.', cta: 'My membership' },
-      el: { subject: 'Το επίπεδο {{old_tier}} έληξε', body: 'Συγχαρητήρια {{customer_name}}, είσαι πλέον {{tier_name}}.\n\nΑπό τώρα κάθε τιμή στο κατάστημα είναι {{tier_discount}} χαμηλότερη για σένα, πριν από κάθε προσφορά. Απλώς συνδέσου και ψώνισε.\n\nΤο επίπεδό σου ισχύει έως {{expires_on}} και ανανεώνεται μόνο του όσο συνεχίζεις μαζί μας.', cta: 'Η συνδρομή μου' },
-      ru: { subject: 'Ваш уровень {{old_tier}} закончился', body: 'Поздравляем, {{customer_name}}, теперь вы {{tier_name}}.\n\nС этого момента все цены в магазине для вас на {{tier_discount}} ниже, до любых акций. Просто войдите и делайте покупки.\n\nУровень действует до {{expires_on}} и продлевается сам, пока вы продолжаете с нами.', cta: 'Моё членство' },
+      en: { subject: 'Congratulations, you are now {{tier_name}}', body: 'Congratulations {{customer_name}}, you are now {{tier_name}}.\n\nFrom now on every price in the shop is {{tier_discount}} lower for you, before any promotion. Just sign in and shop.\n\nYour tier lasts until {{expires_on}} and renews by itself while you keep shopping with us.', cta: 'My membership' },
+      el: { subject: 'Συγχαρητήρια, είσαι πλέον {{tier_name}}', body: 'Συγχαρητήρια {{customer_name}}, είσαι πλέον {{tier_name}}.\n\nΑπό τώρα κάθε τιμή στο κατάστημα είναι {{tier_discount}} χαμηλότερη για σένα, πριν από κάθε προσφορά. Απλώς συνδέσου και ψώνισε.\n\nΤο επίπεδό σου ισχύει έως {{expires_on}} και ανανεώνεται μόνο του όσο συνεχίζεις μαζί μας.', cta: 'Η συνδρομή μου' },
+      ru: { subject: 'Поздравляем, теперь вы {{tier_name}}', body: 'Поздравляем, {{customer_name}}, теперь вы {{tier_name}}.\n\nС этого момента все цены в магазине для вас на {{tier_discount}} ниже, до любых акций. Просто войдите и делайте покупки.\n\nУровень действует до {{expires_on}} и продлевается сам, пока вы продолжаете с нами.', cta: 'Моё членство' },
     },
   },
   {
@@ -553,19 +555,20 @@ export const TEMPLATES: TemplateDef[] = [
   /* ------------------------------------------- customer service --- */
   {
     key: 'support_new',
-    name: 'Customer service: new conversation (to staff)',
+    name: 'Customer service: new message (to staff)',
     category: 'essential',
     required: true,
     defaultEnabled: true,
     internal: true,
-    trigger: 'A customer starts a chat',
+    trigger: 'A customer writes in the chat',
+    note: 'At the first message, then again for new messages in the same chat at most once every 10 minutes, so a long chat does not flood the inbox.',
     ctaUrl: 'admin_url',
     variables: ['customer_name', 'customer_email', 'started_at', 'page', 'message', 'admin_url'],
     words: {
       en: {
-        subject: 'New customer support conversation',
-        body: 'A customer started a conversation.\n\nName: {{customer_name}}\nEmail: {{customer_email}}\nStarted: {{started_at}}\n\nPage: {{page}}\n\n{{message}}',
-        cta: 'Open in admin',
+        subject: 'Customer service: message from {{customer_name}}',
+        body: 'A customer wrote in the chat. Reply from the admin.\n\nName: {{customer_name}}\nEmail: {{customer_email}}\nChat started: {{started_at}}\n\nPage: {{page}}\n\n{{message}}',
+        cta: 'Reply in admin',
       },
       el: { subject: '', body: '' },
       ru: { subject: '', body: '' },
@@ -583,9 +586,29 @@ export const TEMPLATES: TemplateDef[] = [
     variables: ['order_number', 'order_total', 'order_items', 'customer_name', 'customer_email', 'customer_phone', 'payment_method', 'delivery', 'admin_url'],
     words: {
       en: {
-        subject: 'New order {{order_number}}, {{order_total}}',
+        subject: 'New order {{order_number}}, {{order_total}}, {{payment_method}}',
         body: 'A new order has come in.\n\nOrder: {{order_number}}\nTotal: {{order_total}}\nPayment: {{payment_method}}\n\nCustomer: {{customer_name}}\nEmail: {{customer_email}}\nPhone: {{customer_phone}}\n\n{{delivery}}\n\n{{order_items}}',
         cta: 'Open the order',
+      },
+      el: { subject: '', body: '' },
+      ru: { subject: '', body: '' },
+    },
+  },
+  {
+    key: 'account_new_staff',
+    name: 'New customer account (to staff)',
+    category: 'essential',
+    required: false,
+    defaultEnabled: true,
+    internal: true,
+    trigger: 'A customer creates an account (email verified)',
+    ctaUrl: 'admin_url',
+    variables: ['customer_name', 'customer_email', 'customer_phone', 'marketing', 'admin_url'],
+    words: {
+      en: {
+        subject: 'New customer account: {{customer_name}}',
+        body: 'A new customer created an account.\n\nName: {{customer_name}}\nEmail: {{customer_email}}\nPhone: {{customer_phone}}\nOffers: {{marketing}}',
+        cta: 'Open the customer',
       },
       el: { subject: '', body: '' },
       ru: { subject: '', body: '' },

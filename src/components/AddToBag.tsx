@@ -19,6 +19,7 @@ import type { Locale } from '@/config/brand'
 import { getTranslator } from '@/i18n/messages'
 import { announceBagCount } from '@/lib/bag-events'
 import { announceVariant, flavourKey } from '@/lib/variant-events'
+import { NotifyMe } from '@/components/NotifyMe'
 
 export type VariantOption = {
   id: string
@@ -38,6 +39,7 @@ export function AddToBag({
   variants,
   reservationMinutes,
   soldOut = false,
+  signedInEmail = null,
 }: {
   locale: Locale
   variants: VariantOption[]
@@ -45,6 +47,8 @@ export function AddToBag({
   /** The owner has marked the whole product sold out. The server refuses it
    *  anyway; this just says so before anyone tries. */
   soldOut?: boolean
+  /** Signed in: "Notify me" needs no email typed. */
+  signedInEmail?: string | null
 }) {
   const t = getTranslator(locale)
   const router = useRouter()
@@ -257,6 +261,13 @@ export function AddToBag({
           </p>
         )}
       </fieldset>
+
+      {/* Sold out sizes of this flavour: get an email when they are back. */}
+      <NotifyMe
+        locale={locale}
+        signedInEmail={signedInEmail}
+        options={forColour.filter((v) => availabilityOf(v) <= 0).map((v) => ({ id: v.id, size: v.size }))}
+      />
 
       {/* ------------------------------------------------------ quantity -- */}
       {selected && availabilityOf(selected) > 1 && (

@@ -55,3 +55,4 @@ next-env.d.ts
 # server build output (npm run build)
 /dist-server/
 /.pgdata-template.tar.gz
+Claude outputs/

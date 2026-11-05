@@ -59,6 +59,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
 
       <form className="mb-5 flex flex-wrap gap-2" action="/admin/expenses">
         {month && <input type="hidden" name="month" value={month} />}
+        {/* Keep "All months" when searching or picking a category. */}
+        {all && <input type="hidden" name="all" value="1" />}
         <input name="q" defaultValue={get('q')} placeholder="Search payee, description" className={`${input} max-w-xs`} />
         <select name="category" defaultValue={get('category') ?? ''} className={`${input} max-w-[14rem]`}>
           <option value="">Every category</option>
