@@ -320,3 +320,13 @@ ALTER TABLE newsletter_subscribers ADD CONSTRAINT newsletter_subscribed_confirme
 ALTER TABLE newsletter_subscribers DROP CONSTRAINT IF EXISTS newsletter_unsubscribed_dated;
 ALTER TABLE newsletter_subscribers ADD CONSTRAINT newsletter_unsubscribed_dated
   CHECK (status <> 'UNSUBSCRIBED' OR unsubscribed_at IS NOT NULL);
+
+-- ----------------------------------------------------------------- partners --
+-- Commission between 0% and 50%, and a payout is a real amount.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_partner_rate_range;
+ALTER TABLE users ADD CONSTRAINT users_partner_rate_range
+  CHECK (partner_rate_bp BETWEEN 0 AND 5000);
+
+ALTER TABLE partner_payouts DROP CONSTRAINT IF EXISTS partner_payout_positive;
+ALTER TABLE partner_payouts ADD CONSTRAINT partner_payout_positive
+  CHECK (amount_cents > 0);

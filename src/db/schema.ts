@@ -119,6 +119,11 @@ export const users = pgTable(
     role: userRoleEnum('role').notNull().default('CUSTOMER'),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     /* Soft-disable rather than delete, so historical orders keep their customer. */
+    /* A partner (influencer, content creator, gym, company) earns commission
+       on orders that used their promo codes: lib/partners.ts. Basis points,
+       so 750 is 7.5%. */
+    isPartner: boolean('is_partner').notNull().default(false),
+    partnerRateBp: integer('partner_rate_bp').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     /* The language the customer registered in — every email to them uses it. */
@@ -822,12 +827,15 @@ export const promoCodes = pgTable(
     categoryIds: jsonb('category_ids').$type<string[]>(),
     startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
+    /** The partner who earns commission on orders with this code. */
+    partnerUserId: uuid('partner_user_id').references(() => users.id, { onDelete: 'set null' }),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('promo_codes_code_unique').on(sql`upper(${t.code})`),
     index('promo_codes_active_idx').on(t.isActive, t.expiresAt),
+    index('promo_codes_partner_idx').on(t.partnerUserId),
   ],
 )
 
@@ -1849,3 +1857,22 @@ export const stockValueSnapshots = pgTable('stock_value_snapshots', {
   units: integer('units').notNull(),
   takenAt: timestamp('taken_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/* ------------------------------------------------------ partner payouts -- */
+/* Commission paid to a partner: what is owed is everything earned minus the
+   sum of these. */
+export const partnerPayouts = pgTable(
+  'partner_payouts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    amountCents: integer('amount_cents').notNull(),
+    paidOn: date('paid_on', { mode: 'string' }).notNull(),
+    note: varchar('note', { length: 300 }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('partner_payouts_user_idx').on(t.userId, t.paidOn)],
+)

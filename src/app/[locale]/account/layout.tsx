@@ -35,13 +35,15 @@ export default async function AccountLayout({
   /* Admin accounts (owners, support) do not shop: their account is in the admin. */
   if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') redirect('/admin')
 
-  const [u] = await db.select({ createdAt: users.createdAt, tier: users.tier }).from(users).where(eq(users.id, user.id))
+  const [u] = await db.select({ createdAt: users.createdAt, tier: users.tier, isPartner: users.isPartner }).from(users).where(eq(users.id, user.id))
   const { loyaltyConfig } = await import('@/lib/loyalty')
   const tiersOn = (await loyaltyConfig()).enabled
   const current = (await listOrdersForUser(user.id)).filter((o) => CURRENT_STATUSES.includes(o.status)).length
 
   const items: AccountNavItem[] = [
     ...(tiersOn ? [{ href: `${base}/membership`, label: t('acc.membership'), icon: 'membership' as const }] : []),
+    /* Partners see their promo code results. */
+    ...(u?.isPartner ? [{ href: `${base}/partner`, label: t('acc.partner'), icon: 'partner' as const }] : []),
     { href: `${base}/orders`, label: t('acc.orders'), icon: 'orders', badge: current || undefined },
     { href: `${base}/payments`, label: t('acc.payments'), icon: 'payments' },
     { href: `${base}/wishlist`, label: t('acc.wishlist'), icon: 'wishlist' },

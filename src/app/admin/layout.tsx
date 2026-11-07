@@ -66,6 +66,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       items: [
         { href: '/admin/support', label: 'Customer service', icon: 'support' as const, badge: support.unread },
         { href: '/admin/emails', label: 'Marketing & emails', icon: 'emails' as const },
+        { href: '/admin/partners', label: 'Partners', icon: 'customers' as const },
       ],
     },
     /* Costs, profit and the books: the owner and managers. Other staff see

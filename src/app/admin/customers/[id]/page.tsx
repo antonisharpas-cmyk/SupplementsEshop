@@ -57,6 +57,11 @@ export default async function AdminCustomerPage({ params }: { params: Promise<{ 
             {c.role !== 'CUSTOMER' && <Pill tone="warn">{c.role.replace('_', ' ')}</Pill>}
           </span>
         }
+        action={
+          <Link href={`/admin/partners/${c.id}`} className="btn btn-secondary btn-sm">
+            Partner
+          </Link>
+        }
       />
 
       <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-4">

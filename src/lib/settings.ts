@@ -45,6 +45,8 @@ export const SETTING_DEFAULTS: {
   loyalty_near_goal_percent: number
   loyalty_warning_days: number
   loyalty_last_call_days: number
+  /** Partners: commission counts as earned this many days after delivery. */
+  partner_return_days: number
   loyalty_keep_min_orders: number
   /* Finance: the last month closed for the accountant (YYYY-MM), '' for none. */
   books_closed_through: string
@@ -125,6 +127,7 @@ export const SETTING_DEFAULTS: {
   loyalty_warning_days: 14,
   /* The last "your tier ends" email, this many days before. */
   loyalty_last_call_days: 2,
+  partner_return_days: 14,
   /* Paid orders within a tier period that keep the tier. */
   loyalty_keep_min_orders: 1,
 
