@@ -86,7 +86,7 @@ export type MovementInput = {
   setAverageTo?: number
   /** Undoing a receipt: the landed cost it came in at. */
   undoOfCost?: number
-  refType?: 'purchase' | 'wholesale' | null
+  refType?: 'purchase' | 'wholesale' | 'undo' | null
   refId?: string | null
   note?: string | null
   occurredAt?: Date
@@ -223,6 +223,49 @@ export async function recordManualMovement(input: {
   return results[0]
 }
 
+/**
+ * Undo a movement recorded by hand (a sample, gift, damaged, count…), for
+ * when it was a mistake. Nothing is deleted: an opposite movement of the same
+ * kind, date and cost is added, so stock, average cost and the reports come
+ * out as if it never happened, and the history shows it as undone.
+ * Refused once the month is closed for the accountant.
+ */
+export async function undoManualMovement(movementId: string, by: string) {
+  const [m] = await db.select().from(stockMovements).where(eq(stockMovements.id, movementId)).limit(1)
+  if (!m) throw new StockError('That movement no longer exists.')
+  if (!(MANUAL_KINDS as readonly string[]).includes(m.kind) || m.refType) {
+    throw new StockError('Only movements recorded by hand can be undone here. Purchases and sales are undone from their own page.')
+  }
+  const [done] = await db
+    .select({ id: stockMovements.id })
+    .from(stockMovements)
+    .where(and(eq(stockMovements.refType, 'undo'), eq(stockMovements.refId, m.id)))
+    .limit(1)
+  if (done) throw new StockError('This movement is undone already.')
+  /* Read before the transaction: the embedded database serves one
+     connection at a time while a transaction is open. */
+  const { checkOpen, closedThrough, todayCy } = await import('@/lib/finance')
+  checkOpen(todayCy(m.occurredAt), await closedThrough())
+
+  const results = await db.transaction(async (tx) => {
+    const r = await applyMovement(tx, {
+      variantId: m.variantId,
+      delta: -m.quantity,
+      kind: m.kind as MovementKind,
+      /* Same cost as the original, so the two cancel out exactly. */
+      ...(m.quantity < 0 ? { unitCostCents: m.unitCostCents } : { undoOfCost: m.unitCostCents }),
+      refType: 'undo',
+      refId: m.id,
+      note: 'Undone',
+      occurredAt: m.occurredAt,
+      by,
+    })
+    return [r]
+  })
+  await announceRestocks(results)
+  return results[0]
+}
+
 /* ------------------------------------------------------------- reading -- */
 
 export type MovementRow = {
@@ -239,6 +282,8 @@ export type MovementRow = {
   size: string
   productName: Record<string, string>
   photoCount: number
+  /** Undone by hand (an opposite movement exists). */
+  undone: boolean
 }
 
 export async function listMovements(f: { from?: Date; to?: Date; kind?: string; variantId?: string; page?: number }) {
@@ -248,6 +293,9 @@ export async function listMovements(f: { from?: Date; to?: Date; kind?: string; 
   if (f.to) conds.push(lt(stockMovements.occurredAt, f.to))
   if (f.kind) conds.push(eq(stockMovements.kind, f.kind))
   if (f.variantId) conds.push(eq(stockMovements.variantId, f.variantId))
+  /* The opposite movements that undo a mistake are not listed: the original
+     shows as undone instead. */
+  conds.push(sql`${stockMovements.refType} is distinct from 'undo'`)
   const where = conds.length ? and(...conds) : undefined
   const PER = 15
   const [rows, [{ n }]] = await Promise.all([
@@ -266,6 +314,7 @@ export async function listMovements(f: { from?: Date; to?: Date; kind?: string; 
         size: productVariants.size,
         productName: products.name,
         photoCount: sql<number>`(select count(*) from attachments a where a.owner_type = 'movement' and a.owner_id = ${stockMovements.id})`.mapWith(Number),
+        undone: sql<boolean>`exists (select 1 from stock_movements u where u.ref_type = 'undo' and u.ref_id = ${stockMovements.id})`,
       })
       .from(stockMovements)
       .innerJoin(productVariants, eq(productVariants.id, stockMovements.variantId))

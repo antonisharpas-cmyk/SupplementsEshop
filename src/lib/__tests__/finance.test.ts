@@ -9,7 +9,7 @@ import { db, pool } from '@/db'
 import { categories, inventory, invoices, productVariants, products, stockMovements, users, variantCosts } from '@/db/schema'
 import { invalidateSettingsCache, setSetting } from '../settings'
 import { landedCosts, purchaseTotals, receivePurchase, saveSupplier, savePurchase, undoReceive, readOpening, applyOpening, importLines } from '../purchases'
-import { nextAverage, recordManualMovement, stockValue } from '../stock'
+import { listMovements, nextAverage, recordManualMovement, stockValue, undoManualMovement } from '../stock'
 import { createSale, creditSale, getSale, recordPayment, saveRetailer, setPrice, priceList, wholesalePrice } from '../wholesale'
 import { listCategories, saveExpense, saveRecurring, writeRecurring } from '../expenses'
 import { profitAndLoss, vatSummary } from '../finance-reports'
@@ -180,6 +180,31 @@ describe('stock without a sale', () => {
     const pl = await profitAndLoss([month])
     expect(pl.stockOut.find((s) => s.kind === 'SAMPLE')?.byMonth.get(month)).toBe(3200)
     expect(pl.countDifference.get(month)).toBe(-1600)
+  })
+  it('undoes a sample recorded by mistake: stock, cost and reports as if it never happened', async () => {
+    await applyOpening(await readOpening([['SKU', 'x', 'y', 'Quantity', 'Cost'], ['WHEY-2KG', '', '', '10', '16']]), staff)
+    await recordManualMovement({ variantId: tub, kind: 'SAMPLE', quantity: 2, note: 'arise sample', by: staff })
+    const { rows } = await listMovements({ kind: 'SAMPLE' })
+    await undoManualMovement(rows[0].id, staff)
+    expect(await onHand(tub)).toBe(10)
+    expect(await avg(tub)).toBeCloseTo(1600)
+    const pl = await profitAndLoss([month])
+    expect(pl.stockOut.find((s) => s.kind === 'SAMPLE')?.byMonth.get(month) ?? 0).toBe(0)
+    const after = await listMovements({ kind: 'SAMPLE' })
+    expect(after.rows).toHaveLength(1) /* the opposite line is not listed */
+    expect(after.rows[0].undone).toBe(true)
+    await expect(undoManualMovement(rows[0].id, staff)).rejects.toThrow(/undone already/)
+  })
+
+  it('will not undo in a month closed for the accountant', async () => {
+    await applyOpening(await readOpening([['SKU', 'x', 'y', 'Quantity', 'Cost'], ['WHEY-2KG', '', '', '10', '16']]), staff)
+    await recordManualMovement({ variantId: tub, kind: 'DAMAGED', quantity: 1, by: staff })
+    const { rows } = await listMovements({ kind: 'DAMAGED' })
+    await setSetting('books_closed_through', month)
+    invalidateSettingsCache()
+    await expect(undoManualMovement(rows[0].id, staff)).rejects.toThrow(/closed/)
+    await setSetting('books_closed_through', '')
+    invalidateSettingsCache()
   })
 })
 

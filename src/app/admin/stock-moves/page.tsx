@@ -3,7 +3,8 @@
 
 import Link from 'next/link'
 import { canSeeFinance, guardAdmin } from '@/lib/admin'
-import { listMovements, MOVEMENT_KINDS, stockWithCosts, variantLabel, type MovementKind } from '@/lib/stock'
+import { listMovements, MANUAL_KINDS, MOVEMENT_KINDS, stockWithCosts, variantLabel, type MovementKind } from '@/lib/stock'
+import { UndoMovement } from '@/components/admin/UndoMovement'
 import { monthRange } from '@/lib/finance'
 import { cyprusDayStart } from '@/lib/invoices'
 import { formatMoney } from '@/lib/pricing'
@@ -70,9 +71,13 @@ export default async function StockMovesPage({ searchParams }: { searchParams: P
         <>
           <Table head={finance ? ['Date', 'What', 'Product', 'Units', 'Cost / unit', 'Value', 'Note'] : ['Date', 'What', 'Product', 'Units', 'Note']} rightFrom={3}>
             {list.rows.map((m) => (
-              <tr key={m.id}>
+              /* An undone mistake stays in the list, crossed out. */
+              <tr key={m.id} className={m.undone ? 'text-muted line-through decoration-1' : ''}>
                 <td className="px-4 py-3 whitespace-nowrap">{when(m.occurredAt)}</td>
-                <td className="px-4 py-3">{MOVEMENT_KINDS[m.kind as MovementKind]?.label ?? m.kind}</td>
+                <td className="px-4 py-3">
+                  {MOVEMENT_KINDS[m.kind as MovementKind]?.label ?? m.kind}
+                  {m.undone && <span className="ml-2 inline-block rounded-full bg-paper-2 px-2 py-0.5 text-[10px] font-semibold tracking-wider no-underline uppercase">Undone</span>}
+                </td>
                 <td className="px-4 py-3">
                   {variantLabel(m)} <span className="font-mono text-[11px] text-muted">{m.sku}</span>
                 </td>
@@ -99,6 +104,11 @@ export default async function StockMovesPage({ searchParams }: { searchParams: P
                     m.note
                   )}
                   {m.photoCount > 0 && <span className="ml-2">· {m.photoCount} photo{m.photoCount === 1 ? '' : 's'}</span>}
+                  {!m.undone && !m.refType && (MANUAL_KINDS as readonly string[]).includes(m.kind) && (
+                    <span className="ml-3 no-underline">
+                      <UndoMovement id={m.id} label={MOVEMENT_KINDS[m.kind as MovementKind]?.label ?? 'movement'} />
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,8 +1,9 @@
-/* POST: stock out without a sale, free goods in, or a stock count. Any staff. */
+/* POST: stock out without a sale, free goods in, or a stock count. Any staff.
+   DELETE { id }: undo one of those, recorded by mistake. */
 import { z } from 'zod'
 import { requireAdminApi } from '@/lib/admin'
 import { readJson } from '@/lib/api'
-import { MANUAL_KINDS, recordManualMovement } from '@/lib/stock'
+import { MANUAL_KINDS, recordManualMovement, undoManualMovement } from '@/lib/stock'
 import { audit } from '@/lib/audit'
 import { db } from '@/db'
 import { stockMovements } from '@/db/schema'
@@ -34,5 +35,16 @@ export async function POST(request: Request) {
       .limit(1)
     await audit({ actor: g.user, action: `stock.${b.data.kind.toLowerCase()}`, entity: 'variant', entityId: b.data.variantId, diff: { quantity: b.data.quantity, note: b.data.note } })
     return { id: m?.id }
+  })
+}
+
+export async function DELETE(request: Request) {
+  const g = await requireAdminApi()
+  if ('response' in g) return g.response
+  const b = await readJson(request, z.object({ id: z.string().uuid() }))
+  if ('response' in b) return b.response
+  return run(async () => {
+    const r = await undoManualMovement(b.data.id, g.user.id)
+    await audit({ actor: g.user, action: 'stock.undo', entity: 'movement', entityId: b.data.id, diff: { variantId: r.variantId } })
   })
 }
