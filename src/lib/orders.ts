@@ -634,7 +634,9 @@ async function applyStripeEvent(event: { id: string; type: string; data: { objec
 const OPEN = ['PENDING', 'PAYMENT_PENDING', 'PAID', 'PROCESSING', 'READY_FOR_PICKUP'] as const
 
 /** Cancel an order that has not left the shop, and put its stock back. A
- *  card payment already taken is refunded through Stripe when `refund` is set. */
+ *  card payment already taken is refunded through Stripe when `refund` is set.
+ *  An order out for delivery that came back unpaid (a cash order the customer
+ *  refused, or nobody was home) can be cancelled too; paid ones are refunded. */
 export async function cancelOrder(
   orderId: string,
   opts: { reason: string; by: { id: string; email: string } | null; refund?: boolean },
@@ -642,7 +644,8 @@ export async function cancelOrder(
   const result = await db.transaction(async (tx) => {
     const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update')
     if (!order) throw new OrderError('That order does not exist.')
-    if (!(OPEN as readonly string[]).includes(order.status)) {
+    const cameBackUnpaid = order.status === 'SHIPPED' && !order.paidAt
+    if (!(OPEN as readonly string[]).includes(order.status) && !cameBackUnpaid) {
       throw new OrderError(`An order that is ${order.status.toLowerCase().replace(/_/g, ' ')} cannot be cancelled.`)
     }
     const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId))

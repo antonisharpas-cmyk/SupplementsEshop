@@ -67,6 +67,8 @@ export function OrderControls({
 
   const open = ['PENDING', 'PAYMENT_PENDING', 'PAID', 'PROCESSING', 'READY_FOR_PICKUP'].includes(status)
   const returnable = ['SHIPPED', 'DELIVERED'].includes(status) && paid
+  /* Out for delivery but it came back, and nothing was paid (cash order). */
+  const cameBack = status === 'SHIPPED' && !paid
 
   return (
     <div className="space-y-6">
@@ -135,6 +137,21 @@ export function OrderControls({
             }
           >
             {paid ? 'Cancel and refund' : 'Cancel order'}
+          </button>
+        )}
+        {cameBack && (
+          <button
+            type="button"
+            className={btn.secondary}
+            disabled={busy}
+            onClick={() =>
+              void run(
+                { action: 'cancel', refund: false },
+                'The parcel came back and was not paid? This cancels the order and puts the items back in stock. The customer is emailed.',
+              )
+            }
+          >
+            Came back, cancel order
           </button>
         )}
         {returnable && (

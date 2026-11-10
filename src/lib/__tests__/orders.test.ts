@@ -205,6 +205,19 @@ describe('after the order', () => {
     await expect(cancelOrder(r.orderId, { reason: 'again', by: null })).rejects.toThrow()
   })
 
+  it('a cash order that came back from delivery unpaid can be cancelled, and its stock returns', async () => {
+    const c = await cart()
+    await addToCart(c, variant, 2)
+    const r = await placeOrder({ cartId: c, userId: null, input: input() })
+    await setOrderStatus(r.orderId, 'PROCESSING')
+    await setOrderStatus(r.orderId, 'SHIPPED')
+    expect((await onHand()).onHand).toBe(8)
+    await cancelOrder(r.orderId, { reason: 'Came back', by: null })
+    expect((await onHand()).onHand).toBe(10)
+    const [o] = await db.select().from(orders).where(eq(orders.id, r.orderId))
+    expect(o.status).toBe('CANCELLED')
+  })
+
   it('a cash order handed over records the cash as received', async () => {
     const c = await cart()
     await addToCart(c, variant, 1)
