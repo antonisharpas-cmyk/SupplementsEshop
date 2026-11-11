@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await setOnHand(parsed.data.variantId, parsed.data.onHand)
+    const result = await setOnHand(parsed.data.variantId, parsed.data.onHand, guard.user.id)
     return Response.json(
       { ok: true, ...result },
       { headers: { 'Cache-Control': 'no-store' } },

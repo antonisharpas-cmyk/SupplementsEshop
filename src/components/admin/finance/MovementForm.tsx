@@ -16,6 +16,7 @@ const KINDS = [
   ['OWN_USE', 'Own or staff use', 'Taken for the business or staff'],
   ['DAMAGED', 'Damaged', 'Broken, leaking, unsellable'],
   ['EXPIRED', 'Expired', 'Past its date'],
+  ['LOST', 'Lost or missing', 'Cannot be found, or stolen'],
   ['SUPPLIER_EXTRA', 'Free goods from a supplier', 'Extra units at no cost: lowers the average cost'],
   ['COUNT', 'Stock count', 'Type what is on the shelf; the difference is recorded'],
 ] as const

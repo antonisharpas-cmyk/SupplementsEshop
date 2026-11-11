@@ -14,8 +14,14 @@ export function PeriodFilter({
   path,
   period,
   locale = 'en',
+  fallback = 'this_month',
+  keep = {},
 }: {
   path: string
+  /** The period the page shows with no choice in the address. */
+  fallback?: string
+  /** Other filters to keep when the period changes. */
+  keep?: Record<string, string>
   period: { key: PeriodKey; from: string | null; to: string | null }
   locale?: 'en' | 'el' | 'ru'
 }) {
@@ -26,7 +32,7 @@ export function PeriodFilter({
         {PERIODS.map((p) => (
           <Link
             key={p.key}
-            href={p.key === 'this_month' ? path : `${path}?period=${p.key}`}
+            href={`${path}?${new URLSearchParams({ ...keep, ...(p.key === fallback ? {} : { period: p.key }) })}`.replace(/\?$/, '')}
             className={`rounded-full border px-4 py-2 text-sm transition-colors ${
               period.key === p.key ? 'border-transparent bg-accent font-medium text-black' : 'border-line hover:border-ink'
             }`}
@@ -36,6 +42,9 @@ export function PeriodFilter({
         ))}
       </div>
       <form action={path} className="flex flex-wrap items-end gap-2 text-sm">
+        {Object.entries(keep).map(([k, v]) => (
+          <input key={k} type="hidden" name={k} value={v} />
+        ))}
         <label className="flex flex-col gap-1">
           <span className="text-xs text-muted">{w.from}</span>
           <input type="date" name="from" defaultValue={period.from ?? ''} className="rounded-xl border border-line bg-paper px-3 py-2" />

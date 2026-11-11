@@ -36,17 +36,19 @@ export const MOVEMENT_KINDS = {
   OWN_USE: { label: 'Own or staff use', sign: -1 },
   DAMAGED: { label: 'Damaged', sign: -1 },
   EXPIRED: { label: 'Expired', sign: -1 },
+  LOST: { label: 'Lost or missing', sign: -1 },
+  ORDER_RETURN: { label: 'Returned by a customer', sign: 1 },
   SUPPLIER_EXTRA: { label: 'Free goods from a supplier', sign: 1 },
   COUNT: { label: 'Stock count correction', sign: 0 },
 } as const
 export type MovementKind = keyof typeof MOVEMENT_KINDS
 
 /** The kinds staff record by hand on the Stock history page. */
-export const MANUAL_KINDS = ['SAMPLE', 'GIFT', 'OWN_USE', 'DAMAGED', 'EXPIRED', 'SUPPLIER_EXTRA', 'COUNT'] as const
+export const MANUAL_KINDS = ['SAMPLE', 'GIFT', 'OWN_USE', 'DAMAGED', 'EXPIRED', 'LOST', 'SUPPLIER_EXTRA', 'COUNT'] as const
 export type ManualKind = (typeof MANUAL_KINDS)[number]
 
 /** Stock that left without being sold: counted at cost in the reports. */
-export const OUT_WITHOUT_SALE: MovementKind[] = ['SAMPLE', 'GIFT', 'OWN_USE', 'DAMAGED', 'EXPIRED']
+export const OUT_WITHOUT_SALE: MovementKind[] = ['SAMPLE', 'GIFT', 'OWN_USE', 'DAMAGED', 'EXPIRED', 'LOST']
 
 /* --------------------------------------------------------------- costs -- */
 

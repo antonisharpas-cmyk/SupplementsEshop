@@ -36,7 +36,7 @@
 
 import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 import { db, type Tx } from '@/db'
-import { inventory, inventoryReservations, productVariants, products } from '@/db/schema'
+import { inventory, inventoryReservations, productVariants, products, stockMovements, variantCosts } from '@/db/schema'
 import { getSetting } from './settings'
 
 export type ReserveRequest = { variantId: string; quantity: number }
@@ -620,7 +620,7 @@ export async function getStock(variantIds: string[]): Promise<Map<string, StockV
 
 /** Admin: set the physical count. Cannot be set below what carts are holding,
  *  which is the honest answer — you cannot un-promise stock already promised. */
-export async function setOnHand(variantId: string, onHand: number) {
+export async function setOnHand(variantId: string, onHand: number, by: string | null = null) {
   if (!Number.isInteger(onHand) || onHand < 0) {
     throw new InventoryError('Stock must be a whole number of zero or more.', 'INVALID_QUANTITY')
   }
@@ -642,6 +642,20 @@ export async function setOnHand(variantId: string, onHand: number) {
       .update(inventory)
       .set({ onHand, updatedAt: new Date() })
       .where(eq(inventory.variantId, variantId))
+
+    /* Typing a new number on the Stock page is a stock count: it is kept in
+       Stock history (at the average cost), so every unit can be traced. */
+    if (onHand !== row.onHand) {
+      const [c] = await tx.select({ avg: variantCosts.avgCostCents }).from(variantCosts).where(eq(variantCosts.variantId, variantId))
+      await tx.insert(stockMovements).values({
+        variantId,
+        kind: 'COUNT',
+        quantity: onHand - row.onHand,
+        unitCostCents: c?.avg ?? 0,
+        note: 'Set on the Stock page',
+        createdBy: by,
+      })
+    }
 
     return {
       onHand,

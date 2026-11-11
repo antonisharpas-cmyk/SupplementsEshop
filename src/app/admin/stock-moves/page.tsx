@@ -40,7 +40,13 @@ export default async function StockMovesPage({ searchParams }: { searchParams: P
       <SectionTabs label="Catalogue" tabs={CATALOGUE_TABS} />
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Stock history</h1>
-        <p className="mt-1 text-sm text-muted">Everything that changed stock apart from online orders, each with a reason.</p>
+        <p className="mt-1 text-sm text-muted">
+          Everything that changed stock apart from online orders, each with a reason. To see where every unit of a product went, online orders included, open{' '}
+          <Link href="/admin/reports/stock" className="underline">
+            Where the stock went
+          </Link>
+          .
+        </p>
       </div>
       <section className="mb-8 rounded-2xl border border-line bg-paper p-5">
         <h2 className="label mb-4 text-muted">Record a movement</h2>

@@ -6,7 +6,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { eq, sql } from 'drizzle-orm'
 import { db, pool } from '@/db'
-import { categories, inventory, invoices, productVariants, products, stockMovements, users, variantCosts } from '@/db/schema'
+import { categories, inventory, invoices, orderItems, orders, productVariants, products, stockMovements, users, variantCosts } from '@/db/schema'
 import { invalidateSettingsCache, setSetting } from '../settings'
 import { landedCosts, purchaseTotals, receivePurchase, saveSupplier, savePurchase, undoReceive, readOpening, applyOpening, importLines } from '../purchases'
 import { listMovements, nextAverage, recordManualMovement, stockValue, undoManualMovement } from '../stock'
@@ -205,6 +205,32 @@ describe('stock without a sale', () => {
     await expect(undoManualMovement(rows[0].id, staff)).rejects.toThrow(/closed/)
     await setSetting('books_closed_through', '')
     invalidateSettingsCache()
+  })
+})
+
+describe('where the stock went', () => {
+  it('12 in, 6 sold online, 1 opened, 1 lost, and a shelf edit: every unit is accounted for', async () => {
+    const { traceAll, traceOne } = await import('../stock-trace')
+    const { setOnHand } = await import('../inventory')
+    await applyOpening(await readOpening([['SKU', 'x', 'y', 'Quantity', 'Cost'], ['WHEY-2KG', '', '', '12', '16']]), staff)
+    const [o] = await db
+      .insert(orders)
+      .values({ orderNumber: 'AX-TRACE1', email: 'b@example.com', phone: '+35799111222', customerName: 'B', status: 'DELIVERED', paymentMethod: 'cod', deliveryKind: 'SHIPPING', subtotalCents: 1, totalCents: 1, locale: 'en' })
+      .returning({ id: orders.id })
+    const [p] = await db.select({ productId: productVariants.productId }).from(productVariants).where(eq(productVariants.id, tub))
+    await db.insert(orderItems).values({ orderId: o.id, variantId: tub, productId: p.productId, productName: 'Whey', sku: 'WHEY-2KG', quantity: 6, unitPriceCents: 1, lineTotalCents: 6 })
+    await db.update(inventory).set({ onHand: 6 }).where(eq(inventory.variantId, tub)) /* the order took 6 */
+    await recordManualMovement({ variantId: tub, kind: 'OWN_USE', quantity: 1, note: 'opened', by: staff })
+    await recordManualMovement({ variantId: tub, kind: 'LOST', quantity: 1, by: staff })
+    await setOnHand(tub, 3, staff) /* typed on the Stock page: one more missing */
+
+    const [row] = (await traceAll({})).filter((r) => r.variantId === tub)
+    expect(row.values).toMatchObject({ opening: 12, online: -6, opened: -1, lost: -1, count: -1 })
+    expect(row.onShelf).toBe(3)
+    expect(row.unexplained).toBe(0)
+    const one = (await traceOne(tub, {}))!
+    expect(one.lines.find((l) => l.kind === 'ORDER')?.ref?.label).toBe('AX-TRACE1')
+    expect(one.lines.map((l) => l.kind).sort()).toEqual(['COUNT', 'LOST', 'OPENING', 'ORDER', 'OWN_USE'])
   })
 })
 

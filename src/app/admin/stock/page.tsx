@@ -78,8 +78,13 @@ export default async function AdminStockPage({ searchParams }: { searchParams: P
         sub={
           <>
             Click a number, type what is on the shelf, press <kbd className="font-mono">Enter</kbd>. It saves
-            and moves to the next line. Low means {low} or fewer available.
+            and moves to the next line. Low means {low} or fewer available. Every change is kept in Stock history.
           </>
+        }
+        action={
+          <Link href="/admin/reports/stock" className="btn btn-secondary btn-sm">
+            Where the stock went
+          </Link>
         }
       />
       <SectionTabs label="Catalogue" tabs={CATALOGUE_TABS} />

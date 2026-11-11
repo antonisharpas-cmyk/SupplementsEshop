@@ -11,6 +11,7 @@ import { formatMoney } from '@/lib/pricing'
 import { PeriodFilter } from '@/components/PeriodFilter'
 import { ReturnDaysForm } from '@/components/admin/PartnerAdmin'
 import { Empty, PageHead, Stat, Table } from '@/components/admin/ui'
+import { HBarChart } from '@/components/admin/charts'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,6 +52,19 @@ export default async function AdminPartnersPage({ searchParams }: { searchParams
         <Stat label="Commission in this period" value={eur(total.commission)} />
         <Stat label="Owed to partners now" value={eur(total.owed)} tone={total.owed > 0 ? 'warn' : 'plain'} />
       </div>
+
+      {partners.some((p) => p.commissionCents > 0) && (
+        <div className="mb-6 rounded-2xl border border-line bg-paper p-5">
+          <h2 className="mb-4 text-sm font-semibold">Commission in this period</h2>
+          <HBarChart
+            format={eur}
+            rows={partners
+              .filter((p) => p.commissionCents > 0)
+              .sort((a, b) => b.commissionCents - a.commissionCents)
+              .map((p) => ({ label: p.name, value: p.commissionCents, note: `${p.orders} order${p.orders === 1 ? '' : 's'}, ${eur(p.salesCents)} sales` }))}
+          />
+        </div>
+      )}
 
       {partners.length === 0 ? (
         <Empty>No partners yet.</Empty>

@@ -19,7 +19,10 @@ function today() {
   return new Date(`${s}T00:00:00Z`)
 }
 
-export function readPeriod(sp: Record<string, string | string[] | undefined>): { key: PeriodKey; from: string | null; to: string | null } {
+export function readPeriod(
+  sp: Record<string, string | string[] | undefined>,
+  fallback: Exclude<PeriodKey, 'custom'> = 'this_month',
+): { key: PeriodKey; from: string | null; to: string | null } {
   const str = (k: string) => (typeof sp[k] === 'string' ? (sp[k] as string) : '')
   const from = DAY.test(str('from')) ? str('from') : null
   const to = DAY.test(str('to')) ? str('to') : null
@@ -27,13 +30,14 @@ export function readPeriod(sp: Record<string, string | string[] | undefined>): {
   const t = today()
   const y = t.getUTCFullYear()
   const m = t.getUTCMonth()
-  switch (str('period')) {
+  switch (str('period') || fallback) {
     case 'last_month':
       return { key: 'last_month', from: iso(new Date(Date.UTC(y, m - 1, 1))), to: iso(new Date(Date.UTC(y, m, 0))) }
     case 'this_year':
       return { key: 'this_year', from: `${y}-01-01`, to: iso(t) }
     case 'all':
       return { key: 'all', from: null, to: null }
+    case 'this_month':
     default:
       return { key: 'this_month', from: iso(new Date(Date.UTC(y, m, 1))), to: iso(t) }
   }

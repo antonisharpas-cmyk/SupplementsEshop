@@ -723,8 +723,14 @@ export async function refundOrder(orderId: string, opts: { restock: boolean; by:
   await refundPayment(paid.id)
   await db.transaction(async (tx) => {
     if (opts.restock) {
+      /* Back on the shelf, and kept in Stock history so it can be traced. */
+      const { applyMovement } = await import('@/lib/stock')
       const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId))
-      for (const i of items) if (i.variantId) await restock(tx, i.variantId, i.quantity)
+      for (const i of items) {
+        if (i.variantId && i.quantity > 0) {
+          await applyMovement(tx, { variantId: i.variantId, delta: i.quantity, kind: 'ORDER_RETURN', note: `Returned, order ${order.orderNumber}`, by: opts.by.id })
+        }
+      }
     }
     await tx.update(orders).set({ status: 'REFUNDED', updatedAt: new Date() }).where(eq(orders.id, orderId))
   })

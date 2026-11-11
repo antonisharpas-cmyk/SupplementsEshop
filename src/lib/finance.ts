@@ -83,7 +83,7 @@ export async function assertOpen(day: string) {
  *  a transaction is open, and the action would hang and fail. */
 export function checkOpen(day: string, closed: string) {
   if (closed && monthOf(day) <= closed) {
-    throw new FinanceError(`${monthName(monthOf(day))} is closed for the accountant. Reopen it in Reports to change it.`)
+    throw new FinanceError(`${monthName(monthOf(day))} is closed for the accountant. Reopen it in Reports, For the accountant, to change it.`)
   }
 }
 
