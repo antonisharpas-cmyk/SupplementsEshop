@@ -7,9 +7,9 @@
 
    Runs at every start and is safe to run again:
    · A missing account is created with the password from the environment.
-   · An existing account keeps its password (each person changes their own in
-     Admin, Change password), unless --reset is given. So a password changed
-     in the admin is never put back by a deploy.
+   · The password from the environment is applied the first time, and again
+     whenever it is changed in Render. If it stays the same, a password the
+     person changed in Admin, Change password is kept. --reset applies it now.
    · The starter account admin@example.com becomes the support account.
    · An admin can never reset or switch off another staff account, so the
      owners cannot change the support password.
@@ -18,15 +18,31 @@
    Passwords live only in the environment, never in this file. */
 
 import './load-env'
+import { createHash } from 'node:crypto'
 import { eq, sql } from 'drizzle-orm'
 import { db, pool } from '../src/db'
-import { users } from '../src/db/schema'
+import { settings, users } from '../src/db/schema'
 import { hashPassword } from '../src/lib/auth/password'
 import { revokeAllSessionsForUser } from '../src/lib/auth/session'
 
 type Staff = { email: string; password: string; firstName: string; lastName: string; role: 'SUPER_ADMIN' | 'ADMIN'; finance: boolean; phone: string }
 
 const env = (k: string) => process.env[k]?.trim() || ''
+
+/* A fingerprint of the environment password, to notice when it is changed in
+   Render. Salted, never the password itself. */
+const fingerprint = (s: Staff) => createHash('sha256').update(`aionix-staff:${s.email}:${s.password}:${env('JWT_SECRET')}`).digest('hex')
+const fpKey = (s: Staff) => `staff_env:${s.email}`
+async function envChanged(s: Staff) {
+  const [row] = await db.select().from(settings).where(eq(settings.key, fpKey(s)))
+  return row?.value !== fingerprint(s)
+}
+async function remember(s: Staff) {
+  await db
+    .insert(settings)
+    .values({ key: fpKey(s), value: fingerprint(s), description: 'Admin account password from Render, fingerprint only' })
+    .onConflictDoUpdate({ target: settings.key, set: { value: fingerprint(s), updatedAt: new Date() } })
+}
 
 function configured(): Staff[] {
   const out: Staff[] = []
@@ -56,7 +72,7 @@ async function main() {
 
   for (const s of staff) {
     let [existing] = await db.select().from(users).where(sql`lower(${users.email}) = ${s.email}`)
-    let setPassword = reset
+    let setPassword = reset || (await envChanged(s))
 
     /* The starter admin from a new database becomes the support account. */
     if (!existing && s.role === 'SUPER_ADMIN') {
@@ -84,6 +100,7 @@ async function main() {
         emailVerifiedAt: new Date(),
         isActive: true,
       })
+      await remember(s)
       console.log(`  created  ${s.email} (${s.role === 'SUPER_ADMIN' ? 'support, super admin' : 'admin, full access'})`)
       continue
     }
@@ -99,7 +116,10 @@ async function main() {
         updatedAt: new Date(),
       })
       .where(eq(users.id, existing.id))
-    if (setPassword) await revokeAllSessionsForUser(existing.id)
+    if (setPassword) {
+      await revokeAllSessionsForUser(existing.id)
+      await remember(s)
+    }
     console.log(`  ready    ${s.email}${setPassword ? ', password set from the environment' : ', password kept'}`)
   }
   console.log('\n✓ admin accounts ready. Each person changes their own password in Admin, Change password.\n')
