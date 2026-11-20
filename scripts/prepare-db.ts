@@ -62,10 +62,10 @@ async function main() {
   if (await isEmpty()) {
     /* The seed creates a starter admin that the staff step below turns into
        the support account, so it uses the same password. */
-    const seedPassword = process.env.SEED_ADMIN_PASSWORD || process.env.STAFF_SUPPORT_PASSWORD
+    const seedPassword = process.env.SUPPORT_PASSWORD || process.env.SEED_ADMIN_PASSWORD || process.env.STAFF_SUPPORT_PASSWORD
     if (!seedPassword) {
       console.error(
-        '✗ New database, but no SEED_ADMIN_PASSWORD or STAFF_SUPPORT_PASSWORD to create the first admin with.',
+        '✗ New database, but no SUPPORT_PASSWORD to create the first admin with.',
       )
       process.exit(1)
     }

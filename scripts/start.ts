@@ -120,9 +120,9 @@ async function main() {
 
     const { rows } = await db.db.query<{ n: number }>('select count(*)::int as n from categories')
     if (rows[0].n === 0) {
-      const seedPassword = env.SEED_ADMIN_PASSWORD || env.STAFF_SUPPORT_PASSWORD
+      const seedPassword = env.SUPPORT_PASSWORD || env.SEED_ADMIN_PASSWORD || env.STAFF_SUPPORT_PASSWORD
       if (!seedPassword) {
-        console.error('✗ New database, but no STAFF_SUPPORT_PASSWORD to create the first admin with.')
+        console.error('✗ New database, but no SUPPORT_PASSWORD to create the first admin with.')
         return stop(1)
       }
       await run('Starting data (new database)', script('seed'), { SEED_ADMIN_PASSWORD: seedPassword })
@@ -130,12 +130,9 @@ async function main() {
       console.log('\n▶ Starting data: the shop already has data, nothing changed.')
     }
 
-    /* Only when an admin account is missing; existing ones keep their passwords anyway. */
-    const staff = await db.db.query<{ n: number }>(
-      `select count(*)::int as n from users where lower(email) in ('info@ergonsite.com','andreasgeorgiou816@gmail.com','info@vs.supply','stavrosprokopiou93@gmail.com')`,
-    )
-    if (staff.rows[0].n < 4) await run('Admin accounts', [...script('staff'), '--if-configured'])
-    else console.log('\n▶ Admin accounts: all present.')
+    /* SUPPORT_EMAIL / SUPPORT_PASSWORD and ADMIN_EMAIL / ADMIN_PASSWORD: a
+       missing account is created, existing ones keep their passwords. */
+    await run('Admin accounts', [...script('staff'), '--if-configured'])
     if (stopping) return
     console.log('\n✓ database ready, starting the site\n')
   } else {

@@ -1,18 +1,21 @@
-/* Sets up the admin accounts.
+/* Sets up the two admin accounts from the Render environment, the same way
+   as our other sites:
 
-     npm run staff -- --support-password "…" --shareholder-password "…"
+     SUPPORT_EMAIL, SUPPORT_PASSWORD   ErgonSite support: super admin
+     ADMIN_EMAIL,   ADMIN_PASSWORD     the shop owners: admin, full access
+                                       including costs, profit and finance
 
-   · Support (ErgonSite) is the super admin. The old starter account
-     admin@example.com becomes it, if it is still there.
-   · Each shareholder gets an admin account with the same access, as a
-     manager (costs, profit and the finance area). An account a shareholder
-     already made as a customer becomes their admin account, password kept.
-   · Safe to run again: existing accounts keep their password (each person
-     changes their own in Admin, My account) unless --reset is given.
+   Runs at every start and is safe to run again:
+   · A missing account is created with the password from the environment.
+   · An existing account keeps its password (each person changes their own in
+     Admin, Change password), unless --reset is given. So a password changed
+     in the admin is never put back by a deploy.
+   · The starter account admin@example.com becomes the support account.
+   · An admin can never reset or switch off another staff account, so the
+     owners cannot change the support password.
 
-   Passwords are passed on the command line, never written in this file,
-   so they do not end up in git. Run it while `npm run dev` is running
-   (it uses the same database). */
+   Older key names still work: STAFF_SUPPORT_PASSWORD for SUPPORT_PASSWORD.
+   Passwords live only in the environment, never in this file. */
 
 import './load-env'
 import { eq, sql } from 'drizzle-orm'
@@ -21,42 +24,51 @@ import { users } from '../src/db/schema'
 import { hashPassword } from '../src/lib/auth/password'
 import { revokeAllSessionsForUser } from '../src/lib/auth/session'
 
-type Staff = { email: string; firstName: string; lastName: string; role: 'SUPER_ADMIN' | 'ADMIN'; phone: string; kind: 'support' | 'shareholder' }
+type Staff = { email: string; password: string; firstName: string; lastName: string; role: 'SUPER_ADMIN' | 'ADMIN'; finance: boolean; phone: string }
 
-const STAFF: Staff[] = [
-  { email: 'info@ergonsite.com', firstName: 'Support', lastName: 'ErgonSite', role: 'SUPER_ADMIN', phone: '+35700000100', kind: 'support' },
-  { email: 'andreasgeorgiou816@gmail.com', firstName: 'Andreas', lastName: 'Georgiou', role: 'ADMIN', phone: '+35700000101', kind: 'shareholder' },
-  { email: 'info@vs.supply', firstName: 'VS', lastName: 'Supply', role: 'ADMIN', phone: '+35700000102', kind: 'shareholder' },
-  { email: 'stavrosprokopiou93@gmail.com', firstName: 'Stavros', lastName: 'Prokopiou', role: 'ADMIN', phone: '+35700000103', kind: 'shareholder' },
-]
+const env = (k: string) => process.env[k]?.trim() || ''
 
-function arg(name: string) {
-  const i = process.argv.indexOf(`--${name}`)
-  return i > -1 ? process.argv[i + 1] : undefined
+function configured(): Staff[] {
+  const out: Staff[] = []
+  const supportEmail = (env('SUPPORT_EMAIL') || 'info@ergonsite.com').toLowerCase()
+  const supportPassword = env('SUPPORT_PASSWORD') || env('STAFF_SUPPORT_PASSWORD')
+  if (supportPassword) {
+    out.push({ email: supportEmail, password: supportPassword, firstName: 'Support', lastName: 'ErgonSite', role: 'SUPER_ADMIN', finance: true, phone: '+35700000100' })
+  }
+  const adminEmail = env('ADMIN_EMAIL').toLowerCase()
+  const adminPassword = env('ADMIN_PASSWORD')
+  if (adminEmail && adminPassword && adminEmail !== supportEmail) {
+    out.push({ email: adminEmail, password: adminPassword, firstName: 'AIONIX', lastName: 'Admin', role: 'ADMIN', finance: true, phone: '+35700000101' })
+  }
+  return out
 }
 
 async function main() {
-  /* From the command line, or from .env.local (STAFF_SUPPORT_PASSWORD and
-     STAFF_SHAREHOLDER_PASSWORD), which `npm run dev` uses automatically. */
-  const supportPassword = arg('support-password') ?? process.env.STAFF_SUPPORT_PASSWORD
-  const shareholderPassword = arg('shareholder-password') ?? process.env.STAFF_SHAREHOLDER_PASSWORD
   const reset = process.argv.includes('--reset')
-  if (process.argv.includes('--if-configured') && (!supportPassword || !shareholderPassword)) return
-  for (const [n, p] of [['support-password', supportPassword], ['shareholder-password', shareholderPassword]] as const) {
-    if (!p || Buffer.byteLength(p) < 10) throw new Error(`--${n} is required, at least 10 characters.`)
+  const staff = configured()
+  if (staff.length === 0) {
+    if (process.argv.includes('--if-configured')) return
+    throw new Error('Set SUPPORT_PASSWORD (and ADMIN_EMAIL with ADMIN_PASSWORD) first.')
+  }
+  for (const s of staff) {
+    if (Buffer.byteLength(s.password) < 10) throw new Error(`The password for ${s.email} must be at least 10 characters.`)
   }
 
-  /* The starter admin becomes the support account. */
-  const [starter] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = 'admin@example.com'`)
-  const [support] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = 'info@ergonsite.com'`)
-  if (starter && !support) {
-    await db.update(users).set({ email: 'info@ergonsite.com', updatedAt: new Date() }).where(eq(users.id, starter.id))
-    console.log('  admin@example.com renamed to info@ergonsite.com')
-  }
+  for (const s of staff) {
+    let [existing] = await db.select().from(users).where(sql`lower(${users.email}) = ${s.email}`)
+    let setPassword = reset
 
-  for (const s of STAFF) {
-    const password = s.kind === 'support' ? supportPassword! : shareholderPassword!
-    const [existing] = await db.select().from(users).where(sql`lower(${users.email}) = ${s.email.toLowerCase()}`)
+    /* The starter admin from a new database becomes the support account. */
+    if (!existing && s.role === 'SUPER_ADMIN') {
+      const [starter] = await db.select().from(users).where(sql`lower(${users.email}) = 'admin@example.com'`)
+      if (starter) {
+        await db.update(users).set({ email: s.email, updatedAt: new Date() }).where(eq(users.id, starter.id))
+        console.log(`  admin@example.com renamed to ${s.email}`)
+        existing = { ...starter, email: s.email }
+        setPassword = true
+      }
+    }
+
     if (!existing) {
       /* The phone must be unique; a placeholder is used, staff do not shop. */
       let phone = s.phone
@@ -64,35 +76,33 @@ async function main() {
       await db.insert(users).values({
         email: s.email,
         phone,
-        passwordHash: await hashPassword(password),
+        passwordHash: await hashPassword(s.password),
         firstName: s.firstName,
         lastName: s.lastName,
         role: s.role,
-        /* Shareholders see costs, profit and the finance area. */
-        financeAccess: s.kind === 'shareholder',
+        financeAccess: s.finance,
         emailVerifiedAt: new Date(),
         isActive: true,
       })
-      console.log(`  created  ${s.email} (${s.role === 'SUPER_ADMIN' ? 'support, super admin' : 'admin'})`)
+      console.log(`  created  ${s.email} (${s.role === 'SUPER_ADMIN' ? 'support, super admin' : 'admin, full access'})`)
       continue
     }
-    const changePassword = reset || (s.kind === 'support' && starter?.id === existing.id && !support)
+
     await db
       .update(users)
       .set({
         role: s.role,
-        financeAccess: s.kind === 'shareholder' ? true : existing.financeAccess,
+        financeAccess: s.finance,
         isActive: true,
         emailVerifiedAt: existing.emailVerifiedAt ?? new Date(),
-        ...(s.kind === 'support' ? { firstName: s.firstName, lastName: s.lastName } : {}),
-        ...(changePassword ? { passwordHash: await hashPassword(password) } : {}),
+        ...(setPassword ? { passwordHash: await hashPassword(s.password) } : {}),
         updatedAt: new Date(),
       })
       .where(eq(users.id, existing.id))
-    if (changePassword) await revokeAllSessionsForUser(existing.id)
-    console.log(`  updated  ${s.email}${changePassword ? ', password set' : ', password kept'}`)
+    if (setPassword) await revokeAllSessionsForUser(existing.id)
+    console.log(`  ready    ${s.email}${setPassword ? ', password set from the environment' : ', password kept'}`)
   }
-  console.log('\n✓ staff accounts ready. Each person changes their own password in Admin, My account.\n')
+  console.log('\n✓ admin accounts ready. Each person changes their own password in Admin, Change password.\n')
 }
 
 main()

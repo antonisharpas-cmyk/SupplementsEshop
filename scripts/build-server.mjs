@@ -67,13 +67,13 @@ const run = (file, args = [], extra = {}) =>
   })
 try {
   await run('db-push')
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.STAFF_SUPPORT_PASSWORD
+  const adminPassword = process.env.SUPPORT_PASSWORD || process.env.SEED_ADMIN_PASSWORD || process.env.STAFF_SUPPORT_PASSWORD
   if (adminPassword) {
     /* NODE_ENV=production: no demo customer account in a real shop. */
     await run('seed', [], { SEED_ADMIN_PASSWORD: adminPassword, NODE_ENV: 'production' })
     await run('staff', ['--if-configured'])
   } else {
-    console.log('  (no STAFF_SUPPORT_PASSWORD at build time: the template has tables only)')
+    console.log('  (no SUPPORT_PASSWORD at build time: the template has tables only)')
   }
   const blob = await pg.db.dumpDataDir('gzip')
   writeFileSync(TEMPLATE, Buffer.from(await blob.arrayBuffer()))
